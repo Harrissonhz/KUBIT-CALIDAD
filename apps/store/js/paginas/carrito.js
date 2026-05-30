@@ -51,7 +51,7 @@ function renderCarrito() {
 function renderItemRow(item) {
   var subtotal = (item.precio || 0) * (item.cantidad || 1);
   return '\
-    <div class="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-6 py-4 items-center" data-id="' + item.productoId + '">\
+    <div class="flex flex-col sm:grid sm:grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-6 py-4" data-id="' + item.productoId + '">\
       <div class="sm:col-span-6 flex items-center gap-3">\
         <div class="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0">\
           <img src="' + (item.imagen || '') + '" alt="' + (item.nombre || '') + '" class="w-full h-full object-cover" loading="lazy">\
@@ -61,17 +61,15 @@ function renderItemRow(item) {
           <p class="text-xs text-slate-400">' + formatearMoneda(item.precio || 0) + ' c/u</p>\
         </div>\
       </div>\
-      <div class="sm:col-span-2 flex sm:justify-center items-center gap-2">\
-        <button class="btn-restar w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors text-sm' + ((item.cantidad || 1) <= 1 ? ' opacity-40 cursor-default' : '') + '">−</button>\
-        <span class="cantidad text-sm font-medium text-slate-900 w-6 text-center">' + (item.cantidad || 1) + '</span>\
-        <button class="btn-sumar w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors text-sm">+</button>\
-      </div>\
-      <div class="sm:col-span-2 text-right">\
+      <div class="sm:col-span-6 flex items-center justify-between sm:justify-end gap-3">\
+        <div class="flex items-center gap-2">\
+          <button class="btn-restar w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors text-sm' + ((item.cantidad || 1) <= 1 ? ' opacity-40 cursor-default' : '') + '">−</button>\
+          <span class="cantidad text-sm font-medium text-slate-900 w-6 text-center">' + (item.cantidad || 1) + '</span>\
+          <button class="btn-sumar w-7 h-7 rounded-md border border-slate-200 flex items-center justify-center text-slate-500 hover:bg-slate-100 transition-colors text-sm">+</button>\
+        </div>\
         <p class="text-sm font-semibold text-slate-900 item-subtotal">' + formatearMoneda(subtotal) + '</p>\
-      </div>\
-      <div class="sm:col-span-2 flex sm:justify-center">\
         <button class="btn-eliminar text-slate-400 hover:text-red-500 transition-colors p-1" aria-label="Eliminar">\
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">\
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">\
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>\
           </svg>\
         </button>\
