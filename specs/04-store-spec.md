@@ -45,6 +45,7 @@ El módulo **Store (Tienda Virtual)** es el componente de comercio electrónico 
 | `pos_categorias` | Árbol de categorías para navegación y filtros |
 | `pos_clientes` | Cuentas de clientes registrados en la tienda |
 | `pos_metodos_pago` | Métodos de pago habilitados para el checkout |
+| `pos_canales_venta` | Canal de venta asociado al pedido (web por defecto) |
 | `pos_configuracion_empresa` | Información legal, términos, logo, redes sociales |
 | `pos_usuarios` | Usuarios administradores de la tienda |
 | `pos_roles` | Roles del sistema (administrador, moderador de reseñas) |
@@ -96,6 +97,8 @@ erDiagram
         string id PK
         string numero_pedido
         string cliente_id FK
+        string canal_id FK
+        string venta_id FK
         string direccion_envio_id FK
         string direccion_facturacion_id FK
         date fecha_pedido
@@ -217,6 +220,8 @@ erDiagram
     }
 
     %% RELATIONSHIPS - Tablas st_*
+    pos_canales_venta ||--o{ st_pedidos : "canal_id"
+    pos_ventas ||--o{ st_pedidos : "venta_id"
     pos_clientes ||--o{ st_carritos : "cliente_id"
     st_carritos ||--o{ st_carritos_detalle : "carrito_id"
     pos_productos_detalle ||--o{ st_carritos_detalle : "producto_detalle_id"
@@ -282,6 +287,8 @@ erDiagram
 | `id` | string PK | UUID |
 | `numero_pedido` | string | Correlativo público (ej. `KBT-202605-0001`) |
 | `cliente_id` | string FK | Cliente que realizó el pedido |
+| `canal_id` | string FK | Canal de venta (web, mercadolibre, etc.) |
+| `venta_id` | string FK | Venta POS asociada (cuando el pedido se consolida) |
 | `direccion_envio_id` | string FK | Dirección de envío seleccionada |
 | `direccion_facturacion_id` | string FK | Dirección fiscal |
 | `fecha_pedido` | date | Fecha del pedido |
@@ -656,7 +663,7 @@ Cliente solicita devolución → Admin revisa y aprueba →
 
 | Tabla | Campos Requeridos |
 |---|---|
-| `st_pedidos` | `cliente_id`, `fecha_pedido`, `total`, `metodo_pago_id` |
+| `st_pedidos` | `cliente_id`, `canal_id`, `fecha_pedido`, `total`, `metodo_pago_id` |
 | `st_pedidos_detalle` | `pedido_id`, `producto_detalle_id`, `cantidad`, `precio_unitario` |
 | `st_direcciones` | `cliente_id`, `direccion`, `ciudad`, `departamento` |
 | `st_envios` | `pedido_id`, `transportadora`, `numero_guia` |

@@ -1,0 +1,14 @@
+{
+  "name": "Kubit POS",
+  "short_name": "Kubit POS",
+  "description": "Sistema de punto de venta multi-canal",
+  "start_url": "/apps/pos/ventas.html",
+  "display": "standalone",
+  "background_color": "#F8FAFC",
+  "theme_color": "#020617",
+  "orientation": "any",
+  "icons": [
+    { "src": "/apps/pos/img/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/apps/pos/img/icon-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}

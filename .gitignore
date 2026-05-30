@@ -20,9 +20,11 @@ apps/pos/js/config.js
 apps/store/js/config.js
 apps/academy/js/config.js
 
-# --- Repositorio embebido (contenido ya en apps/store) ---
+# --- Repositorios embebidos ---
 ADS-Store/
 ADS-Store
+ADS-POS/
+ADS-POS
 
 # --- Archivos de Sistema y Temporales ---
 .DS_Store

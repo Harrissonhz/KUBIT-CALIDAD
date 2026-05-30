@@ -1,0 +1,136 @@
+/* ============================================================
+   estilo.css — Kubit POS
+   Estilos complementarios a Tailwind
+   ============================================================ */
+
+/* Scrollbar fina */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
+.dark ::-webkit-scrollbar-thumb { background: #334155; }
+
+/* Ocultar scrollbar en categorías */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Product card */
+.producto-card {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.producto-card:active {
+  transform: scale(0.96);
+}
+.producto-card .precio {
+  transition: color 0.2s ease;
+}
+
+/* Cart item */
+.cart-item {
+  animation: slideIn 0.2s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Categoría pills */
+.categoria-pill {
+  transition: all 0.15s ease;
+}
+.categoria-pill.active {
+  background-color: #020617;
+  color: white;
+}
+.dark .categoria-pill.active {
+  background-color: white;
+  color: #020617;
+}
+
+/* Método de pago selected */
+.metodo-pago-option.active {
+  border-color: #020617;
+  background-color: #020617;
+  color: white;
+}
+.dark .metodo-pago-option.active {
+  border-color: white;
+  background-color: white;
+  color: #020617;
+}
+
+/* Bottom sheet */
+#cart-bottom-sheet.open {
+  transform: translateY(0);
+}
+#cart-bottom-sheet.open #sheet-overlay {
+  display: block;
+}
+
+/* Toast */
+#toast.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+/* Número de venta en navbar (mobile) */
+.venta-badge {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Transición suave para dark mode */
+html.dark,
+html.dark * {
+  transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
+}
+
+/* Placeholder del input monto */
+#monto-recibido::placeholder {
+  color: #94A3B8;
+  font-size: 1rem;
+}
+.dark #monto-recibido::placeholder {
+  color: #475569;
+}
+
+/* Focus visible accesible */
+*:focus-visible {
+  outline: 2px solid #020617;
+  outline-offset: 2px;
+}
+.dark *:focus-visible {
+  outline-color: white;
+}
+
+/* Animación de entrada de productos */
+.producto-card {
+  animation: fadeUp 0.3s ease-out forwards;
+  opacity: 0;
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.producto-card:nth-child(1) { animation-delay: 0.02s; }
+.producto-card:nth-child(2) { animation-delay: 0.04s; }
+.producto-card:nth-child(3) { animation-delay: 0.06s; }
+.producto-card:nth-child(4) { animation-delay: 0.08s; }
+.producto-card:nth-child(5) { animation-delay: 0.10s; }
+.producto-card:nth-child(6) { animation-delay: 0.12s; }
+.producto-card:nth-child(7) { animation-delay: 0.14s; }
+.producto-card:nth-child(8) { animation-delay: 0.16s; }
+.producto-card:nth-child(9) { animation-delay: 0.18s; }
+.producto-card:nth-child(10) { animation-delay: 0.20s; }
+
+/* Safe area bottom para mobile con notch */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  #cart-mobile-bar {
+    padding-bottom: calc(0.75rem + env(safe-area-inset-bottom));
+  }
+  #cart-bottom-sheet .rounded-t-2xl {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+}

@@ -84,8 +84,8 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
   - `pos_*` → Módulo POS + tablas core compartidas (24 tablas)
   - `st_*` → Módulo Store (10 tablas)
   - `academy_*` → Módulo Academy (futuro)
-- Los módulos comparten tablas base: `pos_productos`, `pos_productos_detalle`, `pos_categorias`, `pos_clientes`, `pos_usuarios`, `pos_roles`, `pos_permisos`, `pos_configuracion_empresa`, `pos_metodos_pago`
-- **34 tablas en total** (24 pos_* + 10 st_*)
+- Los módulos comparten tablas base: `pos_productos`, `pos_productos_detalle`, `pos_categorias`, `pos_clientes`, `pos_usuarios`, `pos_roles`, `pos_permisos`, `pos_configuracion_empresa`, `pos_metodos_pago`, `pos_canales_venta`
+- **35 tablas en total** (25 pos_* + 10 st_*)
 
 ### 3.3 Licenciamiento
 - El SaaS se puede vender **por módulos separados** (POS solo, Store solo, o bundle)

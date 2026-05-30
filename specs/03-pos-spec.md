@@ -422,6 +422,8 @@ erDiagram
         string numero_venta
         string cliente_id FK
         string usuario_id FK
+        string canal_id FK
+        string referencia_externa
         timestamp fecha_venta
         string metodo_pago
         string estado
@@ -454,6 +456,7 @@ erDiagram
     }
 
     %% RELATIONSHIPS
+    pos_canales_venta ||--o{ pos_ventas : "canal_id"
     pos_usuarios ||--o{ pos_caja_apertura : "cajero_id"
     pos_categorias ||--o{ pos_categorias : "categoria_padre_id"
     pos_usuarios ||--o{ pos_clientes : "created_by"
@@ -513,6 +516,7 @@ erDiagram
 | `pos_sucursales` | Sucursales o puntos de venta | Maestro |
 | `pos_cajas` | Cajas registradoras físicas/lógicas | Maestro |
 | `pos_metodos_pago` | Catálogo de métodos de pago (Efectivo, Tarjeta, Transferencia, etc.) | Maestro |
+| `pos_canales_venta` | Catálogo de canales de venta (físico, web, MercadoLibre, etc.) | Maestro |
 | `pos_gasto_categorias` | Categorías para clasificación de gastos | Maestro |
 
 #### 2.3.2 Productos e Inventario
@@ -773,7 +777,9 @@ Los permisos se organizan por módulo (`modulo`) con clave única (`clave`):
 ### 6.1 Módulo Store (Tienda Virtual)
 - Los productos creados en POS se sincronizan automáticamente con la tienda virtual
 - El stock se actualiza en tiempo real (o cada 5 minutos vía polling)
-- Las ventas online se registran como ventas en POS con `metodo_pago = "online"` y origen `store`
+- Las ventas online se registran como ventas en POS con `canal_id = web`
+- Los pedidos de la tienda (`st_pedidos`) se vinculan a su venta POS mediante `st_pedidos.venta_id`
+- La consolidación de inventario es automática: al confirmar un pedido web, se descuenta stock vía `pos_movimientos_inventario`
 
 ### 6.2 Supabase/PostgreSQL
 - Todas las operaciones CRUD se realizan vía API de Supabase
@@ -792,7 +798,7 @@ Los permisos se organizan por módulo (`modulo`) con clave única (`clave`):
 
 | Tabla | Campos Requeridos |
 |---|---|
-| `pos_ventas` | `cliente_id`, `usuario_id`, `fecha_venta`, `total` |
+| `pos_ventas` | `cliente_id`, `usuario_id`, `canal_id`, `fecha_venta`, `total` |
 | `pos_ventas_detalle` | `venta_id`, `producto_detalle_id`, `cantidad`, `precio_unitario` |
 | `pos_caja_apertura` | `caja_id`, `cajero_id`, `fecha_apertura`, `monto_inicial` |
 | `pos_productos` | `nombre`, `categoria_id` |

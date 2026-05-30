@@ -205,13 +205,53 @@ create policy "escritura authenticated"
   using (true)
   with check (true);
 
+-- ============================================================
+-- 6. pos_canales_venta
+-- Catalogo de canales de venta (fisico, web, mercadolibre, etc.)
+-- ============================================================
+create table public.pos_canales_venta (
+  id uuid primary key default gen_random_uuid(),
+  nombre text not null,
+  codigo text not null,
+  descripcion text,
+  comision_porcentaje numeric default 0,
+  activo boolean default true,
+  created_at timestamptz default now(),
+  updated_at timestamptz default now(),
+  created_by uuid,
+  updated_by uuid,
+  deleted_at timestamptz
+);
+
+create unique index uk_pos_canales_venta_codigo on public.pos_canales_venta(codigo);
+
+create trigger trg_pos_canales_venta_updated_at
+  before update on public.pos_canales_venta
+  for each row execute function public.update_updated_at();
+
+grant select on public.pos_canales_venta to anon;
+grant select, insert, update, delete on public.pos_canales_venta to authenticated;
+grant all on public.pos_canales_venta to service_role;
+
+alter table public.pos_canales_venta enable row level security;
+
+create policy "lectura publica"
+  on public.pos_canales_venta for select
+  to anon, authenticated
+  using (true);
+
+create policy "escritura authenticated"
+  on public.pos_canales_venta for all
+  to authenticated
+  using (true)
+  with check (true);
 
 -- ============================================================
 -- FASE 2: DEPENDENCIAS DE FASE 1
 -- ============================================================
 
 -- ============================================================
--- 6. pos_cajas
+-- 7. pos_cajas
 -- ============================================================
 create table public.pos_cajas (
   id uuid primary key default gen_random_uuid(),
@@ -250,7 +290,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 7. pos_rol_permisos
+-- 8. pos_rol_permisos
 -- ============================================================
 create table public.pos_rol_permisos (
   rol_id uuid not null references public.pos_roles(id),
@@ -284,7 +324,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 8. pos_usuarios
+-- 9. pos_usuarios
 -- Nota: created_by y updated_by se agregan despues via ALTER
 -- ============================================================
 create table public.pos_usuarios (
@@ -339,7 +379,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 9. pos_categorias
+-- 10. pos_categorias
 -- Nota: categoria_padre_id se agrega despues via ALTER (auto-referencia)
 -- ============================================================
 create table public.pos_categorias (
@@ -385,7 +425,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 10. pos_configuracion_empresa
+-- 11. pos_configuracion_empresa
 -- ============================================================
 create table public.pos_configuracion_empresa (
   id uuid primary key default gen_random_uuid(),
@@ -442,7 +482,7 @@ create policy "escritura authenticated"
 -- ============================================================
 
 -- ============================================================
--- 11. pos_clientes
+-- 12. pos_clientes
 -- ============================================================
 create table public.pos_clientes (
   id uuid primary key default gen_random_uuid(),
@@ -494,7 +534,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 12. pos_proveedores
+-- 13. pos_proveedores
 -- ============================================================
 create table public.pos_proveedores (
   id uuid primary key default gen_random_uuid(),
@@ -548,7 +588,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 13. pos_productos
+-- 14. pos_productos
 -- ============================================================
 create table public.pos_productos (
   id uuid primary key default gen_random_uuid(),
@@ -628,7 +668,7 @@ create trigger trg_pos_productos_set_slug
   for each row execute function public.set_slug();
 
 -- ============================================================
--- 14. pos_productos_detalle
+-- 15. pos_productos_detalle
 -- ============================================================
 create table public.pos_productos_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -680,7 +720,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 15. pos_productos_multimedia
+-- 16. pos_productos_multimedia
 -- ============================================================
 create table public.pos_productos_multimedia (
   id uuid primary key default gen_random_uuid(),
@@ -729,7 +769,7 @@ create policy "escritura authenticated"
 -- ============================================================
 
 -- ============================================================
--- 16. pos_caja_apertura
+-- 17. pos_caja_apertura
 -- ============================================================
 create table public.pos_caja_apertura (
   id uuid primary key default gen_random_uuid(),
@@ -777,7 +817,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 17. pos_compras
+-- 18. pos_compras
 -- ============================================================
 create table public.pos_compras (
   id uuid primary key default gen_random_uuid(),
@@ -826,7 +866,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 18. pos_compras_detalle
+-- 19. pos_compras_detalle
 -- ============================================================
 create table public.pos_compras_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -866,13 +906,15 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 19. pos_ventas
+-- 20. pos_ventas
 -- ============================================================
 create table public.pos_ventas (
   id uuid primary key default gen_random_uuid(),
   numero_venta text,
   cliente_id uuid references public.pos_clientes(id),
   usuario_id uuid not null references public.pos_usuarios(id),
+  canal_id uuid not null references public.pos_canales_venta(id),
+  referencia_externa text,
   fecha_venta timestamptz not null,
   metodo_pago text,
   estado text default 'PENDIENTE' check (estado in ('PENDIENTE', 'CONFIRMADA', 'FACTURADA', 'ANULADA')),
@@ -890,6 +932,7 @@ create table public.pos_ventas (
 
 create index idx_pos_ventas_cliente_id on public.pos_ventas(cliente_id);
 create index idx_pos_ventas_usuario_id on public.pos_ventas(usuario_id);
+create index idx_pos_ventas_canal_id on public.pos_ventas(canal_id);
 create index idx_pos_ventas_created_by on public.pos_ventas(created_by);
 create index idx_pos_ventas_updated_by on public.pos_ventas(updated_by);
 
@@ -915,7 +958,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 20. pos_ventas_detalle
+-- 21. pos_ventas_detalle
 -- ============================================================
 create table public.pos_ventas_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -955,7 +998,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 21. pos_facturacion
+-- 22. pos_facturacion
 -- ============================================================
 create table public.pos_facturacion (
   id uuid primary key default gen_random_uuid(),
@@ -1012,7 +1055,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 22. pos_movimientos_inventario
+-- 23. pos_movimientos_inventario
 -- ============================================================
 create table public.pos_movimientos_inventario (
   id uuid primary key default gen_random_uuid(),
@@ -1062,7 +1105,7 @@ create policy "escritura authenticated"
 -- ============================================================
 
 -- ============================================================
--- 23. pos_finanzas_mensuales
+-- 24. pos_finanzas_mensuales
 -- ============================================================
 create table public.pos_finanzas_mensuales (
   id uuid primary key default gen_random_uuid(),
@@ -1115,7 +1158,7 @@ create policy "escritura authenticated"
   with check (true);
 
 -- ============================================================
--- 24. pos_gastos_mensuales_detalle
+-- 25. pos_gastos_mensuales_detalle
 -- ============================================================
 create table public.pos_gastos_mensuales_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -1164,7 +1207,7 @@ create policy "escritura authenticated"
 -- ============================================================
 
 -- ============================================================
--- 25. st_cupones
+-- 26. st_cupones
 -- ============================================================
 create table public.st_cupones (
   id uuid primary key default gen_random_uuid(),
@@ -1208,7 +1251,7 @@ create unique index uk_st_cupones_codigo on public.st_cupones(codigo);
 create index idx_st_cupones_created_by on public.st_cupones(created_by);
 
 -- ============================================================
--- 26. st_direcciones
+-- 27. st_direcciones
 -- ============================================================
 create table public.st_direcciones (
   id uuid primary key default gen_random_uuid(),
@@ -1262,7 +1305,7 @@ create policy "clientes eliminan sus direcciones"
   using (cliente_id = auth.uid());
 
 -- ============================================================
--- 27. st_carritos
+-- 28. st_carritos
 -- ============================================================
 create table public.st_carritos (
   id uuid primary key default gen_random_uuid(),
@@ -1310,7 +1353,7 @@ create policy "clientes eliminan sus carritos"
   using (cliente_id = auth.uid());
 
 -- ============================================================
--- 28. st_carritos_detalle
+-- 29. st_carritos_detalle
 -- ============================================================
 create table public.st_carritos_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -1360,12 +1403,14 @@ create policy "clientes gestionan su carrito"
   );
 
 -- ============================================================
--- 29. st_pedidos
+-- 30. st_pedidos
 -- ============================================================
 create table public.st_pedidos (
   id uuid primary key default gen_random_uuid(),
   numero_pedido text,
   cliente_id uuid not null references public.pos_clientes(id),
+  canal_id uuid not null references public.pos_canales_venta(id),
+  venta_id uuid references public.pos_ventas(id),
   direccion_envio_id uuid references public.st_direcciones(id),
   direccion_facturacion_id uuid references public.st_direcciones(id),
   fecha_pedido date not null,
@@ -1389,6 +1434,8 @@ create table public.st_pedidos (
 );
 
 create index idx_st_pedidos_cliente_id on public.st_pedidos(cliente_id);
+create index idx_st_pedidos_canal_id on public.st_pedidos(canal_id);
+create index idx_st_pedidos_venta_id on public.st_pedidos(venta_id);
 create index idx_st_pedidos_direccion_envio_id on public.st_pedidos(direccion_envio_id);
 create index idx_st_pedidos_direccion_facturacion_id on public.st_pedidos(direccion_facturacion_id);
 create index idx_st_pedidos_cupon_id on public.st_pedidos(cupon_id);
@@ -1428,7 +1475,7 @@ create policy "admins actualizan pedidos"
   with check (true);
 
 -- ============================================================
--- 30. st_pedidos_detalle
+-- 31. st_pedidos_detalle
 -- ============================================================
 create table public.st_pedidos_detalle (
   id uuid primary key default gen_random_uuid(),
@@ -1470,7 +1517,7 @@ create policy "admins gestionan detalle de pedidos"
   with check (true);
 
 -- ============================================================
--- 31. st_envios
+-- 32. st_envios
 -- ============================================================
 create table public.st_envios (
   id uuid primary key default gen_random_uuid(),
@@ -1519,7 +1566,7 @@ create policy "admins gestionan envios"
   with check (true);
 
 -- ============================================================
--- 32. st_resenas
+-- 33. st_resenas
 -- ============================================================
 create table public.st_resenas (
   id uuid primary key default gen_random_uuid(),
@@ -1572,7 +1619,7 @@ create policy "clientes actualizan sus reseñas"
   with check (cliente_id = auth.uid());
 
 -- ============================================================
--- 33. st_pagos_online
+-- 34. st_pagos_online
 -- ============================================================
 create table public.st_pagos_online (
   id uuid primary key default gen_random_uuid(),
@@ -1617,7 +1664,7 @@ create policy "admins gestionan pagos"
   with check (true);
 
 -- ============================================================
--- 34. st_wishlist
+-- 35. st_wishlist
 -- ============================================================
 create table public.st_wishlist (
   id uuid primary key default gen_random_uuid(),
@@ -1650,6 +1697,15 @@ create policy "clientes gestionan su wishlist"
 
 
 -- ============================================================
+-- DATOS SEMILLA: CANALES DE VENTA
+-- ============================================================
+insert into public.pos_canales_venta (nombre, codigo, descripcion, comision_porcentaje) values
+  ('Físico', 'fisico', 'Punto de venta presencial', 0),
+  ('Web', 'web', 'Tienda virtual propia', 0),
+  ('MercadoLibre', 'mercadolibre', 'Integración con MercadoLibre', 17)
+on conflict (codigo) do nothing;
+
+-- ============================================================
 -- FIN DEL ESQUEMA
--- 34 tablas | 24 pos_* + 10 st_*
+-- 35 tablas | 25 pos_* + 10 st_*
 -- ============================================================
