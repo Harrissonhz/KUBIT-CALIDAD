@@ -170,7 +170,6 @@ Deno.serve(async (req: Request) => {
         .select("id")
         .eq("producto_id", item.productoId)
         .is("deleted_at", null)
-        .order("orden", { ascending: true, nullsFirst: false })
         .limit(1)
         .maybeSingle();
 
