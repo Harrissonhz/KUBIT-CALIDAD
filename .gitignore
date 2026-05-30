@@ -1,0 +1,31 @@
+# --- Carpeta de documentación personal (No subir a prod) ---
+Archivosinformativos/
+
+# --- Variables de entorno (SEGURIDAD CRÍTICA) ---
+# Nunca subas tus llaves de API o contraseñas
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# --- Dependencias y librerías ---
+node_modules/
+dist/
+build/
+
+# --- Archivos de configuración local con credenciales (SEGURIDAD CRÍTICA) ---
+# Contienen llaves de API reales. NO subir a GitHub.
+apps/pos/js/config.js
+apps/store/js/config.js
+apps/academy/js/config.js
+
+# --- Repositorio embebido (contenido ya en apps/store) ---
+ADS-Store/
+ADS-Store
+
+# --- Archivos de Sistema y Temporales ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

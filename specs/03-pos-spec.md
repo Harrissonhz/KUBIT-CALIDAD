@@ -1,0 +1,836 @@
+# Especificación del Módulo POS - Kubit
+
+## 1. Descripción General
+El módulo **POS (Point of Sale)** es el núcleo transaccional del ecosistema Kubit. Gestiona ventas presenciales, control de caja, inventario, compras, facturación electrónica (DIAN) y finanzas mensuales para PYMES colombianas.
+
+### 1.1 Alcance Funcional
+- Registro de ventas con múltiples métodos de pago
+- Apertura y cierre de cajas registradoras
+- Control de inventario (entradas, salidas, ajustes)
+- Compras a proveedores
+- Facturación electrónica (cumplimiento DIAN)
+- Gestión de clientes y proveedores
+- Catálogo de productos con variantes
+- Dashboard financiero mensual
+- Control de acceso basado en roles (RBAC)
+
+### 1.2 Dependencias
+- **Base de datos:** PostgreSQL vía Supabase (esquema `pos_*`)
+- **UI/UX:** Sistema de diseño definido en `05-ui-ux-system.md`
+- **Arquitectura:** Estructura definida en `ARCHITECTURE.md`
+
+---
+
+## 2. Modelo de Datos
+
+### 2.1 Convenciones Generales
+- **Prefijo:** Todas las tablas usan prefijo `pos_`
+- **Primary Key:** `id` tipo `string` (UUID v4)
+- **Timestamps:** `created_at` y `updated_at` tipo `timestamptz`
+- **Soft Delete:** `deleted_at` nullable (`timestamptz`)
+- **Auditoría:** `created_by` y `updated_by` como FK a `pos_usuarios`
+- **Moneda:** Todos los montos son `numeric`
+- **Índices:** Todas las FK deben tener índice para rendimiento en JOINs
+
+### 2.2 Diagrama Entidad-Relación
+
+```mermaid
+erDiagram
+    pos_caja_apertura {
+        string id PK
+        string caja_id FK
+        string cajero_id FK
+        timestamp fecha_apertura
+        timestamp fecha_cierre
+        text observaciones
+        numeric monto_inicial
+        numeric monto_final
+        numeric monto_esperado
+        numeric diferencia
+        string estado
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_cajas {
+        string id PK
+        string nombre
+        string sucursal_id FK
+        text descripcion
+        boolean activa
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_categorias {
+        string id PK
+        string nombre
+        text descripcion
+        string color
+        boolean activa
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+        string codigo
+        string categoria_padre_id FK
+    }
+
+    pos_clientes {
+        string id PK
+        string tipo_id
+        string numero_id
+        string primer_nombre
+        string segundo_nombre
+        string primer_apellido
+        string segundo_apellido
+        string direccion
+        string ciudad
+        string departamento
+        string telefono
+        string celular
+        string email
+        date fecha_nacimiento
+        string genero
+        boolean activo
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_compras {
+        string id PK
+        int numero_orden
+        string proveedor_id FK
+        string usuario_id FK
+        date fecha_compra
+        date fecha_entrega
+        string estado
+        numeric subtotal
+        numeric impuesto
+        numeric descuento
+        numeric total
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_compras_detalle {
+        string id PK
+        string compra_id FK
+        string producto_detalle_id FK
+        int cantidad
+        numeric precio_unitario
+        numeric descuento
+        numeric tasa_impuesto
+        numeric subtotal
+        numeric impuesto
+        numeric total
+        timestamp created_at
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_configuracion_empresa {
+        string id PK
+        string nombre_empresa
+        string nit
+        text direccion
+        string telefono
+        string email
+        string sitio_web
+        string resolucion_dian
+        int rango_desde
+        int rango_hasta
+        numeric impuesto_default
+        string moneda
+        string zona_horaria
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        date fecha_vencimiento_resolucion
+        string prefijo_facturacion
+        text logo_url
+        text mensaje_legal
+        timestamp deleted_at
+    }
+
+    pos_facturacion {
+        string id PK
+        string venta_id FK
+        string tipo_comprobante
+        string serie
+        string numero
+        date fecha_emision
+        string moneda
+        string condicion_venta
+        int dias_credito
+        string cliente_id FK
+        string cliente_tipo_id
+        string cliente_numero_id
+        string cliente_nombre
+        string cliente_direccion
+        string cliente_email
+        string cliente_telefono
+        numeric subtotal
+        numeric impuesto
+        numeric total
+        string estado
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_finanzas_mensuales {
+        string id PK
+        int anio
+        int mes
+        numeric ventas_brutas
+        numeric devoluciones
+        numeric descuentos
+        numeric ventas_netas
+        numeric costo_mercaderia_vendida
+        numeric gastos_operativos_total
+        numeric inversion_marketing
+        numeric otros_ingresos
+        numeric otros_gastos
+        numeric utilidad_bruta
+        numeric utilidad_neta
+        numeric roi_calculado
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+        numeric compras_total
+    }
+
+    pos_gasto_categorias {
+        string id PK
+        string nombre
+        text descripcion
+        boolean activa
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_gastos_mensuales_detalle {
+        string id PK
+        int anio
+        int mes
+        string categoria_id FK
+        numeric monto
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+        string venta_id FK
+    }
+
+    pos_metodos_pago {
+        string id PK
+        string nombre
+        text descripcion
+        boolean activo
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_movimientos_inventario {
+        string id PK
+        string producto_detalle_id FK
+        string tipo_movimiento
+        int cantidad
+        string motivo
+        string referencia
+        text notas
+        timestamp fecha
+        string created_by FK
+        timestamp updated_at
+        timestamp deleted_at
+    }
+
+    pos_permisos {
+        string id PK
+        string clave
+        string descripcion
+        string modulo
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    pos_productos {
+        string id PK
+        string nombre
+        string tipo_producto
+        string categoria_id FK
+        string marca
+        string modelo
+        text descripcion
+        numeric tasa_impuesto
+        boolean activo
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_productos_detalle {
+        string id PK
+        string producto_id FK
+        string codigo_barras
+        string codigo_interno
+        numeric precio_compra
+        numeric precio_venta
+        numeric precio_mayorista
+        numeric margen_ganancia
+        numeric descuento_max
+        int stock_actual
+        int stock_min
+        int stock_max
+        numeric peso
+        string dimensiones
+        jsonb atributos
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_productos_multimedia {
+        string id PK
+        string producto_id FK
+        string producto_detalle_id FK
+        string url
+        string tipo
+        int orden
+        string alt_text
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_proveedores {
+        string id PK
+        string tipo_id
+        string numero_id
+        string razon_social
+        string nombre_comercial
+        string codigo
+        string categoria
+        string direccion
+        string ciudad
+        string departamento
+        string telefono
+        string celular
+        string email
+        string sitio_web
+        string persona_contacto
+        string terminos_pago
+        numeric limite_credito
+        boolean activo
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_roles {
+        string id PK
+        string nombre
+        string descripcion
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    pos_rol_permisos {
+        string rol_id PK
+        string permiso_id PK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    pos_sucursales {
+        string id PK
+        string nombre
+        string direccion
+        string ciudad
+        string departamento
+        string telefono
+        string email
+        boolean activa
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_usuarios {
+        string id PK
+        string nombre_completo
+        string usuario
+        string email
+        string telefono
+        string documento
+        date fecha_nacimiento
+        text direccion
+        string rol_id FK
+        boolean activo
+        timestamp ultimo_acceso
+        string password_hash
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_ventas {
+        string id PK
+        string numero_venta
+        string cliente_id FK
+        string usuario_id FK
+        timestamp fecha_venta
+        string metodo_pago
+        string estado
+        numeric subtotal
+        numeric impuesto
+        numeric descuento
+        numeric total
+        text notas
+        timestamp created_at
+        timestamp updated_at
+        string created_by FK
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    pos_ventas_detalle {
+        string id PK
+        string venta_id FK
+        string producto_detalle_id FK
+        int cantidad
+        numeric precio_unitario
+        numeric descuento
+        numeric tasa_impuesto
+        numeric subtotal
+        numeric impuesto
+        numeric total
+        timestamp created_at
+        string updated_by FK
+        timestamp deleted_at
+    }
+
+    %% RELATIONSHIPS
+    pos_usuarios ||--o{ pos_caja_apertura : "cajero_id"
+    pos_categorias ||--o{ pos_categorias : "categoria_padre_id"
+    pos_usuarios ||--o{ pos_clientes : "created_by"
+    pos_usuarios ||--o{ pos_compras : "usuario_id"
+    pos_proveedores ||--o{ pos_compras : "proveedor_id"
+    pos_compras ||--o{ pos_compras_detalle : "compra_id"
+    pos_productos_detalle ||--o{ pos_compras_detalle : "producto_detalle_id"
+    pos_usuarios ||--o{ pos_configuracion_empresa : "updated_by"
+    pos_ventas ||--|| pos_facturacion : "venta_id"
+    pos_usuarios ||--o{ pos_facturacion : "created_by"
+    pos_usuarios ||--o{ pos_finanzas_mensuales : "created_by"
+    pos_gasto_categorias ||--o{ pos_gastos_mensuales_detalle : "categoria_id"
+    pos_ventas ||--o{ pos_gastos_mensuales_detalle : "venta_id"
+    pos_productos_detalle ||--o{ pos_movimientos_inventario : "producto_detalle_id"
+    pos_usuarios ||--o{ pos_movimientos_inventario : "created_by"
+    pos_categorias ||--o{ pos_productos : "categoria_id"
+    pos_usuarios ||--o{ pos_productos : "created_by"
+    pos_usuarios ||--o{ pos_proveedores : "created_by"
+    pos_clientes ||--o{ pos_ventas : "cliente_id"
+    pos_usuarios ||--o{ pos_ventas : "usuario_id"
+    pos_ventas ||--o{ pos_ventas_detalle : "venta_id"
+    pos_productos_detalle ||--o{ pos_ventas_detalle : "producto_detalle_id"
+    pos_roles ||--o{ pos_usuarios : "rol_id"
+    pos_roles ||--o{ pos_rol_permisos : "rol_id"
+    pos_permisos ||--o{ pos_rol_permisos : "permiso_id"
+    pos_productos ||--o{ pos_productos_detalle : "producto_id"
+    pos_productos ||--o{ pos_productos_multimedia : "producto_id"
+    pos_productos_detalle ||--o{ pos_productos_multimedia : "producto_detalle_id"
+    pos_usuarios ||--o{ pos_productos_detalle : "created_by"
+    pos_usuarios ||--o{ pos_productos_detalle : "updated_by"
+    pos_usuarios ||--o{ pos_productos_multimedia : "created_by"
+    pos_usuarios ||--o{ pos_productos_multimedia : "updated_by"
+    pos_usuarios ||--o{ pos_caja_apertura : "created_by"
+    pos_usuarios ||--o{ pos_caja_apertura : "updated_by"
+    pos_usuarios ||--o{ pos_configuracion_empresa : "created_by"
+    pos_clientes ||--o{ pos_facturacion : "cliente_id"
+    pos_cajas ||--o{ pos_caja_apertura : "caja_id"
+    pos_sucursales ||--o{ pos_cajas : "sucursal_id"
+    pos_usuarios ||--o{ pos_cajas : "created_by"
+    pos_usuarios ||--o{ pos_cajas : "updated_by"
+    pos_usuarios ||--o{ pos_metodos_pago : "created_by"
+    pos_usuarios ||--o{ pos_metodos_pago : "updated_by"
+    pos_usuarios ||--o{ pos_sucursales : "created_by"
+    pos_usuarios ||--o{ pos_sucursales : "updated_by"
+    pos_usuarios ||--o{ pos_compras_detalle : "updated_by"
+    pos_usuarios ||--o{ pos_ventas_detalle : "updated_by"
+    pos_usuarios ||--o{ pos_facturacion : "updated_by"
+```
+
+### 2.3 Catálogo de Tablas
+
+#### 2.3.1 Configuración y Maestros
+
+| Tabla | Propósito | Tipo |
+|---|---|---|
+| `pos_configuracion_empresa` | Configuración general de la empresa (singleton) | Maestro |
+| `pos_sucursales` | Sucursales o puntos de venta | Maestro |
+| `pos_cajas` | Cajas registradoras físicas/lógicas | Maestro |
+| `pos_metodos_pago` | Catálogo de métodos de pago (Efectivo, Tarjeta, Transferencia, etc.) | Maestro |
+| `pos_gasto_categorias` | Categorías para clasificación de gastos | Maestro |
+
+#### 2.3.2 Productos e Inventario
+
+| Tabla | Propósito |
+|---|---|
+| `pos_categorias` | Árbol jerárquico de categorías de productos (autoreferenciada vía `categoria_padre_id`) |
+| `pos_productos` | Cabecera del producto (nombre, marca, modelo, impuesto) |
+| `pos_productos_detalle` | Variante del producto (código barras, precios, stock, peso, dimensiones, atributos JSON) |
+| `pos_productos_multimedia` | Imágenes y archivos multimedia asociados al producto/variante |
+| `pos_movimientos_inventario` | Bitácora de movimientos de inventario (entradas, salidas, ajustes) |
+
+#### 2.3.3 Clientes y Proveedores
+
+| Tabla | Propósito |
+|---|---|
+| `pos_clientes` | Datos maestros de clientes (personas naturales o jurídicas) |
+| `pos_proveedores` | Datos maestros de proveedores |
+
+#### 2.3.4 Transaccional
+
+| Tabla | Propósito |
+|---|---|
+| `pos_caja_apertura` | Sesiones de apertura/cierre de caja |
+| `pos_ventas` | Cabecera de ventas |
+| `pos_ventas_detalle` | Líneas de detalle de cada venta |
+| `pos_compras` | Cabecera de órdenes de compra |
+| `pos_compras_detalle` | Líneas de detalle de cada compra |
+| `pos_facturacion` | Facturas electrónicas (cumplimiento DIAN) |
+
+#### 2.3.5 Financiero
+
+| Tabla | Propósito |
+|---|---|
+| `pos_finanzas_mensuales` | Resumen financiero mensual (ventas, costos, gastos, ROI) |
+| `pos_gastos_mensuales_detalle` | Detalle de gastos operativos del mes |
+
+#### 2.3.6 Seguridad
+
+| Tabla | Propósito |
+|---|---|
+| `pos_usuarios` | Usuarios del sistema |
+| `pos_roles` | Roles (Administrador, Cajero, Vendedor, etc.) |
+| `pos_permisos` | Permisos granulares (catálogo) |
+| `pos_rol_permisos` | Asignación de permisos a roles (PK compuesta) |
+
+---
+
+## 3. Reglas de Negocio
+
+### 3.1 Ventas
+
+#### 3.1.1 Ciclo de Vida de una Venta
+
+```
+PENDIENTE → CONFIRMADA → FACTURADA → (opcional) ANULADA
+```
+
+- **PENDIENTE:** Venta en progreso, no afecta inventario
+- **CONFIRMADA:** Venta completada, descuenta inventario
+- **FACTURADA:** Venta con factura electrónica emitida
+- **ANULADA:** Venta cancelada, reingresa inventario
+
+#### 3.1.2 Reglas de Negocio
+1. **Número de venta:** Se genera automáticamente con formato `{prefijo_facturacion}-{año}{mes}-{correlativo}` (ej. `KBT-202605-0001`)
+2. **Descuento:** No puede exceder `descuento_max` definido en `pos_productos_detalle`
+3. **Stock:** Al confirmar una venta, se valida `stock_actual >= cantidad`. Si no hay stock suficiente, la venta no puede confirmarse
+4. **Múltiples métodos de pago:** Una venta puede dividirse entre varios métodos de pago (ej. 50% Efectivo + 50% Tarjeta). Se registra el método principal en `metodo_pago`
+5. **Cliente opcional:** Una venta puede registrarse sin cliente (venta al público general)
+6. **Margen de ganancia:** Se calcula automáticamente como `((precio_venta - precio_compra) / precio_compra) * 100`
+
+#### 3.1.3 Cálculos Automáticos
+```
+subtotal = SUM(cantidad * precio_unitario - descuento)
+impuesto = subtotal * tasa_impuesto
+total = subtotal + impuesto
+```
+
+### 3.2 Caja
+
+#### 3.2.1 Ciclo de Vida de una Caja
+
+```
+CERRADA → ABIERTA → CERRADA
+```
+
+#### 3.2.2 Reglas de Apertura y Cierre
+1. **Apertura:** Solo se puede abrir una caja si está en estado `CERRADA`. Se registra `monto_inicial` en efectivo
+2. **Cierre:** Al cerrar, se calcula:
+   - `monto_esperado = monto_inicial + total_ventas_en_efectivo`
+   - `diferencia = monto_final - monto_esperado`
+3. **Caja por sesión:** Un usuario solo puede tener una caja abierta a la vez
+4. **Cierre forzado:** Un administrador puede cerrar una caja de forma forzada si el cajero no puede hacerlo
+
+### 3.3 Inventario
+
+#### 3.3.1 Tipos de Movimiento
+| `tipo_movimiento` | Descripción | Efecto en stock |
+|---|---|---|
+| `entrada_compra` | Ingreso por compra a proveedor | + |
+| `salida_venta` | Egreso por venta | - |
+| `ajuste_incremento` | Ajuste manual de aumento | + |
+| `ajuste_decremento` | Ajuste manual de disminución | - |
+| `devolucion_compra` | Devolución al proveedor | - |
+| `devolucion_venta` | Devolución del cliente | + |
+| `transferencia_salida` | Salida por transferencia a otra sucursal | - |
+| `transferencia_entrada` | Entrada por transferencia de otra sucursal | + |
+| `merma` | Pérdida, daño o vencimiento | - |
+
+#### 3.3.2 Reglas
+1. Todo movimiento de inventario debe tener un `tipo_movimiento` y un `motivo`
+2. No se puede decrementar stock por debajo de 0
+3. `stock_min` y `stock_max` son alertas, no restricciones
+4. Las ventas y compras generan movimientos de inventario automáticamente al confirmarse
+5. El campo `referencia` almacena el ID de la venta o compra que originó el movimiento
+
+#### 3.3.3 Stock Bajo
+Cuando `stock_actual <= stock_min`, el sistema debe:
+- Mostrar una alerta visual en la interfaz de ventas
+- Notificar en el dashboard principal
+
+### 3.4 Compras
+
+#### 3.4.1 Estados de una Orden de Compra
+
+```
+PENDIENTE → CONFIRMADA → RECIBIDA → (opcional) ANULADA
+```
+
+1. **PENDIENTE:** Orden creada, pendiente de envío al proveedor
+2. **CONFIRMADA:** Orden enviada y confirmada por el proveedor
+3. **RECIBIDA:** Mercancía recibida → genera movimiento de inventario `entrada_compra`
+4. **ANULADA:** Orden cancelada
+
+#### 3.4.2 Reglas
+1. `numero_orden` es un correlativo automático por año
+2. Al recibir una compra, se actualiza `precio_compra` en `pos_productos_detalle` si es diferente
+3. El `total` de la compra se distribuye proporcionalmente para actualizar el costo unitario de cada producto
+
+### 3.5 Facturación Electrónica (DIAN)
+
+#### 3.5.1 Ciclo de Vida
+
+```
+BORRADOR → EMITIDA → ACEPTADA → (opcional) ANULADA
+```
+
+#### 3.5.2 Reglas
+1. Toda venta CONFIRMADA puede generar una factura electrónica
+2. La factura almacena datos del cliente de forma desnormalizada (`cliente_nombre`, `cliente_direccion`, etc.) para preservar el histórico aunque el cliente cambie sus datos
+3. `tipo_comprobante` puede ser: `factura`, `nota_credito`, `nota_debito`
+4. El rango de numeración se controla por `pos_configuracion_empresa.rango_desde` y `rango_hasta`, con su `fecha_vencimiento_resolucion`
+5. `serie` y `numero` se generan según la resolución DIAN activa
+6. Al anular una factura, la venta asociada debe pasar a estado ANULADA y el inventario debe revertirse
+
+### 3.6 Finanzas Mensuales
+
+#### 3.6.1 Reglas
+1. Solo debe existir un registro por combinación `(anio, mes)`
+2. Los campos `utilidad_bruta`, `utilidad_neta` y `roi_calculado` son calculados:
+   ```
+   ventas_netas = ventas_brutas - devoluciones - descuentos
+   utilidad_bruta = ventas_netas - costo_mercaderia_vendida
+   utilidad_neta = utilidad_bruta - gastos_operativos_total - inversion_marketing - otros_gastos + otros_ingresos
+   roi_calculado = (utilidad_neta / inversion_marketing) * 100
+   ```
+3. El resumen mensual se genera de forma automática al cierre del mes (batch programado)
+
+### 3.7 Productos
+
+#### 3.7.1 Atributos Dinámicos
+El campo `atributos` (JSONB) en `pos_productos_detalle` permite almacenar atributos variables por variante:
+```json
+{
+  "color": "Rojo",
+  "talla": "M",
+  "material": "Algodón",
+  "temporada": "Verano 2026"
+}
+```
+
+#### 3.7.2 Multimedia
+- `tipo` puede ser: `imagen`, `video`, `documento`
+- `orden` define la posición de visualización (0 = principal)
+- `alt_text` es obligatorio para imágenes (accesibilidad)
+
+---
+
+## 4. Flujos del Sistema
+
+### 4.1 Flujo de Venta Completo
+```
+Usuario selecciona productos → Ingresa cliente (opcional) →
+Selecciona método de pago → Confirma venta →
+  → Descuenta inventario
+  → Actualiza finanzas mensuales
+  → Genera movimiento de inventario (salida_venta)
+  → Ofrece generar factura electrónica
+```
+
+### 4.2 Flujo de Apertura y Cierre de Caja
+```
+Cajero inicia sesión → Abre caja (registra monto_inicial) →
+  → Realiza ventas durante el turno →
+  → Al finalizar, cierra caja:
+    → Cuenta efectivo final (monto_final)
+    → Sistema calcula monto_esperado y diferencia
+    → Si diferencia ≠ 0, requiere justificación en observaciones
+```
+
+### 4.3 Flujo de Compra
+```
+Usuario crea orden de compra → Selecciona proveedor →
+Agrega productos con cantidades y precios → Confirma orden →
+  → Proveedor entrega mercancía →
+  → Usuario marca como RECIBIDA →
+    → Actualiza stock (entrada_compra)
+    → Actualiza costo unitario
+```
+
+---
+
+## 5. Seguridad y Control de Acceso
+
+### 5.1 Roles Base del Sistema
+
+| Rol | Descripción |
+|---|---|
+| `admin` | Acceso total al sistema |
+| `cajero` | Solo ventas y caja |
+| `vendedor` | Ventas, clientes, consulta de inventario |
+| `almacenista` | Compras, inventario, proveedores |
+| `contador` | Módulo financiero, facturación |
+| `supervisor` | Todas las consultas, aprobación de descuentos |
+
+### 5.2 Permisos por Módulo
+Los permisos se organizan por módulo (`modulo`) con clave única (`clave`):
+- `pos.ventas.*`, `pos.ventas.crear`, `pos.ventas.anular`
+- `pos.caja.*`, `pos.caja.apertura`, `pos.caja.cierre`, `pos.caja.cierre_forzado`
+- `pos.inventario.*`, `pos.inventario.ajuste`
+- `pos.compras.*`, `pos.compras.crear`, `pos.compras.recibir`
+- `pos.facturacion.*`, `pos.facturacion.emitir`, `pos.facturacion.anular`
+- `pos.finanzas.*`, `pos.finanzas.ver`
+- `pos.config.*`
+- `pos.usuarios.*`
+
+### 5.3 Reglas de Seguridad
+1. Solo `admin` puede crear/modificar usuarios y roles
+2. Solo `admin` y `supervisor` pueden anular ventas
+3. Un cajero solo puede cerrar su propia caja (a menos que tenga permiso `pos.caja.cierre_forzado`)
+4. Los descuentos mayores al 10% requieren permiso especial
+5. Toda acción crítica (anulación, cierre forzado, ajuste de inventario) debe quedar registrada en auditoría
+
+---
+
+## 6. Integraciones
+
+### 6.1 Módulo Store (Tienda Virtual)
+- Los productos creados en POS se sincronizan automáticamente con la tienda virtual
+- El stock se actualiza en tiempo real (o cada 5 minutos vía polling)
+- Las ventas online se registran como ventas en POS con `metodo_pago = "online"` y origen `store`
+
+### 6.2 Supabase/PostgreSQL
+- Todas las operaciones CRUD se realizan vía API de Supabase
+- Row-Level Security (RLS) para aislamiento multi-tenancy por `sucursal_id`
+- Las consultas financieras usan vistas materializadas para rendimiento
+
+### 6.3 DIAN (Facturación Electrónica)
+- La facturación electrónica se integra vía API con un proveedor de facturación electrónica colombiano
+- El estado de la factura se actualiza según la respuesta de la DIAN (`ACEPTADA`, `RECHAZADA`)
+
+---
+
+## 7. Validaciones de Datos
+
+### 7.1 Campos Requeridos por Tabla
+
+| Tabla | Campos Requeridos |
+|---|---|
+| `pos_ventas` | `cliente_id`, `usuario_id`, `fecha_venta`, `total` |
+| `pos_ventas_detalle` | `venta_id`, `producto_detalle_id`, `cantidad`, `precio_unitario` |
+| `pos_caja_apertura` | `caja_id`, `cajero_id`, `fecha_apertura`, `monto_inicial` |
+| `pos_productos` | `nombre`, `categoria_id` |
+| `pos_productos_detalle` | `producto_id`, `codigo_barras`, `precio_venta` |
+| `pos_clientes` | `tipo_id`, `numero_id`, `primer_nombre`, `primer_apellido` |
+| `pos_usuarios` | `nombre_completo`, `usuario`, `email`, `password_hash`, `rol_id` |
+| `pos_proveedores` | `tipo_id`, `numero_id`, `razon_social` |
+| `pos_configuracion_empresa` | `nombre_empresa`, `nit`, `resolucion_dian` |
+| `pos_sucursales` | `nombre` |
+
+### 7.2 Valores por Defecto
+| Campo | Default |
+|---|---|
+| `pos_ventas.estado` | `PENDIENTE` |
+| `pos_caja_apertura.estado` | `ABIERTA` |
+| `pos_compras.estado` | `PENDIENTE` |
+| `pos_facturacion.estado` | `BORRADOR` |
+| `pos_productos.activo` | `true` |
+| `pos_clientes.activo` | `true` |
+| `pos_proveedores.activo` | `true` |
+| `pos_usuarios.activo` | `true` |
+| `pos_cajas.activa` | `true` |
+| `pos_sucursales.activa` | `true` |
+| `pos_metodos_pago.activo` | `true` |
+| `pos_gasto_categorias.activa` | `true` |
+
+---
+
+## 8. Glosario
+
+| Término | Definición |
+|---|---|
+| **DIAN** | Dirección de Impuestos y Aduanas Nacionales de Colombia |
+| **Resolución DIAN** | Autorización de numeración de facturación electrónica |
+| **RBAC** | Role-Based Access Control |
+| **Soft Delete** | Borrado lógico mediante campo `deleted_at` |
+| **SKU** | Stock Keeping Unit (identificador interno de producto) |
+| **CMV** | Costo de Mercancía Vendida |
+| **ROI** | Return on Investment |
+| **RLS** | Row-Level Security (PostgreSQL) |
+| **PWA** | Progressive Web App |
