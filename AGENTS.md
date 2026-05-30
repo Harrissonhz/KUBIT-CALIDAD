@@ -81,7 +81,7 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 ### 3.2 Base de Datos
 - **Esquema único:** `public` (default de Supabase)
 - **Prefijo de tablas:**
-  - `pos_*` → Módulo POS + tablas core compartidas (24 tablas)
+  - `pos_*` → Módulo POS + tablas core compartidas (25 tablas)
   - `st_*` → Módulo Store (10 tablas)
   - `academy_*` → Módulo Academy (futuro)
 - Los módulos comparten tablas base: `pos_productos`, `pos_productos_detalle`, `pos_categorias`, `pos_clientes`, `pos_usuarios`, `pos_roles`, `pos_permisos`, `pos_configuracion_empresa`, `pos_metodos_pago`, `pos_canales_venta`
@@ -159,7 +159,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ### 7.1 Completado (Specs)
 - [x] `01-master-spec.md` — Visión general, reglas del SaaS, mapa de artefactos
-- [x] `02-database-schema.sql` — DDL completo (34 tablas con grants, RLS, índices, triggers)
+- [x] `02-database-schema.sql` — DDL completo (35 tablas con grants, RLS, índices, triggers)
 - [x] `03-pos-spec.md` — Especificación completa del módulo POS
 - [x] `04-store-spec.md` — Especificación completa del módulo Store
 - [x] `05-ui-ux-system.md` — Sistema de diseño UI/UX (Tailwind, colores, responsive, PWA)
@@ -168,6 +168,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `CONTEXT.md` — Glosario de dominio del proyecto
 
 ### 7.2 Completado (Implementación)
+
+#### Módulo Store (Tienda Virtual)
 - [x] `supabase-client.js` — Cliente `fetch()` directo a REST API Supabase (sin supabase-js)
 - [x] `productos.js` — API de productos con caché 30s, mapper DB→objeto plano
 - [x] `categorias.js` — API de categorías con caché 60s + promos fijas
@@ -176,14 +178,40 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
 
+#### Módulo POS (Punto de Venta)
+- [x] `auth.js` — Sistema de roles y permisos (6 roles, permisos granulares por módulo)
+- [x] `login.html` + `login.js` — Autenticación mock con selección de caja y 4 usuarios de prueba
+- [x] `ventas.html` + `ventas.js` — Pantalla principal POS con:
+  - Layout híbrido (Opción C): split-panel desktop, bottom sheet mobile
+  - Grilla de productos con búsqueda y filtro por categorías
+  - Carrito de compras con cantidad +/- y descuento por ítem
+  - Validación de `descuento_max` contra rol del usuario (`pos.descuento.alto`)
+  - Validación de stock al agregar producto y al confirmar cobro
+  - Badge "Agotado" en productos sin stock
+  - Margen de ganancia en tooltip y texto del producto
+  - Modal cobro con selección de método de pago y cálculo de cambio
+  - Modal post-cobro con opción "Emitir Factura Electrónica"
+- [x] `caja.html` + `caja.js` — Control de caja (apertura/cierre/diferencia/cierre forzado)
+- [x] `index.html` — Redirección automática a `login.html`
+- [x] `css/estilo.css` — Estilos: bottom sheet animado, scrollbar, animaciones, dark mode
+- [x] `manifest.json` — PWA manifest con icono SVG
+- [x] `service-worker.js` — Service worker para instalación como app
+- [x] `img/icon.svg` — Icono minimalista de la aplicación
+- [x] Dark mode con toggle y persistencia en localStorage
+- [x] Responsive mobile-first (360px→desktop) en todas las pantallas
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
 - [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
+- [ ] Conectar POS con Supabase real (reemplazar mock data por queries a `pos_productos`, `pos_clientes`, etc.)
+- [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
+- [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
+- [ ] Poblar productos reales desde la base de datos en el POS
 
 ### 7.4 Próximo Paso Recomendado
-Ejecutar `MigracionProductos.sql` en Supabase QA para poblar catálogo completo (100 productos con imágenes).
+Conectar el POS mock con Supabase real: reemplazar los datos simulados de productos, clientes y usuarios por consultas directas a la base de datos vía `supabase-client.js`.
 
 ---
 
