@@ -28,37 +28,42 @@ interface RequestBody {
   metodoPago: string;
 }
 
+var CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, apiKey",
+};
+
+function jsonResponse(body: Record<string, unknown>, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...CORS_HEADERS, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: CORS_HEADERS });
+  }
+
   try {
     if (req.method !== "POST") {
-      return new Response(JSON.stringify({ error: "Method not allowed" }), {
-        status: 405,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Method not allowed" }, 405);
     }
 
     var body: RequestBody = await req.json();
     var { items, cliente, direccion, metodoPago } = body;
 
     if (!items || !items.length) {
-      return new Response(JSON.stringify({ error: "Carrito vacío" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Carrito vacío" }, 400);
     }
 
     if (!cliente?.nombre || !cliente?.email) {
-      return new Response(JSON.stringify({ error: "Nombre y email requeridos" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Nombre y email requeridos" }, 400);
     }
 
     if (!direccion?.direccion || !direccion?.ciudad || !direccion?.departamento) {
-      return new Response(JSON.stringify({ error: "Dirección completa requerida" }), {
-        status: 400,
-        headers: { "Content-Type": "application/json" },
-      });
+      return jsonResponse({ error: "Dirección completa requerida" }, 400);
     }
 
     var supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -168,28 +173,16 @@ Deno.serve(async (req: Request) => {
 
     if (detailErr) throw new Error("Error al crear detalle del pedido: " + detailErr.message);
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        pedido_id: newOrder.id,
-        numero_pedido: newOrder.numero_pedido,
-        total: total,
-        total_items: totalItems,
-        email: cliente.email,
-      }),
-      {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return jsonResponse({
+      success: true,
+      pedido_id: newOrder.id,
+      numero_pedido: newOrder.numero_pedido,
+      total: total,
+      total_items: totalItems,
+      email: cliente.email,
+    }, 200);
   } catch (err: any) {
     console.error("create-pedido error:", err);
-    return new Response(
-      JSON.stringify({ error: err.message || "Error interno del servidor" }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json" },
-      }
-    );
+    return jsonResponse({ error: err.message || "Error interno del servidor" }, 500);
   }
 });
