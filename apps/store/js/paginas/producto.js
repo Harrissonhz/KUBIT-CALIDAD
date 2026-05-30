@@ -114,32 +114,11 @@ async function renderizarProducto(producto) {
     });
 
     document.getElementById('btn-agregar').addEventListener('click', () => {
-      const variante = producto.variantes.find(v => v.id === seleccionada);
-      Modal({
-        titulo: 'Agregado al carrito',
-        contenido: `
-          <p class="text-sm text-slate-600 mb-4">${producto.nombre}${variante ? ` — <span class="text-slate-950 font-medium">${variante.nombre}</span>` : ''}</p>
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-lg font-bold text-slate-950">${renderPrecio(producto)}</span>
-          </div>
-          <a href="carrito.html" class="block w-full text-center px-4 py-2 text-sm font-medium bg-slate-950 text-white rounded-lg hover:bg-slate-800 transition-colors mb-2">Ir al carrito</a>
-          <a href="index.html" class="block w-full text-center px-4 py-2 text-sm font-medium text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Seguir comprando</a>
-        `
-      });
+      agregarAlCarrito(producto);
     });
   } else {
     document.getElementById('btn-agregar').addEventListener('click', () => {
-      Modal({
-        titulo: 'Agregado al carrito',
-        contenido: `
-          <p class="text-sm text-slate-600 mb-4">${producto.nombre}</p>
-          <div class="flex items-center justify-between mb-4">
-            <span class="text-lg font-bold text-slate-950">${renderPrecio(producto)}</span>
-          </div>
-          <a href="carrito.html" class="block w-full text-center px-4 py-2 text-sm font-medium bg-slate-950 text-white rounded-lg hover:bg-slate-800 transition-colors mb-2">Ir al carrito</a>
-          <a href="index.html" class="block w-full text-center px-4 py-2 text-sm font-medium text-slate-500 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors">Seguir comprando</a>
-        `
-      });
+      agregarAlCarrito(producto);
     });
   }
 
