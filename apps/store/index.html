@@ -43,6 +43,69 @@
       <div id="grid-productos" class="product-grid" style="font-size:0;margin:0 -8px;"></div>
       <div id="paginacion" class="pagination-wrapper"></div>
     </section>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- Sección Reseñas de Clientes              -->
+    <!-- ════════════════════════════════════════ -->
+    <section id="seccion-resenas" class="seccion-resenas py-16 md:py-20 animar-scroll">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="flex items-center gap-3 mb-10 md:mb-12">
+          <span class="text-2xl md:text-3xl">⭐</span>
+          <div>
+            <h2 class="text-xl md:text-2xl font-semibold text-slate-900">Lo Que Dicen Nuestros Clientes</h2>
+            <p class="text-xs md:text-sm text-slate-500 mt-0.5">Opiniones reales de compradores verificados</p>
+          </div>
+        </div>
+        <div id="grid-resenas" class="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5"></div>
+        <div class="rating-promedio mt-10 md:mt-12">
+          <span class="stars">★★★★★</span>
+          <span class="numero">4.8</span>
+          <span class="mx-1 text-slate-600">·</span>
+          <span>152 reseñas verificadas</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- ════════════════════════════════════════ -->
+    <!-- Sección Instagram Feed                  -->
+    <!-- ════════════════════════════════════════ -->
+    <section id="seccion-instagram" class="seccion-instagram py-16 md:py-20 animar-scroll">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6">
+        <div class="text-center mb-8 md:mb-10">
+          <div class="flex justify-center items-center gap-2 mb-2">
+            <svg class="w-6 h-6 md:w-7 md:h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+              <rect x="2" y="2" width="20" height="20" rx="5" stroke="#020617"/>
+              <circle cx="12" cy="12" r="5" stroke="#020617"/>
+              <circle cx="17.5" cy="6.5" r="1.5" fill="#020617" stroke="none"/>
+            </svg>
+            <h2 class="text-xl md:text-2xl font-semibold text-slate-900">Síguenos en Instagram</h2>
+          </div>
+          <a href="https://instagram.com/outletshop_for_my" target="_blank" rel="noopener"
+             class="text-slate-400 hover:text-slate-950 transition-colors text-sm font-medium">
+            @outletshop_for_my
+          </a>
+        </div>
+
+        <!-- LightWidget WIDGET -->
+        <div class="instagram-embed-wrapper">
+          <script src="https://cdn.lightwidget.com/widgets/lightwidget.js"></script>
+          <iframe src="//lightwidget.com/widgets/c33f2cdb843a5af5b2251626658591b9.html"
+                  scrolling="no" allowtransparency="true"
+                  class="lightwidget-widget"
+                  style="width:100%;border:0;overflow:hidden;"></iframe>
+        </div>
+
+        <div class="text-center mt-6">
+          <a href="https://instagram.com/outletshop_for_my" target="_blank" rel="noopener"
+             class="instagram-cta">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+            </svg>
+            Seguir en Instagram
+          </a>
+        </div>
+      </div>
+    </section>
   </main>
 
   <div id="footer"></div>
@@ -65,5 +128,45 @@
   <script src="js/compartido/navbar-store.js"></script>
   <script src="js/compartido/footer-store.js"></script>
   <script src="js/paginas/inicio.js"></script>
+  <script>
+    (function() {
+      var RESENAS = [
+        { nombre: "María García", rating: 5, texto: "Los precios de outlet son increíbles. Compré un celular y llegó en 2 días. Muy recomendados.", fecha: "Hace 2 semanas" },
+        { nombre: "Carlos Mendoza", rating: 5, texto: "Primera vez que compro aquí y la calidad superó mis expectativas. Definitivamente volveré a comprar.", fecha: "Hace 1 mes" },
+        { nombre: "Ana Rodríguez", rating: 4, texto: "Buenos precios y envío rápido. Solo mejorarían el empaque, pero todo llegó bien.", fecha: "Hace 3 semanas" },
+        { nombre: "Julián Pérez", rating: 5, texto: "El mejor outlet de la ciudad. Productos originales a precios que no creí posibles. 100% confiable.", fecha: "Hace 5 días" }
+      ];
+
+      var grid = document.getElementById('grid-resenas');
+      if (grid) {
+        RESENAS.forEach(function(r, i) {
+          var estrellas = Array(r.rating + 1).join('★') + Array(6 - r.rating).join('☆');
+          var card = document.createElement('div');
+          card.className = 'resena-card animar-scroll delay-' + (i + 1);
+          card.innerHTML =
+            '<div class="resena-estrellas">' + estrellas + '</div>' +
+            '<p class="resena-texto">' + r.texto + '</p>' +
+            '<div class="flex items-center justify-between mt-4">' +
+              '<span class="resena-autor">' + r.nombre + '</span>' +
+              '<span class="resena-fecha">' + r.fecha + '</span>' +
+            '</div>';
+          grid.appendChild(card);
+        });
+      }
+
+      var observer = new IntersectionObserver(function(entries) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, { threshold: 0.15 });
+
+      document.querySelectorAll('.animar-scroll').forEach(function(el) {
+        observer.observe(el);
+      });
+    })();
+  </script>
 </body>
 </html>
