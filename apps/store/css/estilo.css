@@ -650,17 +650,33 @@ details summary::-webkit-details-marker {
   background: #fff;
 }
 
-.instagram-embed-wrapper {
+.instagram-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
   max-width: 768px;
   margin: 0 auto;
-  border-radius: 16px;
-  overflow: hidden;
-  box-shadow: 0 4px 24px rgba(0,0,0,0.06);
 }
 
-.instagram-embed-wrapper iframe {
-  display: block;
+@media (min-width: 768px) {
+  .instagram-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.instagram-grid .instagram-media {
+  min-width: 0 !important;
   width: 100% !important;
+  margin: 0 !important;
+}
+
+.instagram-grid-item {
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.instagram-grid-item .instagram-media > div:first-child {
+  padding: 12px !important;
 }
 
 .instagram-cta {
