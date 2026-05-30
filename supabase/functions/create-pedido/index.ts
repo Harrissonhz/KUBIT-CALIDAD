@@ -157,15 +157,35 @@ Deno.serve(async (req: Request) => {
 
     if (orderErr) throw new Error("Error al crear pedido: " + orderErr.message);
 
-    // 6. Create order details
-    var detalleData = items.map((item) => ({
-      pedido_id: newOrder.id,
-      producto_detalle_id: item.productoId,
-      cantidad: item.cantidad || 1,
-      precio_unitario: item.precio || 0,
-      subtotal: (item.cantidad || 1) * (item.precio || 0),
-      total: (item.cantidad || 1) * (item.precio || 0),
-    }));
+    // 6. Resolve producto_detalle_id for each item and create order details
+    var detalleData: Record<string, unknown>[] = [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var cant = item.cantidad || 1;
+      var precio = item.precio || 0;
+
+      // Query the first active detail for this product
+      var { data: detalle, error: detErr } = await supabase
+        .from("pos_productos_detalle")
+        .select("id")
+        .eq("producto_id", item.productoId)
+        .is("deleted_at", null)
+        .order("orden", { ascending: true, nullsFirst: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (detErr) throw new Error("Error al buscar detalle del producto: " + detErr.message);
+      if (!detalle) throw new Error("Producto sin detalle disponible: " + (item.nombre || "ID " + item.productoId));
+
+      detalleData.push({
+        pedido_id: newOrder.id,
+        producto_detalle_id: detalle.id,
+        cantidad: cant,
+        precio_unitario: precio,
+        subtotal: cant * precio,
+        total: cant * precio,
+      });
+    }
 
     var { error: detailErr } = await supabase
       .from("st_pedidos_detalle")
