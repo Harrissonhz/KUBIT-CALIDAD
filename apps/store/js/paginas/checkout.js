@@ -148,18 +148,13 @@ async function confirmarPedido(items) {
 
   var totalItems = items.reduce(function(sum, item) { return sum + (item.cantidad || 1); }, 0);
 
-  var functionUrl = window.__supabase
-    ? window.__supabase.functionUrl + '/create-pedido'
-    : 'https://gxqcybboiskwznxdioun.supabase.co/functions/v1/create-pedido';
-
-  var apiKey = window.__supabase ? window.__supabase.supabaseKey : '';
+  var FUNCTION_URL = 'https://gxqcybboiskwznxdioun.supabase.co/functions/v1/create-pedido';
 
   try {
-    var res = await fetch(functionUrl, {
+    var res = await fetch(FUNCTION_URL, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'apiKey': apiKey
+        'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         items: items,
