@@ -118,7 +118,7 @@
     var container = $('multimedia-container');
     var idx = container.children.length;
     var row = document.createElement('div');
-    row.className = 'multimedia-row grid grid-cols-1 sm:grid-cols-6 gap-3 p-3 border border-slate-200/60 dark:border-slate-800 rounded-xl';
+    row.className = 'multimedia-row grid grid-cols-1 sm:grid-cols-4 gap-x-4 gap-y-3 p-4 border border-slate-200/60 dark:border-slate-800 rounded-xl bg-slate-50/30 dark:bg-slate-800/20';
 
     var urlVal = (data && data.url) || '';
     var tipoVal = (data && data.tipo) || 'imagen';
@@ -126,31 +126,31 @@
     var altVal = (data && data.alt_text) || '';
     var mmId = (data && data.id) || '';
 
-    var btnEliminar = '<button type="button" class="btn-eliminar-mm text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1 flex items-center gap-1"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>Eliminar</button>';
+    var btnEliminar = '<button type="button" class="btn-eliminar-mm w-full sm:w-auto px-3 py-2 rounded-xl border border-red-200 dark:border-red-900/40 text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 text-xs font-medium transition-colors flex items-center justify-center gap-1.5"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>Eliminar</button>';
 
     row.innerHTML =
       '<div class="sm:col-span-2">' +
-        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">URL del archivo</label>' +
-        '<input type="url" class="mm-url w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20" placeholder="https://..." value="' + urlVal + '">' +
+        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">URL del archivo</label>' +
+        '<input type="url" class="mm-url w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="https://..." value="' + urlVal + '">' +
       '</div>' +
       '<div>' +
-        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Tipo</label>' +
-        '<select class="mm-tipo w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20">' +
+        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Tipo</label>' +
+        '<select class="mm-tipo w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all">' +
           '<option value="imagen"' + (tipoVal === 'imagen' ? ' selected' : '') + '>Imagen</option>' +
           '<option value="video"' + (tipoVal === 'video' ? ' selected' : '') + '>Video</option>' +
           '<option value="documento"' + (tipoVal === 'documento' ? ' selected' : '') + '>Documento</option>' +
         '</select>' +
       '</div>' +
       '<div>' +
-        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Orden</label>' +
-        '<input type="number" class="mm-orden w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20" value="' + ordenVal + '" min="0">' +
+        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Orden</label>' +
+        '<input type="number" class="mm-orden w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" value="' + ordenVal + '" min="0">' +
       '</div>' +
-      '<div class="sm:col-span-2">' +
-        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">Texto Alternativo</label>' +
-        '<div class="flex gap-2">' +
-          '<input type="text" class="mm-alt flex-1 px-3 py-2 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20" placeholder="Descripción breve" value="' + altVal + '">' +
-          btnEliminar +
-        '</div>' +
+      '<div class="sm:col-span-3">' +
+        '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Texto Alternativo</label>' +
+        '<input type="text" class="mm-alt w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Breve descripción de la imagen" value="' + altVal + '">' +
+      '</div>' +
+      '<div class="flex items-end">' +
+        btnEliminar +
       '</div>' +
       '<input type="hidden" class="mm-id" value="' + mmId + '">';
 

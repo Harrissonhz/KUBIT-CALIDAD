@@ -175,43 +175,43 @@
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
             <div class="sm:col-span-2 lg:col-span-4">
               <label class="label-campo">Nombre del Producto</label>
               <input type="text" id="campo-nombre" class="input-campo" placeholder="Ej: Zapatillas Nike Air Max 270">
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Categoría</label>
               <select id="campo-categoria" class="input-campo"><option value="">Seleccionar...</option></select>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Tipo Producto</label>
               <input type="text" id="campo-tipo-producto" class="input-campo" placeholder="Ej: Calzado, Electrónico">
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Marca</label>
               <input type="text" id="campo-marca" class="input-campo" placeholder="Ej: Nike">
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Modelo</label>
               <input type="text" id="campo-modelo" class="input-campo" placeholder="Ej: Air Max 270">
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Código de Barras</label>
               <input type="text" id="campo-codigo-barras" class="input-campo" placeholder="1234567890123">
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Código Interno</label>
               <input type="text" id="campo-codigo-interno" class="input-campo" placeholder="Ej: NK-AM270-001">
             </div>
             <div class="sm:col-span-2 lg:col-span-4">
               <label class="label-campo">Descripción</label>
-              <textarea id="campo-descripcion" class="input-campo" rows="3" placeholder="Descripción detallada del producto"></textarea>
+              <textarea id="campo-descripcion" class="input-campo" rows="4" placeholder="Descripción detallada del producto"></textarea>
             </div>
-            <div class="sm:col-span-2 lg:col-span-4">
-              <label class="flex items-center gap-2 cursor-pointer">
+            <div class="sm:col-span-2 lg:col-span-4 pt-1">
+              <label class="inline-flex items-center gap-2.5 cursor-pointer select-none px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                 <input type="checkbox" id="campo-activo" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-950 dark:text-white">
-                <span class="text-sm text-slate-700 dark:text-slate-300 font-medium">Producto Activo</span>
+                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Producto Activo</span>
               </label>
             </div>
           </div>
@@ -226,37 +226,55 @@
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
+          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Precio Venta ($)</label>
-              <input type="number" id="campo-precio-venta" class="input-campo" step="0.01" min="0" placeholder="0.00">
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                <input type="number" id="campo-precio-venta" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+              </div>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Precio Compra ($)</label>
-              <input type="number" id="campo-precio-compra" class="input-campo" step="0.01" min="0" placeholder="0.00">
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                <input type="number" id="campo-precio-compra" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+              </div>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Margen de Ganancia</label>
-              <input type="text" id="campo-margen" class="input-campo bg-slate-50 dark:bg-slate-800/50" readonly placeholder="Auto">
+              <div class="relative">
+                <input type="text" id="campo-margen" class="input-campo bg-slate-50 dark:bg-slate-800/50" readonly placeholder="Auto">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              </div>
             </div>
-            <div>
-              <label class="label-campo">Descuento Máximo (%)</label>
-              <input type="number" id="campo-descuento-max" class="input-campo" step="1" min="0" max="100" value="0" placeholder="0">
+            <div class="sm:col-span-2 lg:col-span-2">
+              <label class="label-campo">Descuento Máximo</label>
+              <div class="relative">
+                <input type="number" id="campo-descuento-max" class="input-campo" step="1" min="0" max="100" value="0" placeholder="0">
+                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+              </div>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Precio Mayorista ($)</label>
-              <input type="number" id="campo-precio-mayorista" class="input-campo" step="0.01" min="0" placeholder="0.00">
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                <input type="number" id="campo-precio-mayorista" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+              </div>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Precio Original ($)</label>
-              <input type="number" id="campo-precio-original" class="input-campo" step="0.01" min="0" placeholder="Para mostrar tachado">
+              <div class="relative">
+                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                <input type="number" id="campo-precio-original" class="input-campo pl-8" step="0.01" min="0" placeholder="Para mostrar tachado">
+              </div>
             </div>
-            <div>
+            <div class="sm:col-span-2 lg:col-span-4">
               <label class="label-campo">Tasa de Impuesto (IVA)</label>
-              <select id="campo-impuesto" class="input-campo">
-                <option value="0">0% (Exento)</option>
-                <option value="5">5% (Reducido)</option>
-                <option value="19" selected>19% (General)</option>
+              <select id="campo-impuesto" class="input-campo max-w-xs">
+                <option value="0">0% — Exento</option>
+                <option value="5">5% — Tasa reducida</option>
+                <option value="19" selected>19% — IVA General</option>
               </select>
             </div>
           </div>
@@ -271,26 +289,27 @@
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div>
+          <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
+            <div class="sm:col-span-1 lg:col-span-1">
               <label class="label-campo">Stock Actual</label>
               <input type="number" id="campo-stock" class="input-campo" step="1" min="0" value="0">
             </div>
-            <div>
+            <div class="sm:col-span-1 lg:col-span-1">
               <label class="label-campo">Stock Mínimo</label>
               <input type="number" id="campo-stock-min" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 5">
             </div>
-            <div>
+            <div class="sm:col-span-1 lg:col-span-1">
               <label class="label-campo">Stock Máximo</label>
               <input type="number" id="campo-stock-max" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 100">
             </div>
-            <div>
+            <div class="sm:col-span-3 lg:col-span-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-1"></div>
+            <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Peso (kg)</label>
               <input type="number" id="campo-peso" class="input-campo" step="0.01" min="0" placeholder="0.00">
             </div>
             <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Dimensiones (L x A x H cm)</label>
-              <input type="text" id="campo-dimensiones" class="input-campo" placeholder="Ej: 30 x 20 x 5">
+              <label class="label-campo">Dimensiones</label>
+              <input type="text" id="campo-dimensiones" class="input-campo" placeholder="Largo x Ancho x Alto (cm)">
             </div>
           </div>
         </div>
@@ -323,13 +342,14 @@
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-            <div class="flex gap-2 flex-wrap">
-              <input type="text" id="buscador-productos" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 w-48" placeholder="Buscar producto...">
-              <select id="filtro-categoria" class="px-3 py-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20">
-                <option value="">Todas las categorías</option>
-              </select>
+          <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+            <div class="relative flex-1 max-w-md">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+              <input type="text" id="buscador-productos" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Buscar por nombre, código o marca...">
             </div>
+            <select id="filtro-categoria" class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all min-w-[180px]">
+              <option value="">Todas las categorías</option>
+            </select>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
