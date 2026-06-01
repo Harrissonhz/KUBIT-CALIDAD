@@ -134,6 +134,21 @@ html.dark * {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Card accordion (formularios) */
+.grupo-card summary::-webkit-details-marker { display: none; }
+.grupo-card summary::marker { display: none; }
+.grupo-card[open] summary svg.chevron { transform: rotate(180deg); }
+.grupo-card summary {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  cursor: pointer;
+}
+
+/* Multimedia row */
+.multimedia-row {
+  transition: background-color 0.2s ease;
+}
+
 /* Safe area bottom para mobile con notch */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   #cart-mobile-bar {

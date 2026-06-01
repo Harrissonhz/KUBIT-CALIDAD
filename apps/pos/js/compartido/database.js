@@ -475,12 +475,23 @@ window.DB = (function () {
   };
 
   /* ════════════════════════════════════════════════════════════
-     ENTITY: MÉTODOS DE PAGO (alias)
-     ════════════════════════════════════════════════════════════ */
+      ENTITY: PRODUCTOS MULTIMEDIA
+      ════════════════════════════════════════════════════════════ */
+  var productosMultimedia = {
+    listar: async function (productoId) {
+      return select('pos_productos_multimedia', {
+        filters: [{ col: 'producto_id', val: productoId }],
+        orderBy: 'orden'
+      });
+    },
+    crear: async function (data) { return insert('pos_productos_multimedia', data); },
+    actualizar: async function (id, data) { return update('pos_productos_multimedia', id, data); },
+    eliminar: async function (id) { return softDelete('pos_productos_multimedia', id); }
+  };
 
   /* ════════════════════════════════════════════════════════════
-     API PÚBLICA
-     ════════════════════════════════════════════════════════════ */
+      API PÚBLICA
+      ════════════════════════════════════════════════════════════ */
   return {
     // Genéricos
     select: select,
@@ -500,6 +511,7 @@ window.DB = (function () {
     cajaApertura: cajaApertura,
     metodosPago: metodosPago,
     canalesVenta: canalesVenta,
-    movimientosInventario: movimientosInventario
+    movimientosInventario: movimientosInventario,
+    productosMultimedia: productosMultimedia
   };
 })();
