@@ -195,7 +195,41 @@ window.DB = (function () {
 
     crear: async function (data) { _cacheClear('productos'); return insert('pos_productos', data); },
     actualizar: async function (id, data) { _cacheClear('productos'); return update('pos_productos', id, data); },
-    eliminar: async function (id) { _cacheClear('productos'); return softDelete('pos_productos', id); }
+    eliminar: async function (id) { _cacheClear('productos'); return softDelete('pos_productos', id); },
+
+    detalleCrear: async function (data) { _cacheClear('productos'); return insert('pos_productos_detalle', data); },
+    detalleActualizar: async function (id, data) { _cacheClear('productos'); return update('pos_productos_detalle', id, data); },
+    detalleObtener: async function (id) {
+      var res = await select('pos_productos_detalle', {
+        select: '*,producto:producto_id(id,nombre,slug,categoria_id,tasa_impuesto,activo,tags,marca,modelo,descripcion,categoria:categoria_id(id,nombre))',
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    ajustarStock: async function (detalleId, cantidad, tipoMovimiento, motivo, opts) {
+      var res = await productos.detalleObtener(detalleId);
+      if (res.error || !res.data) return { data: null, error: res.error || 'Producto no encontrado' };
+      var detalle = res.data;
+
+      var nuevoStock = detalle.stock_actual + cantidad;
+      if (nuevoStock < 0) return { data: null, error: 'Stock no puede ser negativo' };
+
+      var upd = await update('pos_productos_detalle', detalleId, { stock_actual: nuevoStock });
+      if (upd.error) return upd;
+
+      var user = opts && opts.usuarioId || null;
+      var movRes = await insert('pos_movimientos_inventario', {
+        producto_detalle_id: detalleId,
+        tipo_movimiento: tipoMovimiento,
+        cantidad: Math.abs(cantidad),
+        motivo: motivo || 'Ajuste manual',
+        created_by: user
+      });
+
+      return { data: { stock_anterior: detalle.stock_actual, stock_nuevo: nuevoStock, movimiento: movRes.data }, error: null };
+    }
   };
 
   /* ════════════════════════════════════════════════════════════
@@ -378,6 +412,31 @@ window.DB = (function () {
   };
 
   /* ════════════════════════════════════════════════════════════
+     ENTITY: MOVIMIENTOS INVENTARIO
+     ════════════════════════════════════════════════════════════ */
+  var movimientosInventario = {
+    listar: async function (opts) {
+      return select('pos_movimientos_inventario', Object.assign({
+        select: '*,producto_detalle:producto_detalle_id(id,stock_actual,codigo_interno,producto:producto_id(id,nombre,categoria:categoria_id(id,nombre)))',
+        orderBy: 'fecha',
+        orderDir: 'desc',
+        limit: 100
+      }, opts || {}));
+    },
+
+    crear: async function (data) { return insert('pos_movimientos_inventario', data); },
+
+    obtenerPorProducto: async function (productoDetalleId, opts) {
+      return select('pos_movimientos_inventario', Object.assign({
+        filters: [{ col: 'producto_detalle_id', val: productoDetalleId }],
+        orderBy: 'fecha',
+        orderDir: 'desc',
+        limit: 50
+      }, opts || {}));
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
      ENTITY: METODOS DE PAGO
      ════════════════════════════════════════════════════════════ */
   var metodosPago = {
@@ -440,6 +499,7 @@ window.DB = (function () {
     cajas: cajas,
     cajaApertura: cajaApertura,
     metodosPago: metodosPago,
-    canalesVenta: canalesVenta
+    canalesVenta: canalesVenta,
+    movimientosInventario: movimientosInventario
   };
 })();

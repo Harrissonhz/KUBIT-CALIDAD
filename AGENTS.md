@@ -210,6 +210,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Persistencia de apertura/cierre en `pos_caja_apertura`
 - [x] Eliminados CAJAS_MOCK y HISTORIAL en memoria RAM
 
+#### Módulo POS (Punto de Venta) — Fase 5: UI de Productos, Categorías e Inventario
+- [x] `database.js` — Métodos `DB.movimientosInventario`, `DB.productos.ajustarStock()` añadidos
+- [x] `productos.html` + `productos.js` — CRUD completo de productos con tabla, formulario, búsqueda, edición inline
+- [x] `categorias.html` + `categorias.js` — CRUD completo de categorías con color, padre, activo/inactivo
+- [x] `inventario.html` + `inventario.js` — Dashboard de existencias (total/con stock/bajo/agotado), ajuste manual de stock, historial de movimientos
+- [x] Sidebar de `ventas.html` actualizado con links a productos.html, categorias.html, inventario.html
+
 #### Módulo POS (Punto de Venta) — Anterior (UI/UX con datos mock)
 - [x] `ventas.html` + `ventas.js` — Pantalla principal POS con:
   - Layout híbrido (Opción C): split-panel desktop, bottom sheet mobile
@@ -237,14 +244,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
-- [ ] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
+- [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
 
 ### 7.4 Próximo Paso Recomendado
-**Fase 5:** UI de Productos, Categorías e Inventario conectada a DB.
+**Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB.
 
 ---
 
