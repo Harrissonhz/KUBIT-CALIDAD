@@ -319,11 +319,31 @@
   /* ════════════════════════════════════════════════════════════
      EVENTOS
      ════════════════════════════════════════════════════════════ */
+  function toggleSidebar() {
+    var sidebar = $('sidebar');
+    var overlay = $('sidebar-overlay');
+    var abierto = sidebar.classList.contains('translate-x-0');
+    if (abierto) {
+      sidebar.classList.remove('translate-x-0');
+      sidebar.classList.add('-translate-x-full');
+      overlay.classList.add('hidden');
+    } else {
+      sidebar.classList.remove('-translate-x-full');
+      sidebar.classList.add('translate-x-0');
+      overlay.classList.remove('hidden');
+    }
+  }
+
   function bindearEventos() {
     $('btn-dark').addEventListener('click', function () {
       html.classList.toggle('dark');
       localStorage.setItem('darkMode', html.classList.contains('dark'));
     });
+
+    // Sidebar
+    $('btn-menu').addEventListener('click', toggleSidebar);
+    $('btn-cerrar-menu').addEventListener('click', toggleSidebar);
+    $('sidebar-overlay').addEventListener('click', toggleSidebar);
 
     $('select-caja').addEventListener('change', function () {
       cargarEstado();
