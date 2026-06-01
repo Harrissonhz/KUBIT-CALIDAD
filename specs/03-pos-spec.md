@@ -220,6 +220,7 @@ erDiagram
         string updated_by FK
         timestamp deleted_at
         numeric compras_total
+        numeric costos_comision_total
     }
 
     pos_gasto_categorias {
@@ -431,6 +432,9 @@ erDiagram
         numeric impuesto
         numeric descuento
         numeric total
+        numeric costo_cargo_venta
+        numeric costo_impuestos
+        numeric costo_envios
         text notas
         timestamp created_at
         timestamp updated_at
@@ -678,9 +682,9 @@ BORRADOR → EMITIDA → ACEPTADA → (opcional) ANULADA
 1. Solo debe existir un registro por combinación `(anio, mes)`
 2. Los campos `utilidad_bruta`, `utilidad_neta` y `roi_calculado` son calculados:
    ```
-   ventas_netas = ventas_brutas - devoluciones - descuentos
-   utilidad_bruta = ventas_netas - costo_mercaderia_vendida
-   utilidad_neta = utilidad_bruta - gastos_operativos_total - inversion_marketing - otros_gastos + otros_ingresos
+    ventas_netas = ventas_brutas - devoluciones - descuentos
+    utilidad_bruta = ventas_netas - costos_comision_total - costo_mercaderia_vendida
+    utilidad_neta = utilidad_bruta - gastos_operativos_total - inversion_marketing - otros_gastos + otros_ingresos
    roi_calculado = (utilidad_neta / inversion_marketing) * 100
    ```
 3. El resumen mensual se genera de forma automática al cierre del mes (batch programado)

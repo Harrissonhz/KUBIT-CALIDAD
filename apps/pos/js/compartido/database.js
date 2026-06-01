@@ -358,6 +358,30 @@ window.DB = (function () {
       }
     },
 
+    listar: async function (opts) {
+      var filters = [];
+      if (opts) {
+        if (opts.estado) filters.push({ col: 'estado', val: opts.estado });
+        if (opts.canalId) filters.push({ col: 'canal_id', val: opts.canalId });
+        if (opts.desde) filters.push({ col: 'fecha_venta', op: 'gte', val: opts.desde });
+        if (opts.hasta) filters.push({ col: 'fecha_venta', op: 'lte', val: opts.hasta });
+      }
+      return select('pos_ventas', Object.assign({
+        select: '*,cliente:cliente_id(id,primer_nombre,primer_apellido),usuario:usuario_id(id,nombre_completo),canal:canal_id(id,nombre,codigo)',
+        filters: filters,
+        search: (opts && opts.search) || null,
+        searchFields: ['numero_venta', 'referencia_externa'],
+        orderBy: 'fecha_venta',
+        orderDir: 'desc',
+        page: (opts && opts.page) || 1,
+        pageSize: (opts && opts.pageSize) || 20
+      }, opts || {}));
+    },
+
+    anular: async function (id) {
+      return update('pos_ventas', id, { estado: 'ANULADA' });
+    },
+
     obtenerPorPeriodo: async function (usuarioId, desde, hasta, opts) {
       var filters = [
         { col: 'estado', val: 'CONFIRMADA' }
@@ -367,7 +391,7 @@ window.DB = (function () {
       if (hasta) filters.push({ col: 'fecha_venta', op: 'lte', val: hasta });
 
       return select('pos_ventas', Object.assign({
-        select: 'id,metodo_pago,subtotal,impuesto,descuento,total',
+        select: 'id,metodo_pago,subtotal,impuesto,descuento,total,costo_cargo_venta,costo_impuestos,costo_envios',
         filters: filters,
         orderBy: 'fecha_venta',
         orderDir: 'desc'
@@ -843,7 +867,23 @@ window.DB = (function () {
 
     crear: async function (data) { return insert('pos_finanzas_mensuales', data); },
     actualizar: async function (id, data) { return update('pos_finanzas_mensuales', id, data); },
-    eliminar: async function (id) { return softDelete('pos_finanzas_mensuales', id); }
+    eliminar: async function (id) { return softDelete('pos_finanzas_mensuales', id); },
+    actualizarPorVenta: async function (anio, mes, ventaBruta, descuento, costoComision, costoMercaderia) {
+      try {
+        await api.rpc('actualizar_finanzas_mensuales', {
+          p_anio: anio,
+          p_mes: mes,
+          p_venta_bruta: ventaBruta,
+          p_descuento: descuento,
+          p_costo_comision: costoComision,
+          p_costo_mercaderia: costoMercaderia
+        });
+        return { error: null };
+      } catch (e) {
+        console.error('[DB] Error actualizando finanzas:', e);
+        return { error: e.message };
+      }
+    }
   };
 
   /* ════════════════════════════════════════════════════════════

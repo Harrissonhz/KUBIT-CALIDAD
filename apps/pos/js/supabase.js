@@ -88,6 +88,12 @@ if (typeof CONFIG === 'undefined') {
     },
     delete: function(path) {
       return _fetch(path, { method: 'DELETE' });
+    },
+    rpc: function(fnName, params) {
+      return _fetch('rpc/' + fnName, {
+        method: 'POST',
+        body: JSON.stringify(params || {})
+      });
     }
   };
 })();

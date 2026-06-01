@@ -924,6 +924,9 @@ create table public.pos_ventas (
   impuesto numeric,
   descuento numeric,
   total numeric,
+  costo_cargo_venta numeric default 0,
+  costo_impuestos numeric default 0,
+  costo_envios numeric default 0,
   notas text,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -1131,7 +1134,8 @@ create table public.pos_finanzas_mensuales (
   created_by uuid references public.pos_usuarios(id),
   updated_by uuid references public.pos_usuarios(id),
   deleted_at timestamptz,
-  compras_total numeric
+  compras_total numeric,
+  costos_comision_total numeric default 0
 );
 
 create unique index uk_pos_finanzas_mensuales_periodo on public.pos_finanzas_mensuales(anio, mes);
