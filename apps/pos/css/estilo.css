@@ -125,6 +125,15 @@ html.dark * {
 .producto-card:nth-child(9) { animation-delay: 0.18s; }
 .producto-card:nth-child(10) { animation-delay: 0.20s; }
 
+/* Sidebar accordion */
+.grupo-sidebar summary::-webkit-details-marker { display: none; }
+.grupo-sidebar summary::marker { display: none; }
+.grupo-sidebar[open] summary svg.chevron { transform: rotate(180deg); }
+.grupo-sidebar summary {
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
 /* Safe area bottom para mobile con notch */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   #cart-mobile-bar {
