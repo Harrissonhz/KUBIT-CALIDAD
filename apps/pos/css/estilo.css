@@ -153,14 +153,14 @@ html.dark * {
 .label-campo {
   display: block;
   font-size: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #64748b;
+  color: #475569;
   margin-bottom: 0.375rem;
 }
 .dark .label-campo {
-  color: #94a3b8;
+  color: #cbd5e1;
 }
 
 .input-campo {
