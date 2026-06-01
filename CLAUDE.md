@@ -262,7 +262,34 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ---
 
-## 10. Palabras Clave de Búsqueda
+## 10. Producción — Seguridad de Credenciales (REQUISITO OBLIGATORIO)
+
+### 10.1 Regla #1: No exponer secrets en Git
+- `apps/pos/js/config.js` contiene `SUPABASE_URL` y `SUPABASE_ANON_KEY` reales de QA.
+- **En producción, este archivo DEBE estar en `.gitignore` y NO subirse a GitHub.**
+- Durante desarrollo se subió temporalmente para pruebas en servidor remoto. Antes del deploy a producción, la IA debe revertir esto.
+
+### 10.2 Cómo manejar credenciales en producción
+
+**Opción A (recomendada): Variables de entorno en Vercel**
+1. Ir a [Vercel Dashboard](https://vercel.com) → Project Settings → Environment Variables
+2. Agregar: `SUPABASE_URL` y `SUPABASE_ANON_KEY`
+3. En `config.js` o `supabase.js`, leer desde `process.env.SUPABASE_URL` o inyectar via server-side
+
+**Opción B: Desplegar `config.js` manual en el servidor (NO via Git)**
+1. SSH al servidor
+2. Crear `apps/pos/js/config.js` con credenciales de producción
+3. Mantener el archivo fuera del repositorio de Git
+
+### 10.3 Checklist pre-producción (lo ejecuta la IA al hacer deploy)
+- [ ] `apps/pos/js/config.js` eliminado del índice de git (`git rm --cached apps/pos/js/config.js`)
+- [ ] `apps/pos/js/config.js` agregado a `.gitignore`
+- [ ] Credenciales de producción configuradas en Vercel o servidor
+- [ ] `config.ejemplo.js` actualizado con template de producción
+
+---
+
+## 11. Palabras Clave de Búsqueda
 
 | Para encontrar | Buscar |
 |---|---|---|
@@ -276,6 +303,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Capa de datos (DatabaseService) | `apps/pos/js/compartido/database.js` |
 | Código del Store | `apps/store/` |
 | Decisiones de diseño | `AGENTS.md` sección 5 |
+| Seguridad credenciales | `AGENTS.md` sección 10 |
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |
 | Archivos informativos externos | `ArchivosInformativos/` |
 | Glosario de dominio | `CONTEXT.md` |

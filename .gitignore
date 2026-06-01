@@ -16,7 +16,9 @@ build/
 
 # --- Archivos de configuración local con credenciales (SEGURIDAD CRÍTICA) ---
 # Contienen llaves de API reales. NO subir a GitHub.
-# REMOVIDO TEMPORALMENTE para pruebas: apps/pos/js/config.js
+# NOTA: config.js actualmente está TRACKEADO para pruebas en servidor remoto.
+#       Antes de producción ejecutar: git rm --cached apps/pos/js/config.js
+apps/pos/js/config.js
 apps/store/js/config.js
 apps/academy/js/config.js
 

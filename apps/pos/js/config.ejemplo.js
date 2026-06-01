@@ -1,6 +1,9 @@
 /**
  * config.ejemplo.js — Template de configuración
  * ===============================================
+ * ⚠ PRODUCCIÓN: Copiar a config.js y reemplazar credenciales.
+ *   NUNCA subir config.js a GitHub (excluido en .gitignore).
+ *
  * 1. Copiar este archivo a config.js en la misma carpeta
  * 2. Reemplazar los valores placeholder con las credenciales reales
  * 3. NUNCA subir config.js a GitHub (está en .gitignore)
