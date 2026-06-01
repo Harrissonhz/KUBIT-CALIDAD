@@ -2,22 +2,21 @@
   'use strict';
 
   /* ════════════════════════════════════════════════════════════
-     ESTADO MOCK (simula pos_caja_apertura)
+     STATE — datos desde Supabase via DatabaseService
      ════════════════════════════════════════════════════════════ */
-  var CAJAS_MOCK = {
-    c1: { nombre: 'Caja Principal', estado: 'CERRADA', montoInicial: 0, apertura: null, ventasEfectivo: 0, ventasTotal: 0 },
-    c2: { nombre: 'Caja Secundaria', estado: 'CERRADA', montoInicial: 0, apertura: null, ventasEfectivo: 0, ventasTotal: 0 },
-  };
-
+  var CAJAS = [];
+  var APERTURA_ACTIVA = null;
   var HISTORIAL = [];
+  var VENTAS_PERIODO = [];
+  var _loading = false;
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
 
   /* ════════════════════════════════════════════════════════════
-     INICIO
+     INICIALIZACIÓN ASÍNCRONA
      ════════════════════════════════════════════════════════════ */
-  function init() {
+  async function init() {
     if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
 
     window.KubitAuth.cargarSesion();
@@ -27,8 +26,8 @@
     window.KubitAuth.aplicarRestriccionesUI();
 
     mostrarInfo();
-    actualizarUI();
-
+    await cargarCajas();
+    await cargarEstado();
     bindearEventos();
   }
 
@@ -53,26 +52,29 @@
   }
 
   function obtenerCaja() {
-    return CAJAS_MOCK[obtenerCajaId()];
+    return CAJAS.find(function (c) { return c.id === obtenerCajaId(); });
   }
 
   function actualizarUI() {
-    var caja = obtenerCaja();
-    var abierta = caja.estado === 'ABIERTA';
+    var abierta = APERTURA_ACTIVA && APERTURA_ACTIVA.estado === 'ABIERTA';
 
     $('caja-estado-info').textContent = abierta
-      ? caja.nombre + ' · ABIERTA desde ' + caja.apertura
-      : caja.nombre + ' · CERRADA';
+      ? APERTURA_ACTIVA.nombreCaja + ' · ABIERTA desde ' + formatearFecha(APERTURA_ACTIVA.fecha_apertura)
+      : $('select-caja').options[$('select-caja').selectedIndex].text + ' · CERRADA';
 
     $('panel-estado').classList.toggle('hidden', !abierta);
     $('btn-apertura').classList.toggle('hidden', abierta);
     $('btn-cierre').classList.toggle('hidden', !abierta);
 
     if (abierta) {
-      $('monto-inicial').textContent = formatearMoneda(caja.montoInicial);
-      $('ventas-efectivo').textContent = formatearMoneda(caja.ventasEfectivo);
-      $('ventas-total').textContent = formatearMoneda(caja.ventasTotal);
-      $('apertura-desde').textContent = caja.apertura;
+      var ventasEfectivo = VENTAS_PERIODO.filter(function (v) { return v.metodo_pago === 'efectivo'; })
+        .reduce(function (s, v) { return s + (v.total || 0); }, 0);
+      var ventasTotal = VENTAS_PERIODO.reduce(function (s, v) { return s + (v.total || 0); }, 0);
+
+      $('monto-inicial').textContent = formatearMoneda(APERTURA_ACTIVA.monto_inicial || 0);
+      $('ventas-efectivo').textContent = formatearMoneda(ventasEfectivo);
+      $('ventas-total').textContent = formatearMoneda(ventasTotal);
+      $('apertura-desde').textContent = formatearFecha(APERTURA_ACTIVA.fecha_apertura);
     }
 
     renderizarHistorial();
@@ -85,7 +87,7 @@
       return;
     }
     container.innerHTML = HISTORIAL.slice().reverse().map(function (h) {
-      var esApertura = h.tipo === 'apertura';
+      var esApertura = h.estado === 'ABIERTA';
       return '<div class="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">' +
         '<div class="flex items-center gap-3">' +
         '<div class="w-8 h-8 rounded-full ' + (esApertura ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-red-100 dark:bg-red-900/30') + ' flex items-center justify-center">' +
@@ -95,8 +97,8 @@
           : '<path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>') +
         '</svg></div>' +
         '<div><p class="text-sm font-medium text-slate-950 dark:text-white">' + (esApertura ? 'Apertura' : 'Cierre') + '</p>' +
-        '<p class="text-xs text-slate-400">' + h.fecha + ' · ' + h.usuario + ' · ' + h.caja + '</p></div></div>' +
-        '<span class="text-sm font-semibold ' + (esApertura ? 'text-emerald-600' : 'text-red-600') + '">' + formatearMoneda(h.monto) + '</span>' +
+        '<p class="text-xs text-slate-400">' + formatearFecha(h.fecha_apertura) + '</p></div></div>' +
+        '<span class="text-sm font-semibold ' + (esApertura ? 'text-emerald-600' : 'text-red-600') + '">' + formatearMoneda(h.monto_inicial || 0) + '</span>' +
         '</div>';
     }).join('');
   }
@@ -105,12 +107,81 @@
     return '$' + valor.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   }
 
+  function formatearFecha(iso) {
+    if (!iso) return '--';
+    var d = new Date(iso);
+    return d.toLocaleString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+  }
+
   function mostrarToast(msg) {
     var el = $('toast');
     el.textContent = msg;
     el.classList.add('show');
     clearTimeout(el._timer);
     el._timer = setTimeout(function () { el.classList.remove('show'); }, 3000);
+  }
+
+  /* ════════════════════════════════════════════════════════════
+     CARGA DE DATOS DESDE SUPABASE
+     ════════════════════════════════════════════════════════════ */
+  async function cargarCajas() {
+    var res = await DB.cajas.listar();
+    if (res.error) {
+      console.error('[Caja] Error cargando cajas:', res.error);
+      return;
+    }
+    CAJAS = res.data || [];
+
+    var select = $('select-caja');
+    select.innerHTML = '';
+    CAJAS.forEach(function (c) {
+      var opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.nombre;
+      select.appendChild(opt);
+    });
+
+    // Seleccionar la caja del login si existe
+    var cajaLoginId = localStorage.getItem('pos_caja_id');
+    if (cajaLoginId && CAJAS.some(function (c) { return c.id === cajaLoginId; })) {
+      select.value = cajaLoginId;
+    }
+  }
+
+  async function cargarEstado() {
+    var cajaId = obtenerCajaId();
+    if (!cajaId) return;
+
+    APERTURA_ACTIVA = null;
+    HISTORIAL = [];
+    VENTAS_PERIODO = [];
+
+    // Obtener apertura activa
+    var resActiva = await DB.cajaApertura.obtenerActiva(cajaId);
+    if (resActiva.data) {
+      APERTURA_ACTIVA = resActiva.data;
+    }
+
+    // Obtener historial
+    var resHistorial = await DB.cajaApertura.historial(cajaId, { limit: 50 });
+    if (!resHistorial.error) {
+      HISTORIAL = resHistorial.data || [];
+    }
+
+    // Si hay apertura activa, obtener ventas del período
+    if (APERTURA_ACTIVA) {
+      var user = window.KubitAuth.obtenerUsuario();
+      var resVentas = await DB.ventas.obtenerPorPeriodo(
+        user ? user.id : null,
+        APERTURA_ACTIVA.fecha_apertura,
+        new Date().toISOString()
+      );
+      if (!resVentas.error) {
+        VENTAS_PERIODO = resVentas.data || [];
+      }
+    }
+
+    actualizarUI();
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -126,44 +197,47 @@
     $('modal-apertura').classList.add('hidden');
   }
 
-  function confirmarApertura() {
+  async function confirmarApertura() {
+    if (_loading) return;
     if (!window.KubitAuth.requierePermiso('pos.caja.apertura')) return;
 
     var monto = parseFloat($('monto-inicial-input').value) || 0;
     if (monto < 0) { mostrarToast('El monto inicial no puede ser negativo'); return; }
 
-    var caja = obtenerCaja();
-    if (caja.estado === 'ABIERTA') { mostrarToast('La caja ya está abierta'); return; }
+    var cajaId = obtenerCajaId();
+    if (!cajaId) { mostrarToast('Selecciona una caja'); return; }
 
-    // Verificar que el usuario no tenga otra caja abierta
-    var userId = window.KubitAuth.obtenerUsuario().id;
-    var tieneOtraAbierta = Object.keys(CAJAS_MOCK).some(function (k) {
-      return CAJAS_MOCK[k].estado === 'ABIERTA' && CAJAS_MOCK[k].abiertaPor === userId;
-    });
-    if (tieneOtraAbierta) { mostrarToast('Ya tienes otra caja abierta'); return; }
+    if (APERTURA_ACTIVA) { mostrarToast('La caja ya está abierta'); return; }
 
-    var ahora = new Date();
-    var fechaStr = ahora.toLocaleString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-    var user = window.KubitAuth.obtenerUsuario();
+    _loading = true;
+    $('btn-confirmar-apertura').disabled = true;
+    $('btn-confirmar-apertura').textContent = 'Abriendo...';
 
-    caja.estado = 'ABIERTA';
-    caja.montoInicial = monto;
-    caja.apertura = fechaStr;
-    caja.ventasEfectivo = 0;
-    caja.ventasTotal = 0;
-    caja.abiertaPor = user.id;
+    try {
+      var user = window.KubitAuth.obtenerUsuario();
+      var res = await DB.cajaApertura.abrir({
+        caja_id: cajaId,
+        cajero_id: user.id,
+        fecha_apertura: new Date().toISOString(),
+        monto_inicial: monto,
+        estado: 'ABIERTA'
+      });
 
-    HISTORIAL.push({
-      tipo: 'apertura',
-      monto: monto,
-      fecha: fechaStr,
-      usuario: user.nombre,
-      caja: caja.nombre,
-    });
+      if (res.error) {
+        mostrarToast('Error al abrir caja: ' + res.error);
+      } else {
+        await cargarEstado();
+        mostrarToast('Caja abierta con ' + formatearMoneda(monto));
+        cerrarModalApertura();
+      }
+    } catch (e) {
+      console.error('[Caja] Error en apertura:', e);
+      mostrarToast('Error inesperado');
+    }
 
-    cerrarModalApertura();
-    actualizarUI();
-    mostrarToast('Caja abierta con ' + formatearMoneda(monto));
+    _loading = false;
+    $('btn-confirmar-apertura').disabled = false;
+    $('btn-confirmar-apertura').textContent = 'Abrir Caja';
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -172,17 +246,18 @@
   function abrirModalCierre() {
     if (!window.KubitAuth.requierePermiso('pos.caja.cierre')) return;
 
-    var caja = obtenerCaja();
-    if (caja.estado !== 'ABIERTA') { mostrarToast('La caja no está abierta'); return; }
+    if (!APERTURA_ACTIVA) { mostrarToast('La caja no está abierta'); return; }
 
-    $('cierre-monto-inicial').textContent = formatearMoneda(caja.montoInicial);
-    $('cierre-ventas-efectivo').textContent = formatearMoneda(caja.ventasEfectivo);
-    var esperado = caja.montoInicial + caja.ventasEfectivo;
+    var ventasEfectivo = VENTAS_PERIODO.filter(function (v) { return v.metodo_pago === 'efectivo'; })
+      .reduce(function (s, v) { return s + (v.total || 0); }, 0);
+    var esperado = (APERTURA_ACTIVA.monto_inicial || 0) + ventasEfectivo;
+
+    $('cierre-monto-inicial').textContent = formatearMoneda(APERTURA_ACTIVA.monto_inicial || 0);
+    $('cierre-ventas-efectivo').textContent = formatearMoneda(ventasEfectivo);
     $('cierre-monto-esperado').textContent = formatearMoneda(esperado);
     $('monto-final-input').value = '';
     $('cierre-diferencia').classList.add('hidden');
 
-    // Mostrar cierre forzado si tiene permiso
     var puedeForzado = window.KubitAuth.tienePermiso('pos.caja.cierre_forzado');
     $('btn-cierre-forzado').classList.toggle('hidden', !puedeForzado);
 
@@ -194,14 +269,17 @@
     $('modal-cierre').classList.add('hidden');
   }
 
-  function confirmarCierre(forzado) {
-    var caja = obtenerCaja();
-    var esperado = caja.montoInicial + caja.ventasEfectivo;
-    var montoFinal = parseFloat($('monto-final-input').value);
-    var user = window.KubitAuth.obtenerUsuario();
+  async function confirmarCierre(forzado) {
+    if (_loading) return;
+    if (!APERTURA_ACTIVA) return;
 
-    // Si no es forzado, validar monto final
+    var ventasEfectivo = VENTAS_PERIODO.filter(function (v) { return v.metodo_pago === 'efectivo'; })
+      .reduce(function (s, v) { return s + (v.total || 0); }, 0);
+    var esperado = (APERTURA_ACTIVA.monto_inicial || 0) + ventasEfectivo;
+    var montoFinal;
+
     if (!forzado) {
+      montoFinal = parseFloat($('monto-final-input').value);
       if (isNaN(montoFinal) || montoFinal < 0) {
         mostrarToast('Ingresa un monto final válido');
         return;
@@ -212,28 +290,30 @@
 
     var diferencia = montoFinal - esperado;
 
-    var ahora = new Date();
-    var fechaStr = ahora.toLocaleString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    _loading = true;
+    $('btn-confirmar-cierre').disabled = true;
+    $('btn-confirmar-cierre').textContent = 'Cerrando...';
 
-    HISTORIAL.push({
-      tipo: 'cierre',
-      monto: montoFinal,
-      fecha: fechaStr,
-      usuario: user.nombre,
-      caja: caja.nombre,
-      diferencia: diferencia,
-    });
+    try {
+      var res = await DB.cajaApertura.cerrar(APERTURA_ACTIVA.id, montoFinal, esperado, diferencia);
+      if (res.error) {
+        mostrarToast('Error al cerrar caja: ' + res.error);
+      } else {
+        await cargarEstado();
+        cerrarModalCierre();
 
-    caja.estado = 'CERRADA';
-    caja.apertura = null;
-    caja.abiertaPor = null;
+        var msg = 'Caja cerrada' + (forzado ? ' (forzado)' : '');
+        if (diferencia !== 0) msg += ' · Diferencia: ' + formatearMoneda(diferencia);
+        mostrarToast(msg);
+      }
+    } catch (e) {
+      console.error('[Caja] Error en cierre:', e);
+      mostrarToast('Error inesperado');
+    }
 
-    cerrarModalCierre();
-    actualizarUI();
-
-    var msg = 'Caja cerrada' + (forzado ? ' (forzado)' : '');
-    if (diferencia !== 0) msg += ' · Diferencia: ' + formatearMoneda(diferencia);
-    mostrarToast(msg);
+    _loading = false;
+    $('btn-confirmar-cierre').disabled = false;
+    $('btn-confirmar-cierre').textContent = 'Cerrar Caja';
   }
 
   /* ════════════════════════════════════════════════════════════
@@ -245,7 +325,9 @@
       localStorage.setItem('darkMode', html.classList.contains('dark'));
     });
 
-    $('select-caja').addEventListener('change', actualizarUI);
+    $('select-caja').addEventListener('change', function () {
+      cargarEstado();
+    });
 
     $('btn-apertura').addEventListener('click', abrirModalApertura);
     $('btn-cerrar-modal-apertura').addEventListener('click', cerrarModalApertura);
@@ -262,11 +344,11 @@
     $('btn-confirmar-cierre').addEventListener('click', function () { confirmarCierre(false); });
     $('btn-cierre-forzado').addEventListener('click', function () { confirmarCierre(true); });
 
-    // Calcular diferencia en vivo
     $('monto-final-input').addEventListener('input', function () {
-      var caja = obtenerCaja();
-      if (caja.estado !== 'ABIERTA') return;
-      var esperado = caja.montoInicial + caja.ventasEfectivo;
+      if (!APERTURA_ACTIVA) return;
+      var ventasEfectivo = VENTAS_PERIODO.filter(function (v) { return v.metodo_pago === 'efectivo'; })
+        .reduce(function (s, v) { return s + (v.total || 0); }, 0);
+      var esperado = (APERTURA_ACTIVA.monto_inicial || 0) + ventasEfectivo;
       var montoFinal = parseFloat(this.value) || 0;
       var diff = montoFinal - esperado;
       $('cierre-diferencia').classList.remove('hidden');
@@ -274,7 +356,6 @@
       $('cierre-diferencia-monto').className = 'font-semibold ' + (diff >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400');
     });
 
-    // Escape
     document.addEventListener('keydown', function (e) {
       if (e.key === 'Escape') {
         if (!$('modal-apertura').classList.contains('hidden')) cerrarModalApertura();

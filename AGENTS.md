@@ -201,6 +201,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Eliminado PRODUCTOS mock (12 items), iconos reemplazados por inicial en círculo
 - [x] Validación de stock usando datos reales de `stock_actual`
 
+#### Módulo POS (Punto de Venta) — Fase 4: Caja Real
+- [x] `caja.js` reescrito: init async con carga de datos desde Supabase
+- [x] Cajas cargadas desde `DB.cajas.listar()`, selector poblado dinámicamente
+- [x] Apertura activa desde `DB.cajaApertura.obtenerActiva()`
+- [x] Historial desde `DB.cajaApertura.historial()`
+- [x] Ventas del período desde `DB.ventas.obtenerPorPeriodo()` para calcular totales
+- [x] Persistencia de apertura/cierre en `pos_caja_apertura`
+- [x] Eliminados CAJAS_MOCK y HISTORIAL en memoria RAM
+
 #### Módulo POS (Punto de Venta) — Anterior (UI/UX con datos mock)
 - [x] `ventas.html` + `ventas.js` — Pantalla principal POS con:
   - Layout híbrido (Opción C): split-panel desktop, bottom sheet mobile
@@ -227,7 +236,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
 - [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
-- [ ] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
+- [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
 - [ ] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
@@ -235,7 +244,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
 
 ### 7.4 Próximo Paso Recomendado
-**Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real.
+**Fase 5:** UI de Productos, Categorías e Inventario conectada a DB.
 
 ---
 

@@ -299,6 +299,22 @@ window.DB = (function () {
         console.error('[DB] Error al insertar detalles de venta:', e);
         return { data: null, error: e.message };
       }
+    },
+
+    obtenerPorPeriodo: async function (usuarioId, desde, hasta, opts) {
+      var filters = [
+        { col: 'estado', val: 'CONFIRMADA' }
+      ];
+      if (usuarioId) filters.push({ col: 'usuario_id', val: usuarioId });
+      if (desde) filters.push({ col: 'fecha_venta', op: 'gte', val: desde });
+      if (hasta) filters.push({ col: 'fecha_venta', op: 'lte', val: hasta });
+
+      return select('pos_ventas', Object.assign({
+        select: 'id,metodo_pago,subtotal,impuesto,descuento,total',
+        filters: filters,
+        orderBy: 'fecha_venta',
+        orderDir: 'desc'
+      }, opts || {}));
     }
   };
 
