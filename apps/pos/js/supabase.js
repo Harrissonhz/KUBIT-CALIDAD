@@ -1,17 +1,75 @@
 /**
- * supabase.js — Cliente Supabase (única instancia)
- * =================================================
- * Lee las credenciales desde config.js.
- * Todas las páginas del módulo POS importan supabase desde aquí.
- * No crear otro cliente Supabase en ningún otro archivo.
+ * supabase.js — Cliente Supabase por fetch() directo (única instancia)
+ * ====================================================================
+ * Lee credenciales desde config.js.
+ * Sin dependencias externas (no requiere CDN de supabase-js).
+ * Expone window.__supabase con get/post/patch/delete y setAuth().
  */
 
 if (typeof CONFIG === 'undefined') {
   console.error('[supabase.js] ERROR: No se encontró config.js. Copiar config.ejemplo.js a config.js y llenar las credenciales.');
 }
 
-const SUPABASE_URL = CONFIG?.supabaseUrl || 'https://FALTA_CONFIG.supabase.co';
-const SUPABASE_ANON_KEY = CONFIG?.supabaseAnonKey || 'falta-config';
+(function() {
+  var URL = CONFIG?.supabaseUrl || SUPABASE_URL;
+  var KEY = CONFIG?.supabaseAnonKey || SUPABASE_ANON_KEY;
 
-window.supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-const supabase = window.supabaseClient;
+  var AUTH_TOKEN = null;
+
+  function headers(extra) {
+    var h = {
+      'apikey': KEY,
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    };
+    if (AUTH_TOKEN) {
+      h['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+    } else {
+      h['Authorization'] = 'Bearer ' + KEY;
+    }
+    return Object.assign(h, extra || {});
+  }
+
+  async function _fetch(path, opts) {
+    var res = await fetch(URL + '/rest/v1/' + path, {
+      method: opts.method || 'GET',
+      headers: headers(opts.headers),
+      body: opts.body
+    });
+    if (!res.ok) {
+      var text = await res.text();
+      throw new Error('Supabase ' + res.status + ': ' + text);
+    }
+    if (res.status === 204) return null;
+    return res.json();
+  }
+
+  window.__supabase = {
+    get supabaseUrl() { return URL; },
+    get supabaseKey() { return KEY; },
+
+    setAuth: function(token) { AUTH_TOKEN = token; },
+    clearAuth: function() { AUTH_TOKEN = null; },
+
+    get: function(path) {
+      return _fetch(path, { method: 'GET' });
+    },
+    post: function(path, body) {
+      return _fetch(path, {
+        method: 'POST',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(body)
+      });
+    },
+    patch: function(path, body) {
+      return _fetch(path, {
+        method: 'PATCH',
+        headers: { 'Prefer': 'return=representation' },
+        body: JSON.stringify(body)
+      });
+    },
+    delete: function(path) {
+      return _fetch(path, { method: 'DELETE' });
+    }
+  };
+})();

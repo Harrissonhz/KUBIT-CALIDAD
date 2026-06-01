@@ -5,6 +5,7 @@
 │   ├── 03-pos-spec.md            <-- Reglas del módulo POS
 │   ├── 04-store-spec.md          <-- Reglas del módulo Tienda Virtual
 │   └── 05-ui-ux-system.md        <-- Identidad visual, colores, componentes Tailwind
+├── /ArchivosInformativos    <-- Referencia externa (no parte del código)
 ├── /apps
 │   ├── /pos                      <-- Código fuente del POS (HTML/JS/Tailwind)
 │   └── /store                    <-- Código fuente de la Tienda (HTML/JS/Tailwind)

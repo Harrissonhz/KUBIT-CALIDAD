@@ -1,5 +1,5 @@
-# --- Carpeta de documentación personal (No subir a prod) ---
-Archivosinformativos/
+# --- Carpeta de documentación personal / archivos informativos externos (NO subir a GitHub) ---
+ArchivosInformativos/
 
 # --- Variables de entorno (SEGURIDAD CRÍTICA) ---
 # Nunca subas tus llaves de API o contraseñas

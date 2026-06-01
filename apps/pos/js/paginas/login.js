@@ -2,9 +2,9 @@
   var html = document.documentElement;
   var toggleBtn = document.getElementById('toggle-dark');
   var form = document.getElementById('form-login');
-  var usuario = document.getElementById('usuario');
-  var password = document.getElementById('password');
-  var caja = document.getElementById('caja');
+  var emailInput = document.getElementById('email');
+  var passwordInput = document.getElementById('password');
+  var cajaSelect = document.getElementById('caja');
   var errorEl = document.getElementById('login-error');
   var btnIngresar = document.getElementById('btn-ingresar');
 
@@ -17,20 +17,20 @@
     localStorage.setItem('darkMode', html.classList.contains('dark'));
   });
 
-  form.addEventListener('submit', function (e) {
+  form.addEventListener('submit', async function (e) {
     e.preventDefault();
     errorEl.classList.add('hidden');
 
-    var user = usuario.value.trim();
-    var pass = password.value.trim();
+    var email = emailInput.value.trim();
+    var password = passwordInput.value.trim();
 
-    if (!user || !pass) {
-      errorEl.textContent = 'Usuario y contraseña son requeridos';
+    if (!email || !password) {
+      errorEl.textContent = 'Email y contraseña son requeridos';
       errorEl.classList.remove('hidden');
       return;
     }
 
-    if (!caja.value) {
+    if (!cajaSelect.value) {
       errorEl.textContent = 'Selecciona una caja';
       errorEl.classList.remove('hidden');
       return;
@@ -39,20 +39,30 @@
     btnIngresar.disabled = true;
     btnIngresar.textContent = 'Ingresando...';
 
-    var cajaNombre = caja.options[caja.selectedIndex].text;
-    var sesion = window.KubitAuth.login(user, pass, caja.value, cajaNombre);
+    var resultado = await window.KubitAuth.login(email, password);
 
-    if (!sesion) {
-      errorEl.textContent = 'Usuario o contraseña incorrectos';
+    if (!resultado.exito) {
+      errorEl.textContent = resultado.error;
       errorEl.classList.remove('hidden');
       btnIngresar.disabled = false;
       btnIngresar.textContent = 'Ingresar';
       return;
     }
 
-    localStorage.setItem('pos_caja', caja.value);
+    var cajaId = cajaSelect.value;
+    var cajaNombre = cajaSelect.options[cajaSelect.selectedIndex].text;
+
+    localStorage.setItem('pos_caja', cajaId);
     localStorage.setItem('pos_caja_nombre', cajaNombre);
-    localStorage.setItem('pos_usuario', user);
+    localStorage.setItem('pos_usuario', email);
+
+    // Actualizar sesión con datos de caja y re-guardar
+    var sesion = window.KubitAuth.obtenerUsuario();
+    if (sesion) {
+      sesion.cajaId = cajaId;
+      sesion.cajaNombre = cajaNombre;
+      localStorage.setItem('kubit_sesion', JSON.stringify(sesion));
+    }
 
     window.location.href = 'ventas.html';
   });

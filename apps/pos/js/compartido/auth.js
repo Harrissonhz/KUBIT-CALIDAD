@@ -1,170 +1,209 @@
 /* ============================================================
-   auth.js — Sistema de roles y permisos (mock + preparado para Supabase)
-   Basado en pos_roles, pos_permisos, pos_rol_permisos del spec §5
+   auth.js — Autenticación real contra Supabase Auth
+   Basado en pos_usuarios, pos_roles, pos_rol_permisos, pos_permisos
+   Requiere: config.js, supabase.js (window.__supabase)
    ============================================================ */
 
 window.KubitAuth = (function () {
+  var USUARIO_ACTUAL = null;
 
-  /* ─── ROLES (mapeo a pos_roles) ─── */
-  var ROLES = {
-    admin:       { id: 'r1', nombre: 'Administrador', nivel: 100 },
-    supervisor:  { id: 'r2', nombre: 'Supervisor',    nivel: 80 },
-    cajero:      { id: 'r3', nombre: 'Cajero',        nivel: 30 },
-    vendedor:    { id: 'r4', nombre: 'Vendedor',      nivel: 40 },
-    almacenista: { id: 'r5', nombre: 'Almacenista',   nivel: 50 },
-    contador:    { id: 'r6', nombre: 'Contador',      nivel: 60 },
-  };
-
-  /* ─── PERMISOS por rol (mapeo a pos_rol_permisos) ─── */
-  var PERMISOS_POR_ROL = {
-    admin: [
-      'pos.ventas.*', 'pos.ventas.crear', 'pos.ventas.anular',
-      'pos.caja.*', 'pos.caja.apertura', 'pos.caja.cierre', 'pos.caja.cierre_forzado',
-      'pos.inventario.*', 'pos.inventario.ajuste',
-      'pos.compras.*', 'pos.compras.crear', 'pos.compras.recibir',
-      'pos.facturacion.*', 'pos.facturacion.emitir', 'pos.facturacion.anular',
-      'pos.finanzas.*', 'pos.finanzas.ver',
-      'pos.config.*',
-      'pos.usuarios.*',
-      'pos.descuento.alto',
-    ],
-    supervisor: [
-      'pos.ventas.*', 'pos.ventas.anular',
-      'pos.caja.*', 'pos.caja.cierre_forzado',
-      'pos.inventario.*',
-      'pos.compras.*',
-      'pos.facturacion.*',
-      'pos.finanzas.ver',
-      'pos.descuento.alto',
-    ],
-    cajero: [
-      'pos.ventas.crear',
-      'pos.caja.apertura', 'pos.caja.cierre',
-    ],
-    vendedor: [
-      'pos.ventas.crear',
-      'pos.caja.apertura', 'pos.caja.cierre',
-    ],
-    almacenista: [
-      'pos.inventario.*', 'pos.inventario.ajuste',
-      'pos.compras.*', 'pos.compras.crear', 'pos.compras.recibir',
-    ],
-    contador: [
-      'pos.facturacion.*', 'pos.facturacion.emitir',
-      'pos.finanzas.*', 'pos.finanzas.ver',
-    ],
-  };
-
-  /* ─── USUARIOS MOCK (simula pos_usuarios) ─── */
-  var USUARIOS_MOCK = [
-    { usuario: 'admin',   password: 'admin',   nombre: 'Admin Sistema', rol: 'admin' },
-    { usuario: 'cajero1', password: 'caja',     nombre: 'Carlos Caja',   rol: 'cajero' },
-    { usuario: 'vendedor',password: 'venta',    nombre: 'Vicky Ventas',  rol: 'vendedor' },
-    { usuario: 'supervisor1', password: 'super', nombre: 'Sofia Sup',    rol: 'supervisor' },
-  ];
-
-  var usuarioActual = null;
-
-  /* ─── INICIAR SESIÓN ─── */
-  function login(usuario, password, cajaId, cajaNombre) {
-    var encontrado = USUARIOS_MOCK.find(function (u) {
-      return u.usuario === usuario && u.password === password;
-    });
-    if (!encontrado) return null;
-
-    var rol = ROLES[encontrado.rol];
-    if (!rol) return null;
-
-    usuarioActual = {
-      id: 'u_' + encontrado.rol,
-      nombre: encontrado.nombre,
-      usuario: encontrado.usuario,
-      rolId: rol.id,
-      rolNombre: rol.nombre,
-      rolClave: encontrado.rol,
-      nivel: rol.nivel,
-      cajaId: cajaId,
-      cajaNombre: cajaNombre,
-    };
-
-    guardarSesion();
-    return usuarioActual;
+  /* ─── STORAGE ─── */
+  function _guardarSesion() {
+    if (USUARIO_ACTUAL) {
+      localStorage.setItem('kubit_sesion', JSON.stringify(USUARIO_ACTUAL));
+    }
   }
 
-  /* ─── CERRAR SESIÓN ─── */
-  function logout() {
-    usuarioActual = null;
-    localStorage.removeItem('kubit_sesion');
-  }
-
-  /* ─── GUARDAR / CARGAR SESIÓN ─── */
-  function guardarSesion() {
-    if (usuarioActual) localStorage.setItem('kubit_sesion', JSON.stringify(usuarioActual));
-  }
-
-  function cargarSesion() {
+  function _cargarStorage() {
     var data = localStorage.getItem('kubit_sesion');
     if (data) {
-      try { usuarioActual = JSON.parse(data); } catch (e) { usuarioActual = null; }
+      try { return JSON.parse(data); } catch (e) { /* ignora */ }
     }
-    return usuarioActual;
+    return null;
   }
 
-  /* ─── VERIFICAR PERMISO ─── */
+  function _limpiarStorage() {
+    localStorage.removeItem('kubit_sesion');
+    localStorage.removeItem('pos_caja');
+    localStorage.removeItem('pos_caja_nombre');
+  }
+
+  /* ─── QUERIES A SUPABASE ─── */
+  async function _cargarPermisos(rolId) {
+    try {
+      var data = await window.__supabase.get(
+        'pos_rol_permisos?select=permiso_id(clave)&rol_id=eq.' + rolId
+      );
+      if (!data || !data.length) return [];
+      return data.map(function (rp) { return rp.permiso_id ? rp.permiso_id.clave : null; }).filter(Boolean);
+    } catch (e) {
+      console.error('[auth] Error cargando permisos:', e);
+      return [];
+    }
+  }
+
+  async function _cargarUsuario(email) {
+    try {
+      var data = await window.__supabase.get(
+        'pos_usuarios?select=*,rol_id(id,nombre,descripcion)&email=eq.' + encodeURIComponent(email)
+      );
+      if (!data || !data.length) return null;
+      return data[0];
+    } catch (e) {
+      console.error('[auth] Error cargando usuario:', e);
+      return null;
+    }
+  }
+
+  /* ─── LOGIN ─── */
+  async function login(email, password) {
+    try {
+      if (!window.__supabase) {
+        return { exito: false, error: 'Cliente Supabase no disponible' };
+      }
+
+      // 1. Autenticar contra Supabase Auth (REST API)
+      var res = await fetch(
+        window.__supabase.supabaseUrl + '/auth/v1/token?grant_type=password',
+        {
+          method: 'POST',
+          headers: {
+            'apikey': window.__supabase.supabaseKey,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ email: email, password: password })
+        }
+      );
+
+      if (!res.ok) {
+        var errText = await res.text();
+        return { exito: false, error: 'Credenciales inválidas. Verifica tu email y contraseña.' };
+      }
+
+      var authData = await res.json();
+
+      // 2. Configurar el token en el cliente
+      window.__supabase.setAuth(authData.access_token);
+
+      // 3. Cargar datos del usuario desde pos_usuarios
+      var usuario = await _cargarUsuario(email);
+      if (!usuario) {
+        window.__supabase.clearAuth();
+        return { exito: false, error: 'Usuario no encontrado en el sistema. Contacta al administrador.' };
+      }
+
+      // 4. Cargar permisos del rol
+      var rolId = typeof usuario.rol_id === 'object' ? usuario.rol_id.id : usuario.rol_id;
+      var permisos = await _cargarPermisos(rolId);
+
+      // 5. Extraer datos del rol
+      var rolNombre = 'Vendedor';
+      if (typeof usuario.rol_id === 'object' && usuario.rol_id) {
+        rolNombre = usuario.rol_id.nombre || 'Vendedor';
+      }
+
+      // 6. Armar sesión
+      USUARIO_ACTUAL = {
+        id: usuario.id,
+        nombre: usuario.nombre_completo,
+        email: usuario.email,
+        usuario: usuario.usuario,
+        rolNombre: rolNombre,
+        rolId: rolId,
+        permisos: permisos,
+        cajaId: null,
+        cajaNombre: null,
+        accessToken: authData.access_token,
+        refreshToken: authData.refresh_token,
+        loginAt: new Date().toISOString()
+      };
+
+      _guardarSesion();
+      return { exito: true, sesion: USUARIO_ACTUAL };
+
+    } catch (e) {
+      console.error('[auth] Error en login:', e);
+      return { exito: false, error: 'Error de conexión. Intenta de nuevo.' };
+    }
+  }
+
+  /* ─── LOGOUT ─── */
+  function logout() {
+    window.__supabase && window.__supabase.clearAuth();
+    USUARIO_ACTUAL = null;
+    _limpiarStorage();
+  }
+
+  /* ─── SESIÓN ─── */
+  function cargarSesion() {
+    var s = _cargarStorage();
+    if (s && s.accessToken) {
+      if (window.__supabase) {
+        window.__supabase.setAuth(s.accessToken);
+      }
+      USUARIO_ACTUAL = s;
+    }
+    return USUARIO_ACTUAL;
+  }
+
+  function obtenerUsuario() {
+    return USUARIO_ACTUAL;
+  }
+
+  /* ─── PERMISOS ─── */
   function tienePermiso(permiso) {
-    if (!usuarioActual) return false;
-    var permisos = PERMISOS_POR_ROL[usuarioActual.rolClave] || [];
-    if (permisos.indexOf('pos.*') > -1 || permisos.indexOf('pos.' + permiso.split('.')[1] + '.*') > -1) return true;
-    return permisos.indexOf(permiso) > -1;
+    if (!USUARIO_ACTUAL) return false;
+    var p = USUARIO_ACTUAL.permisos || [];
+    if (p.indexOf(permiso) !== -1) return true;
+    if (p.indexOf(permiso.split('.')[0] + '.*') !== -1) return true;
+    var parts = permiso.split('.');
+    if (parts.length >= 2) {
+      var wildcard = parts[0] + '.' + parts[1] + '.*';
+      if (p.indexOf(wildcard) !== -1) return true;
+    }
+    return false;
   }
 
   function requierePermiso(permiso) {
     if (!tienePermiso(permiso)) {
-      mostrarErrorPermiso();
+      _mostrarError('No tienes permiso para realizar esta acción');
       return false;
     }
     return true;
   }
 
-  function mostrarErrorPermiso() {
+  /* ─── UI ─── */
+  function aplicarRestriccionesUI() {
+    if (!USUARIO_ACTUAL) return;
+
+    document.querySelectorAll('[data-permiso]').forEach(function (el) {
+      if (!tienePermiso(el.dataset.permiso)) {
+        el.classList.add('hidden');
+      }
+    });
+  }
+
+  function _mostrarError(msg) {
     var toast = document.getElementById('toast');
     if (toast) {
-      toast.textContent = 'No tienes permiso para realizar esta acción';
+      toast.textContent = msg;
       toast.classList.add('show');
       clearTimeout(toast._timer);
       toast._timer = setTimeout(function () { toast.classList.remove('show'); }, 3000);
     }
   }
 
-  /* ─── OCULTAR ELEMENTOS SEGÚN ROL ─── */
-  function aplicarRestriccionesUI() {
-    if (!usuarioActual) return;
-
-    document.querySelectorAll('[data-permiso]').forEach(function (el) {
-      var permisoRequerido = el.dataset.permiso;
-      if (!tienePermiso(permisoRequerido)) {
-        el.classList.add('hidden');
-      }
-    });
-
-    document.querySelectorAll('[data-rol-minimo]').forEach(function (el) {
-      var nivelRequerido = parseInt(el.dataset.rolMinimo);
-      if (usuarioActual.nivel < nivelRequerido) {
-        el.classList.add('hidden');
-      }
-    });
-  }
+  /* ─── AUTO-CARGAR ─── */
+  cargarSesion();
 
   /* ─── API PÚBLICA ─── */
   return {
     login: login,
     logout: logout,
     cargarSesion: cargarSesion,
-    obtenerUsuario: function () { return usuarioActual; },
+    obtenerUsuario: obtenerUsuario,
     tienePermiso: tienePermiso,
     requierePermiso: requierePermiso,
-    aplicarRestriccionesUI: aplicarRestriccionesUI,
-    ROLES: ROLES,
+    aplicarRestriccionesUI: aplicarRestriccionesUI
   };
-
 })();

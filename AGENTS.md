@@ -57,6 +57,7 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 │   ├── 11-api-contracts.md ← Pendiente
 │   ├── 12-roadmap.md       ← Pendiente
 │   └── ARCHITECTURE.md
+├── ArchivosInformativos/ ← Información externa (no parte del proyecto)
 ├── apps/
 │   ├── pos/               ← Código del módulo POS
 │   ├── store/             ← Código del módulo Tienda Virtual
@@ -178,9 +179,29 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
 
-#### Módulo POS (Punto de Venta)
-- [x] `auth.js` — Sistema de roles y permisos (6 roles, permisos granulares por módulo)
-- [x] `login.html` + `login.js` — Autenticación mock con selección de caja y 4 usuarios de prueba
+#### Módulo POS (Punto de Venta) — Fase 1: Auth Real
+- [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
+- [x] `supabase.js` — Cliente `fetch()` raw a REST API Supabase con auth token
+- [x] `auth.js` — Autenticación real contra Supabase Auth REST API (login/logout/sesión/permisos)
+- [x] `login.html` + `login.js` — Login con email/password real, selección de caja, sesión persistente
+
+#### Módulo POS (Punto de Venta) — Fase 2: DatabaseService
+- [x] `database.js` — CRUD genérico (select/insert/update/softDelete) con caché, paginación y búsqueda
+- [x] Métodos entity-specific: `DB.productos`, `DB.categorias`, `DB.clientes`, `DB.ventas`, `DB.cajas`, `DB.cajaApertura`, `DB.metodosPago`, `DB.canalesVenta`
+- [x] Script tag `database.js` agregado en `login.html`, `ventas.html`, `caja.html` (entre supabase.js y auth.js)
+
+#### Módulo POS (Punto de Venta) — Fase 3: Ventas Reales
+- [x] `ventas.js` reescrito: init async con carga de datos desde Supabase
+- [x] Productos cargados desde `DB.productos.listarConDetalle()` (join `pos_productos_detalle` + `pos_productos` + `pos_categorias`)
+- [x] Categorías dinámicas desde `DB.categorias.listar()`
+- [x] Clientes cargados desde `DB.clientes.listar()` para selector en modal cobro
+- [x] Canal físico cargado desde `DB.canalesVenta.obtenerPorCodigo('fisico')`
+- [x] Persistencia de ventas en `DB.ventas.crearConDetalles()` (crea `pos_ventas` + `pos_ventas_detalle`)
+- [x] Cache de 30s para productos y categorías
+- [x] Eliminado PRODUCTOS mock (12 items), iconos reemplazados por inicial en círculo
+- [x] Validación de stock usando datos reales de `stock_actual`
+
+#### Módulo POS (Punto de Venta) — Anterior (UI/UX con datos mock)
 - [x] `ventas.html` + `ventas.js` — Pantalla principal POS con:
   - Layout híbrido (Opción C): split-panel desktop, bottom sheet mobile
   - Grilla de productos con búsqueda y filtro por categorías
@@ -205,13 +226,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
 - [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
-- [ ] Conectar POS con Supabase real (reemplazar mock data por queries a `pos_productos`, `pos_clientes`, etc.)
+- [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
+- [ ] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
+- [ ] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
+- [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
+- [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
-- [ ] Poblar productos reales desde la base de datos en el POS
 
 ### 7.4 Próximo Paso Recomendado
-Conectar el POS mock con Supabase real: reemplazar los datos simulados de productos, clientes y usuarios por consultas directas a la base de datos vía `supabase-client.js`.
+**Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real.
 
 ---
 
@@ -227,7 +251,18 @@ Conectar el POS mock con Supabase real: reemplazar los datos simulados de produc
 
 ---
 
-## 9. Palabras Clave de Búsqueda
+## 9. Archivos Informativos Externos
+
+### 9.1 Carpeta `ArchivosInformativos/`
+- Contiene archivos de referencia, documentación personal, análisis, versiones antiguas de esquemas, etc.
+- **NO forma parte del proyecto Kubit.** Es material informativo externo.
+- Está excluida de Git/GitHub vía `.gitignore`.
+- Los agentes de IA solo deben leer archivos de esta carpeta cuando el usuario lo indique explícitamente.
+- No usar ningún archivo de esta carpeta como fuente de verdad para decisiones de diseño o implementación a menos que el usuario lo ordene.
+
+---
+
+## 10. Palabras Clave de Búsqueda
 
 | Para encontrar | Buscar |
 |---|---|---|
@@ -238,7 +273,9 @@ Conectar el POS mock con Supabase real: reemplazar los datos simulados de produc
 | Reglas del Store | `04-store-spec.md` |
 | Memoria de IA | `AGENTS.md` |
 | Código del POS | `apps/pos/` |
+| Capa de datos (DatabaseService) | `apps/pos/js/compartido/database.js` |
 | Código del Store | `apps/store/` |
 | Decisiones de diseño | `AGENTS.md` sección 5 |
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |
+| Archivos informativos externos | `ArchivosInformativos/` |
 | Glosario de dominio | `CONTEXT.md` |
