@@ -16,7 +16,7 @@ build/
 
 # --- Archivos de configuración local con credenciales (SEGURIDAD CRÍTICA) ---
 # Contienen llaves de API reales. NO subir a GitHub.
-apps/pos/js/config.js
+# REMOVIDO TEMPORALMENTE para pruebas: apps/pos/js/config.js
 apps/store/js/config.js
 apps/academy/js/config.js
 
