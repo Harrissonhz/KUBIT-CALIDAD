@@ -1,5 +1,5 @@
 /**
- * supabase.js — Cliente Supabase por fetch() directo (única instancia)
+ * supabase.js — Cliente Supabase por fetch() directo (unica instancia)
  * ====================================================================
  * Lee credenciales desde config.js.
  * Sin dependencias externas (no requiere CDN de supabase-js).
@@ -7,7 +7,7 @@
  */
 
 if (typeof CONFIG === 'undefined') {
-  console.error('[supabase.js] ERROR: No se encontró config.js. Copiar config.ejemplo.js a config.js y llenar las credenciales.');
+  console.error('[supabase.js] ERROR: No se encontro config.js. Copiar config.ejemplo.js a config.js y llenar las credenciales.');
 }
 
 (function() {

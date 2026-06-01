@@ -1,8 +1,8 @@
 /**
- * config.js — Configuración de Supabase
+ * config.js — Configuracion de Supabase
  * ======================================
- * ATENCIÓN: Archivo subido TEMPORALMENTE para pruebas en servidor remoto.
- * En producción, excluir de Git (.gitignore).
+ * ATENCION: Archivo subido TEMPORALMENTE para pruebas en servidor remoto.
+ * En produccion, excluir de Git (.gitignore).
  *
  * Soporta dos entornos: development (QA) y production.
  */

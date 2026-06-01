@@ -1,15 +1,15 @@
 /**
- * config.ejemplo.js — Template de configuración
+ * config.ejemplo.js — Template de configuracion
  * ===============================================
- * ⚠ PRODUCCIÓN: Copiar a config.js y reemplazar credenciales.
+ * ⚠ PRODUCCION: Copiar a config.js y reemplazar credenciales.
  *   NUNCA subir config.js a GitHub (excluido en .gitignore).
  *
  * 1. Copiar este archivo a config.js en la misma carpeta
  * 2. Reemplazar los valores placeholder con las credenciales reales
- * 3. NUNCA subir config.js a GitHub (está en .gitignore)
+ * 3. NUNCA subir config.js a GitHub (esta en .gitignore)
  *
  * Soporta dos entornos: development y production.
- * Cambiar ENTORNO según donde se esté desplegando.
+ * Cambiar ENTORNO segun donde se este desplegando.
  */
 
 const ENTORNO = 'development'; // 'development' | 'production'
@@ -26,7 +26,7 @@ const CONFIG = {
 };
 
 // ============================================
-// NO MODIFICAR DE AQUÍ EN ADELANTE
+// NO MODIFICAR DE AQUI EN ADELANTE
 // ============================================
 const SUPABASE_URL = CONFIG[ENTORNO].supabaseUrl;
 const SUPABASE_ANON_KEY = CONFIG[ENTORNO].supabaseAnonKey;

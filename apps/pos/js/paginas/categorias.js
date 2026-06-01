@@ -26,7 +26,7 @@
     var res = await DB.categorias.listarTodas();
     if (res.error) {
       console.error('[Categorias] Error:', res.error);
-      $('categorias-tbody').innerHTML = '<tr><td colspan="5" class="text-center py-10 text-slate-400">Error al cargar categorías</td></tr>';
+      $('categorias-tbody').innerHTML = '<tr><td colspan="5" class="text-center py-10 text-slate-400">Error al cargar categorias</td></tr>';
       return;
     }
     CATEGORIAS = res.data || [];
@@ -37,7 +37,7 @@
   function poblarSelectPadre() {
     var sel = $('campo-padre');
     var actual = sel.value;
-    sel.innerHTML = '<option value="">Ninguna (raíz)</option>';
+    sel.innerHTML = '<option value="">Ninguna (raiz)</option>';
     CATEGORIAS.forEach(function (c) {
       if (c.id === EDITANDO_ID) return;
       sel.innerHTML += '<option value="' + c.id + '">' + c.nombre + '</option>';
@@ -122,7 +122,7 @@
 
   function limpiarFormulario() {
     EDITANDO_ID = null;
-    $('form-titulo').textContent = 'Nueva Categoría';
+    $('form-titulo').textContent = 'Nueva Categoria';
     $('form-categoria-id').textContent = '';
     $('campo-nombre').value = '';
     $('campo-codigo').value = '';
@@ -138,7 +138,7 @@
     var c = CATEGORIAS.find(function (x) { return x.id === id; });
     if (!c) return;
     EDITANDO_ID = id;
-    $('form-titulo').textContent = 'Editar Categoría';
+    $('form-titulo').textContent = 'Editar Categoria';
     $('form-categoria-id').textContent = c.nombre;
     $('campo-nombre').value = c.nombre;
     $('campo-codigo').value = c.codigo || '';
@@ -173,13 +173,13 @@
       var res;
       if (EDITANDO_ID) {
         res = await DB.categorias.actualizar(EDITANDO_ID, data);
-        if (!res.error) mostrarToast('Categoría actualizada');
+        if (!res.error) mostrarToast('Categoria actualizada');
       } else {
         res = await DB.categorias.crear(data);
-        if (!res.error) mostrarToast('Categoría creada');
+        if (!res.error) mostrarToast('Categoria creada');
       }
 
-      if (res.error) { mostrarToast('Error: ' + res.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Categoría'; return; }
+      if (res.error) { mostrarToast('Error: ' + res.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Categoria'; return; }
 
       limpiarFormulario();
       await cargarCategorias();
@@ -190,14 +190,14 @@
 
     _guardando = false;
     $('btn-guardar').disabled = false;
-    $('btn-guardar').textContent = 'Guardar Categoría';
+    $('btn-guardar').textContent = 'Guardar Categoria';
   }
 
   async function eliminar(id) {
-    if (!confirm('¿Eliminar esta categoría?')) return;
+    if (!confirm('¿Eliminar esta categoria?')) return;
     var r = await DB.categorias.eliminar(id);
     if (r.error) { mostrarToast('Error: ' + r.error); return; }
-    mostrarToast('Categoría eliminada');
+    mostrarToast('Categoria eliminada');
     if (EDITANDO_ID === id) limpiarFormulario();
     await cargarCategorias();
   }
@@ -247,7 +247,7 @@
       if (/^#[0-9a-f]{6}$/i.test(this.value)) $('campo-color').value = this.value;
     });
 
-    // Paginación
+    // Paginacion
     $('pag-controles').addEventListener('click', function (e) {
       var btn = e.target.closest('button');
       if (!btn) return;

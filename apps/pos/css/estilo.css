@@ -9,7 +9,7 @@
 ::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 4px; }
 .dark ::-webkit-scrollbar-thumb { background: #334155; }
 
-/* Ocultar scrollbar en categorías */
+/* Ocultar scrollbar en categorias */
 .scrollbar-none::-webkit-scrollbar { display: none; }
 .scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -36,7 +36,7 @@
   to { opacity: 1; transform: translateX(0); }
 }
 
-/* Categoría pills */
+/* Categoria pills */
 .categoria-pill {
   transition: all 0.15s ease;
 }
@@ -49,7 +49,7 @@
   color: #020617;
 }
 
-/* Método de pago selected */
+/* Metodo de pago selected */
 .metodo-pago-option.active {
   border-color: #020617;
   background-color: #020617;
@@ -76,12 +76,12 @@
   pointer-events: auto;
 }
 
-/* Número de venta en navbar (mobile) */
+/* Numero de venta en navbar (mobile) */
 .venta-badge {
   font-variant-numeric: tabular-nums;
 }
 
-/* Transición suave para dark mode */
+/* Transicion suave para dark mode */
 html.dark,
 html.dark * {
   transition: background-color 0.3s ease, border-color 0.3s ease, color 0.2s ease;
@@ -105,7 +105,7 @@ html.dark * {
   outline-color: white;
 }
 
-/* Animación de entrada de productos */
+/* Animacion de entrada de productos */
 .producto-card {
   animation: fadeUp 0.3s ease-out forwards;
   opacity: 0;
@@ -220,4 +220,16 @@ select.input-campo {
   #cart-bottom-sheet .rounded-t-2xl {
     padding-bottom: env(safe-area-inset-bottom);
   }
+}
+
+/* Ocultar flechas arriba/abajo en inputs number (Chrome, Safari, Edge) */
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Ocultar flechas en Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
 }

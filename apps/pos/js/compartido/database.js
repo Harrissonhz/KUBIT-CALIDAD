@@ -1,8 +1,8 @@
 /* ============================================================
-   database.js — Servicio de Base de Datos (CRUD genérico)
+   database.js — Servicio de Base de Datos (CRUD generico)
    ============================================================
    Dependencias: supabase.js (window.__supabase)
-   Expone: window.DB con métodos genéricos + específicos
+   Expone: window.DB con metodos genericos + especificos
    ============================================================ */
 
 window.DB = (function () {
@@ -51,7 +51,7 @@ window.DB = (function () {
       parts.push(encodeURIComponent(f.col) + '=' + encodeURIComponent(f.op || 'eq') + '.' + encodeURIComponent(f.val));
     });
 
-    // Búsqueda ilike multi-campo
+    // Busqueda ilike multi-campo
     if (opts.search) {
       var searchFields = opts.searchFields || ['nombre'];
       var orParts = searchFields.map(function (f) {
@@ -60,7 +60,7 @@ window.DB = (function () {
       parts.push('or=(' + orParts.join(',') + ')');
     }
 
-    // Filtro por categoría (directo)
+    // Filtro por categoria (directo)
     if (opts.categoriaId) {
       parts.push(encodeURIComponent('categoria_id') + '=eq.' + encodeURIComponent(opts.categoriaId));
     }
@@ -76,7 +76,7 @@ window.DB = (function () {
       parts.push('order=' + encodeURIComponent(opts.orderBy) + dir);
     }
 
-    // Paginación
+    // Paginacion
     if (opts.page && opts.pageSize) {
       var offset = (opts.page - 1) * opts.pageSize;
       parts.push('offset=' + offset);
@@ -209,6 +209,17 @@ window.DB = (function () {
     actualizar: async function (id, data) { _cacheClear('productos'); return update('pos_productos', id, data); },
     eliminar: async function (id) { _cacheClear('productos'); return softDelete('pos_productos', id); },
 
+    listarDetalleActivos: async function (opts) {
+      var res = await select('pos_productos_detalle', Object.assign({
+        select: '*,producto:producto_id(id,nombre,slug,categoria_id,tasa_impuesto,activo,tags,marca,modelo,descripcion,categoria:categoria_id(id,nombre))',
+        orderBy: 'producto_id'
+      }, opts || {}));
+      var data = (res.data || []).filter(function (d) {
+        return d.producto && d.producto.activo !== false;
+      });
+      return { data: data, error: res.error, count: data.length };
+    },
+
     detalleCrear: async function (data) { _cacheClear('productos'); return insert('pos_productos_detalle', data); },
     detalleActualizar: async function (id, data) { _cacheClear('productos'); return update('pos_productos_detalle', id, data); },
     detalleObtener: async function (id) {
@@ -245,7 +256,7 @@ window.DB = (function () {
   };
 
   /* ════════════════════════════════════════════════════════════
-     ENTITY: CATEGORÍAS
+     ENTITY: CATEGORIAS
      ════════════════════════════════════════════════════════════ */
   var categorias = {
     listar: async function (opts) {
@@ -502,10 +513,365 @@ window.DB = (function () {
   };
 
   /* ════════════════════════════════════════════════════════════
-      API PÚBLICA
+      ENTITY: PROVEEDORES
+      ════════════════════════════════════════════════════════════ */
+  var proveedores = {
+    listar: async function (opts) {
+      return select('pos_proveedores', Object.assign({
+        orderBy: 'razon_social',
+        searchFields: ['razon_social', 'numero_id', 'email', 'celular']
+      }, opts || {}));
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_proveedores', { filters: [{ col: 'id', val: id }], limit: 1 });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    buscar: async function (termino, opts) {
+      return select('pos_proveedores', Object.assign({
+        search: termino,
+        searchFields: ['razon_social', 'numero_id', 'email', 'celular'],
+        limit: 15
+      }, opts || {}));
+    },
+
+    crear: async function (data) { return insert('pos_proveedores', data); },
+    actualizar: async function (id, data) { return update('pos_proveedores', id, data); },
+    eliminar: async function (id) { return softDelete('pos_proveedores', id); }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: COMPRAS
+      ════════════════════════════════════════════════════════════ */
+  var compras = {
+    listar: async function (opts) {
+      return select('pos_compras', Object.assign({
+        select: '*,proveedor:proveedor_id(id,razon_social,numero_id),usuario:usuario_id(id,nombre_completo)',
+        orderBy: 'fecha_compra',
+        orderDir: 'desc',
+        searchFields: ['numero_orden', 'notas']
+      }, opts || {}));
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_compras', {
+        select: '*,proveedor:proveedor_id(*),usuario:usuario_id(*),detalles:pos_compras_detalle(*)',
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    obtenerSiguienteNumeroOrden: async function () {
+      try {
+        var data = await api.get('pos_compras?select=numero_orden&order=numero_orden.desc&limit=1');
+        var ultimo = (data && data.length && data[0].numero_orden) || 0;
+        return { data: (parseInt(ultimo) || 0) + 1, error: null };
+      } catch (e) {
+        console.error('[DB] Error obteniendo siguiente numero orden:', e);
+        return { data: 1, error: e.message };
+      }
+    },
+
+    crear: async function (compraData) {
+      return insert('pos_compras', compraData);
+    },
+
+    crearConDetalles: async function (compraData, detalles) {
+      var resCompra = await insert('pos_compras', compraData);
+      if (resCompra.error || !resCompra.data || !resCompra.data.length) {
+        return { data: null, error: resCompra.error || 'Error al crear compra' };
+      }
+      var compraId = resCompra.data[0].id;
+
+      var detallesConId = detalles.map(function (d) {
+        d.compra_id = compraId;
+        return d;
+      });
+
+      try {
+        await api.post('pos_compras_detalle', detallesConId);
+        return { data: resCompra.data[0], error: null };
+      } catch (e) {
+        console.error('[DB] Error al insertar detalles de compra:', e);
+        return { data: null, error: e.message };
+      }
+    },
+
+    actualizar: async function (id, data) {
+      return update('pos_compras', id, data);
+    },
+
+    actualizarEstado: async function (id, estado) {
+      return update('pos_compras', id, { estado: estado });
+    },
+
+    obtenerConDetalles: async function (id) {
+      var res = await select('pos_compras', {
+        select: '*,proveedor:proveedor_id(*),usuario:usuario_id(*),detalles:pos_compras_detalle(*,producto_detalle:producto_detalle_id(*,producto:producto_id(*)))',
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    eliminar: async function (id) { return softDelete('pos_compras', id); }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: COMPRAS DETALLE
+      ════════════════════════════════════════════════════════════ */
+  var comprasDetalle = {
+    listarPorCompra: async function (compraId) {
+      return select('pos_compras_detalle', {
+        select: '*,producto_detalle:producto_detalle_id(id,codigo_interno,stock_actual,producto:producto_id(id,nombre,marca,modelo))',
+        filters: [{ col: 'compra_id', val: compraId }],
+        orderBy: 'created_at'
+      });
+    },
+
+    crear: async function (data) { return insert('pos_compras_detalle', data); },
+    actualizar: async function (id, data) { return update('pos_compras_detalle', id, data); },
+    eliminar: async function (id) { return softDelete('pos_compras_detalle', id); },
+
+    recibir: async function (id, cantidad, usuarioId) {
+      try {
+        var resDet = await select('pos_compras_detalle', {
+          select: '*,compra:compra_id(*)',
+          filters: [{ col: 'id', val: id }],
+          limit: 1
+        });
+        if (!resDet.data || !resDet.data.length) {
+          return { data: null, error: 'Detalle de compra no encontrado' };
+        }
+        var detalle = resDet.data[0];
+        var nuevaRecibida = (detalle.cantidad_recibida || 0) + cantidad;
+        if (nuevaRecibida > detalle.cantidad) {
+          return { data: null, error: 'Cantidad a recibir excede lo ordenado' };
+        }
+
+        var nuevoEstadoDet = nuevaRecibida >= detalle.cantidad ? 'RECIBIDO' : 'PENDIENTE';
+
+        var updRes = await update('pos_compras_detalle', id, {
+          cantidad_recibida: nuevaRecibida,
+          estado_detalle: nuevoEstadoDet,
+          updated_by: usuarioId
+        });
+        if (updRes.error) return updRes;
+
+        var movRes = await insert('pos_movimientos_inventario', {
+          producto_detalle_id: detalle.producto_detalle_id,
+          tipo_movimiento: 'entrada_compra',
+          cantidad: cantidad,
+          motivo: 'Recepcion de compra',
+          referencia: 'OC-' + (detalle.compra && detalle.compra.numero_orden || ''),
+          created_by: usuarioId
+        });
+        if (movRes.error) {
+          console.error('[DB] Error al crear movimiento inventario:', movRes.error);
+        }
+
+        var detActual = await select('pos_productos_detalle', {
+          filters: [{ col: 'id', val: detalle.producto_detalle_id }],
+          limit: 1
+        });
+        if (detActual.data && detActual.data.length) {
+          var stockActual = parseInt(detActual.data[0].stock_actual || 0);
+          await update('pos_productos_detalle', detalle.producto_detalle_id, {
+            stock_actual: stockActual + cantidad
+          });
+        }
+
+        var checkTodos = await select('pos_compras_detalle', {
+          select: 'id,estado_detalle',
+          filters: [{ col: 'compra_id', val: detalle.compra_id }]
+        });
+        if (!checkTodos.error && checkTodos.data && checkTodos.data.length) {
+          var todosRecibidos = checkTodos.data.every(function (d) { return d.estado_detalle === 'RECIBIDO'; });
+          var algunRecibido = checkTodos.data.some(function (d) { return d.estado_detalle === 'RECIBIDO'; });
+          if (todosRecibidos) {
+            await update('pos_compras', detalle.compra_id, { estado: 'RECIBIDA' });
+          } else if (algunRecibido) {
+            await update('pos_compras', detalle.compra_id, { estado: 'RECIBIENDO' });
+          }
+        }
+
+        var compraActualizada = await select('pos_compras', {
+          select: '*,proveedor:proveedor_id(id,razon_social,numero_id)',
+          filters: [{ col: 'id', val: detalle.compra_id }],
+          limit: 1
+        });
+
+        return {
+          data: {
+            detalle: { id: id, cantidad_recibida: nuevaRecibida, estado_detalle: nuevoEstadoDet },
+            compra: compraActualizada.data && compraActualizada.data[0] || null
+          },
+          error: null
+        };
+      } catch (e) {
+        console.error('[DB] Error al recibir detalle:', e);
+        return { data: null, error: e.message };
+      }
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: FACTURACION
+      ════════════════════════════════════════════════════════════ */
+  var facturacion = {
+    listar: async function (opts) {
+      return select('pos_facturacion', Object.assign({
+        select: '*,venta:venta_id(id,total,created_at,fecha_venta,estado)',
+        orderBy: 'created_at',
+        orderDir: 'desc',
+        searchFields: ['numero', 'serie', 'cliente_nombre', 'cliente_numero_id']
+      }, opts || {}));
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_facturacion', {
+        select: '*,venta:venta_id(id,total,created_at,fecha_venta,estado,usuario:usuario_id(nombre_completo))',
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    crear: async function (data) { return insert('pos_facturacion', data); },
+    actualizar: async function (id, data) { return update('pos_facturacion', id, data); },
+    eliminar: async function (id) { return softDelete('pos_facturacion', id); },
+
+    emitir: async function (id) {
+      return update('pos_facturacion', id, { estado: 'EMITIDA' });
+    },
+
+    anular: async function (id) {
+      return update('pos_facturacion', id, { estado: 'ANULADA' });
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: GASTOS
+      ════════════════════════════════════════════════════════════ */
+  var gastos = {
+    listar: async function (opts) {
+      return select('pos_gastos_mensuales_detalle', Object.assign({
+        select: '*,categoria:categoria_id(id,nombre,descripcion)',
+        orderBy: 'created_at',
+        orderDir: 'desc'
+      }, opts || {}));
+    },
+
+    listarPorPeriodo: async function (anio, mes, opts) {
+      return select('pos_gastos_mensuales_detalle', Object.assign({
+        select: '*,categoria:categoria_id(id,nombre,descripcion)',
+        filters: [
+          { col: 'anio', val: anio },
+          { col: 'mes', val: mes }
+        ],
+        orderBy: 'created_at',
+        orderDir: 'desc'
+      }, opts || {}));
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_gastos_mensuales_detalle', {
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    crear: async function (data) { return insert('pos_gastos_mensuales_detalle', data); },
+    actualizar: async function (id, data) { return update('pos_gastos_mensuales_detalle', id, data); },
+    eliminar: async function (id) { return softDelete('pos_gastos_mensuales_detalle', id); }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: GASTO CATEGORIAS
+      ════════════════════════════════════════════════════════════ */
+  var gastoCategorias = {
+    listar: async function (opts) {
+      return select('pos_gasto_categorias', Object.assign({
+        orderBy: 'nombre'
+      }, opts || {}));
+    },
+
+    listarActivas: async function () {
+      return select('pos_gasto_categorias', {
+        filters: [{ col: 'activa', val: true }],
+        orderBy: 'nombre'
+      });
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_gasto_categorias', {
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    crear: async function (data) { return insert('pos_gasto_categorias', data); },
+    actualizar: async function (id, data) { return update('pos_gasto_categorias', id, data); },
+    eliminar: async function (id) { return softDelete('pos_gasto_categorias', id); }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: FINANZAS MENSUALES
+      ════════════════════════════════════════════════════════════ */
+  var finanzasMensuales = {
+    listar: async function (opts) {
+      return select('pos_finanzas_mensuales', Object.assign({
+        orderBy: 'anio',
+        orderDir: 'desc'
+      }, opts || {}));
+    },
+
+    obtenerPorPeriodo: async function (anio, mes) {
+      var res = await select('pos_finanzas_mensuales', {
+        filters: [
+          { col: 'anio', val: anio },
+          { col: 'mes', val: mes }
+        ],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    crear: async function (data) { return insert('pos_finanzas_mensuales', data); },
+    actualizar: async function (id, data) { return update('pos_finanzas_mensuales', id, data); },
+    eliminar: async function (id) { return softDelete('pos_finanzas_mensuales', id); }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: CONFIGURACION EMPRESA (singleton)
+      ════════════════════════════════════════════════════════════ */
+  var configuracionEmpresa = {
+    obtener: async function () {
+      var res = await select('pos_configuracion_empresa', {
+        orderBy: 'created_at',
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    guardar: async function (data) {
+      var existe = await configuracionEmpresa.obtener();
+      if (existe.data) {
+        return update('pos_configuracion_empresa', existe.data.id, data);
+      }
+      return insert('pos_configuracion_empresa', data);
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      API PUBLICA
       ════════════════════════════════════════════════════════════ */
   return {
-    // Genéricos
+    // Genericos
     select: select,
     insert: insert,
     update: update,
@@ -518,12 +884,20 @@ window.DB = (function () {
     productos: productos,
     categorias: categorias,
     clientes: clientes,
+    proveedores: proveedores,
     ventas: ventas,
+    compras: compras,
+    comprasDetalle: comprasDetalle,
     cajas: cajas,
     cajaApertura: cajaApertura,
     metodosPago: metodosPago,
     canalesVenta: canalesVenta,
     movimientosInventario: movimientosInventario,
-    productosMultimedia: productosMultimedia
+    productosMultimedia: productosMultimedia,
+    facturacion: facturacion,
+    gastos: gastos,
+    gastoCategorias: gastoCategorias,
+    finanzasMensuales: finanzasMensuales,
+    configuracionEmpresa: configuracionEmpresa
   };
 })();

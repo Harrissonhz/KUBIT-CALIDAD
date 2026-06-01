@@ -22,7 +22,7 @@
   var html = document.documentElement;
 
   /* ════════════════════════════════════════════════════════════
-     INICIALIZACIÓN ASÍNCRONA
+     INICIALIZACION ASINCRONA
      ════════════════════════════════════════════════════════════ */
   async function init() {
     aplicarDarkMode();
@@ -35,7 +35,7 @@
   }
 
   /* ════════════════════════════════════════════════════════════
-     SESIÓN
+     SESION
      ════════════════════════════════════════════════════════════ */
   function cargarSesionYMostrar() {
     window.KubitAuth.cargarSesion();
@@ -149,7 +149,7 @@
   async function cargarCanalFisico() {
     var res = await DB.canalesVenta.obtenerPorCodigo('fisico');
     if (res.error || !res.data) {
-      console.warn('[Ventas] No se encontró canal físico, usando placeholder');
+      console.warn('[Ventas] No se encontro canal fisico, usando placeholder');
       return;
     }
     CANAL_FISICO_ID = res.data.id;
@@ -161,7 +161,7 @@
   function renderizarProductos(lista) {
     var grid = $('productos-grid');
     if (!lista.length) {
-      grid.innerHTML = '<div class="col-span-full flex items-center justify-center h-40 text-slate-400 dark:text-slate-600 text-sm">Ningún producto coincide con la búsqueda</div>';
+      grid.innerHTML = '<div class="col-span-full flex items-center justify-center h-40 text-slate-400 dark:text-slate-600 text-sm">Ningun producto coincide con la busqueda</div>';
       return;
     }
     grid.innerHTML = lista.map(function (p, i) {
@@ -190,7 +190,7 @@
   }
 
   /* ════════════════════════════════════════════════════════════
-     CARRITO — con descuento por ítem
+     CARRITO — con descuento por item
      ════════════════════════════════════════════════════════════ */
   function obtenerProducto(pId) {
     return PRODUCTOS.find(function (x) { return x.detalleId === pId; });
@@ -252,7 +252,7 @@
     var puedeAltoDescuento = window.KubitAuth.tienePermiso('pos.descuento.alto');
     if (!puedeAltoDescuento && desc > item.descuentoMax) {
       desc = item.descuentoMax;
-      mostrarToast('Descuento máximo: ' + item.descuentoMax + '%');
+      mostrarToast('Descuento maximo: ' + item.descuentoMax + '%');
     }
     item.descuento = desc;
     actualizarCarrito();
@@ -281,7 +281,7 @@
      ════════════════════════════════════════════════════════════ */
   function renderCartItems(contenedor, esSheet) {
     if (!CARRITO.length) {
-      contenedor.innerHTML = '<div class="flex items-center justify-center h-32 text-slate-300 dark:text-slate-700"><p class="text-sm">Carrito vacío</p></div>';
+      contenedor.innerHTML = '<div class="flex items-center justify-center h-32 text-slate-300 dark:text-slate-700"><p class="text-sm">Carrito vacio</p></div>';
       return;
     }
     contenedor.innerHTML = CARRITO.map(function (i) {
@@ -307,8 +307,8 @@
         '</div>' +
         '<div class="flex items-center gap-2 pl-11">' +
         '<label class="text-[10px] text-slate-400">Dto %</label>' +
-        '<input class="input-descuento w-16 px-2 py-1 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs text-slate-950 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-slate-950 dark:focus:ring-white/20" type="number" min="0" max="100" step="1" value="' + descPct + '" data-id="' + i.detalleId + '">' +
-        '<span class="text-[10px] text-slate-400">máx ' + i.descuentoMax + '%</span>' +
+        '<input class="input-descuento w-20 px-2 py-1 rounded-md bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-xs text-slate-950 dark:text-white text-center focus:outline-none focus:ring-1 focus:ring-slate-950 dark:focus:ring-white/20" type="number" min="0" max="100" step="1" value="' + descPct + '" data-id="' + i.detalleId + '">' +
+        '<span class="text-[10px] text-slate-400">max ' + i.descuentoMax + '%</span>' +
         '</div>' +
         '</div>';
     }).join('');
@@ -386,7 +386,7 @@
   function poblarClientes() {
     var select = $('select-cliente');
     var currentVal = select.value;
-    select.innerHTML = '<option value="">Público General</option>';
+    select.innerHTML = '<option value="">Publico General</option>';
     CLIENTES.forEach(function (c) {
       var nombre = c.primer_nombre + ' ' + (c.segundo_nombre || '') + ' ' + c.primer_apellido + (c.segundo_apellido ? ' ' + c.segundo_apellido : '');
       var selected = c.id === currentVal ? ' selected' : '';
@@ -423,7 +423,7 @@
 
       var metodo = document.querySelector('input[name="metodo"]:checked');
       if (!metodo) {
-        mostrarToast('Selecciona un método de pago');
+        mostrarToast('Selecciona un metodo de pago');
         _loading = false;
         $('btn-confirmar-cobro').disabled = false;
         $('btn-confirmar-cobro').textContent = 'Confirmar Cobro';
@@ -486,7 +486,7 @@
         return;
       }
 
-      var resumen = formatearMoneda(total) + ' · ' + metodo.value + ' · ' + CARRITO.length + ' ítems';
+      var resumen = formatearMoneda(total) + ' · ' + metodo.value + ' · ' + CARRITO.length + ' items';
       $('exito-resumen').textContent = resumen;
       $('modal-exito').classList.remove('hidden');
       cerrarModalCobro();
@@ -505,7 +505,7 @@
   }
 
   /* ════════════════════════════════════════════════════════════
-     MODAL DE ÉXITO (post-cobro)
+     MODAL DE EXITO (post-cobro)
      ════════════════════════════════════════════════════════════ */
   function cerrarExito() {
     $('modal-exito').classList.add('hidden');
@@ -521,7 +521,7 @@
 
   function emitirFactura() {
     cerrarExito();
-    mostrarToast('Factura electrónica emitida (simulado)');
+    mostrarToast('Factura electronica emitida (simulado)');
     CARRITO = [];
     actualizarCarrito();
     renderizarProductos(PRODUCTOS_FILTRADOS);
@@ -555,7 +555,7 @@
     $('btn-cerrar-menu').addEventListener('click', cerrarSidebar);
     $('sidebar-overlay').addEventListener('click', cerrarSidebar);
 
-    // Búsqueda y categorías (event delegation para categorías dinámicas)
+    // Busqueda y categorias (event delegation para categorias dinamicas)
     $('buscador').addEventListener('input', filtrarProductos);
     $('categorias-pills').addEventListener('click', function (e) {
       var btn = e.target.closest('.categoria-pill');
@@ -604,7 +604,7 @@
     $('btn-nueva-venta').addEventListener('click', nuevaVenta);
     $('btn-factura').addEventListener('click', emitirFactura);
 
-    // Métodos de pago
+    // Metodos de pago
     document.querySelectorAll('.metodo-pago-option').forEach(function (label) {
       label.addEventListener('click', function () {
         document.querySelectorAll('.metodo-pago-option').forEach(function (l) { l.classList.remove('active'); });

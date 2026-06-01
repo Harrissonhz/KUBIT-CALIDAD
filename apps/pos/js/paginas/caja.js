@@ -8,13 +8,15 @@
   var APERTURA_ACTIVA = null;
   var HISTORIAL = [];
   var VENTAS_PERIODO = [];
+  var PAGE_SIZE = 10;
+  var PAGINA_MOV = 1;
   var _loading = false;
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
 
   /* ════════════════════════════════════════════════════════════
-     INICIALIZACIÓN ASÍNCRONA
+     INICIALIZACION ASINCRONA
      ════════════════════════════════════════════════════════════ */
   async function init() {
     if (localStorage.getItem('darkMode') === 'true') html.classList.add('dark');
@@ -82,11 +84,19 @@
 
   function renderizarHistorial() {
     var container = $('lista-movimientos');
-    if (!HISTORIAL.length) {
+    var total = HISTORIAL.length;
+    if (!total) {
       container.innerHTML = '<div class="text-center text-sm text-slate-400 py-8">No hay movimientos registrados</div>';
+      renderizarPaginacionMovimientos();
       return;
     }
-    container.innerHTML = HISTORIAL.slice().reverse().map(function (h) {
+
+    var reverso = HISTORIAL.slice().reverse();
+    var inicio = (PAGINA_MOV - 1) * PAGE_SIZE;
+    var pagina = reverso.slice(inicio, inicio + PAGE_SIZE);
+    if (!pagina.length && PAGINA_MOV > 1) { PAGINA_MOV--; renderizarHistorial(); return; }
+
+    container.innerHTML = pagina.map(function (h) {
       var esApertura = h.estado === 'ABIERTA';
       return '<div class="flex items-center justify-between px-4 py-3 rounded-lg bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800">' +
         '<div class="flex items-center gap-3">' +
@@ -101,6 +111,41 @@
         '<span class="text-sm font-semibold ' + (esApertura ? 'text-emerald-600' : 'text-red-600') + '">' + formatearMoneda(h.monto_inicial || 0) + '</span>' +
         '</div>';
     }).join('');
+    renderizarPaginacionMovimientos();
+  }
+
+  function renderizarPaginacionMovimientos() {
+    var total = HISTORIAL.length;
+    var paginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (PAGINA_MOV > paginas) PAGINA_MOV = paginas;
+    var desde = (PAGINA_MOV - 1) * PAGE_SIZE + 1;
+    var hasta = Math.min(PAGINA_MOV * PAGE_SIZE, total);
+
+    var info = $('pag-info-movimientos');
+    var ctrl = $('pag-controles-movimientos');
+    if (total === 0) {
+      info.textContent = '0 resultados';
+      ctrl.innerHTML = '';
+      ctrl.classList.add('hidden');
+      return;
+    }
+    ctrl.classList.remove('hidden');
+    info.textContent = desde + '–' + hasta + ' de ' + total;
+
+    var disabledPrev = PAGINA_MOV <= 1 ? ' opacity-30 pointer-events-none' : '';
+    var disabledNext = PAGINA_MOV >= paginas ? ' opacity-30 pointer-events-none' : '';
+    ctrl.innerHTML =
+      '<button id="pag-mov-prev" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors' + disabledPrev + '">Anterior</button>' +
+      '<span class="text-xs text-slate-400">' + PAGINA_MOV + ' / ' + paginas + '</span>' +
+      '<button id="pag-mov-next" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors' + disabledNext + '">Siguiente</button>';
+  }
+
+  function irPaginaMovimientos(n) {
+    var paginas = Math.max(1, Math.ceil(HISTORIAL.length / PAGE_SIZE));
+    if (n < 1 || n > paginas) return;
+    PAGINA_MOV = n;
+    renderizarHistorial();
+    $('lista-movimientos').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   function formatearMoneda(valor) {
@@ -167,8 +212,9 @@
     if (!resHistorial.error) {
       HISTORIAL = resHistorial.data || [];
     }
+    PAGINA_MOV = 1;
 
-    // Si hay apertura activa, obtener ventas del período
+    // Si hay apertura activa, obtener ventas del periodo
     if (APERTURA_ACTIVA) {
       var user = window.KubitAuth.obtenerUsuario();
       var resVentas = await DB.ventas.obtenerPorPeriodo(
@@ -207,7 +253,7 @@
     var cajaId = obtenerCajaId();
     if (!cajaId) { mostrarToast('Selecciona una caja'); return; }
 
-    if (APERTURA_ACTIVA) { mostrarToast('La caja ya está abierta'); return; }
+    if (APERTURA_ACTIVA) { mostrarToast('La caja ya esta abierta'); return; }
 
     _loading = true;
     $('btn-confirmar-apertura').disabled = true;
@@ -246,7 +292,7 @@
   function abrirModalCierre() {
     if (!window.KubitAuth.requierePermiso('pos.caja.cierre')) return;
 
-    if (!APERTURA_ACTIVA) { mostrarToast('La caja no está abierta'); return; }
+    if (!APERTURA_ACTIVA) { mostrarToast('La caja no esta abierta'); return; }
 
     var ventasEfectivo = VENTAS_PERIODO.filter(function (v) { return v.metodo_pago === 'efectivo'; })
       .reduce(function (s, v) { return s + (v.total || 0); }, 0);
@@ -281,7 +327,7 @@
     if (!forzado) {
       montoFinal = parseFloat($('monto-final-input').value);
       if (isNaN(montoFinal) || montoFinal < 0) {
-        mostrarToast('Ingresa un monto final válido');
+        mostrarToast('Ingresa un monto final valido');
         return;
       }
     } else {
@@ -347,6 +393,13 @@
 
     $('select-caja').addEventListener('change', function () {
       cargarEstado();
+    });
+
+    $('pag-controles-movimientos').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.id === 'pag-mov-prev') irPaginaMovimientos(PAGINA_MOV - 1);
+      if (btn.id === 'pag-mov-next') irPaginaMovimientos(PAGINA_MOV + 1);
     });
 
     $('btn-apertura').addEventListener('click', abrirModalApertura);

@@ -1,5 +1,5 @@
 /* ============================================================
-   auth.js — Autenticación real contra Supabase Auth
+   auth.js — Autenticacion real contra Supabase Auth
    Basado en pos_usuarios, pos_roles, pos_rol_permisos, pos_permisos
    Requiere: config.js, supabase.js (window.__supabase)
    ============================================================ */
@@ -77,7 +77,7 @@ window.KubitAuth = (function () {
 
       if (!res.ok) {
         var errText = await res.text();
-        return { exito: false, error: 'Credenciales inválidas. Verifica tu email y contraseña.' };
+        return { exito: false, error: 'Credenciales invalidas. Verifica tu email y contrasena.' };
       }
 
       var authData = await res.json();
@@ -102,7 +102,7 @@ window.KubitAuth = (function () {
         rolNombre = usuario.rol_id.nombre || 'Vendedor';
       }
 
-      // 6. Armar sesión
+      // 6. Armar sesion
       USUARIO_ACTUAL = {
         id: usuario.id,
         nombre: usuario.nombre_completo,
@@ -123,7 +123,7 @@ window.KubitAuth = (function () {
 
     } catch (e) {
       console.error('[auth] Error en login:', e);
-      return { exito: false, error: 'Error de conexión. Intenta de nuevo.' };
+      return { exito: false, error: 'Error de conexion. Intenta de nuevo.' };
     }
   }
 
@@ -134,7 +134,7 @@ window.KubitAuth = (function () {
     _limpiarStorage();
   }
 
-  /* ─── SESIÓN ─── */
+  /* ─── SESION ─── */
   function cargarSesion() {
     var s = _cargarStorage();
     if (s && s.accessToken) {
@@ -166,7 +166,7 @@ window.KubitAuth = (function () {
 
   function requierePermiso(permiso) {
     if (!tienePermiso(permiso)) {
-      _mostrarError('No tienes permiso para realizar esta acción');
+      _mostrarError('No tienes permiso para realizar esta accion');
       return false;
     }
     return true;
@@ -196,7 +196,7 @@ window.KubitAuth = (function () {
   /* ─── AUTO-CARGAR ─── */
   cargarSesion();
 
-  /* ─── ERROR DE AUTENTICACIÓN ─── */
+  /* ─── ERROR DE AUTENTICACION ─── */
   function manejarErrorAuth() {
     _limpiarStorage();
     window.__supabase && window.__supabase.clearAuth();
@@ -207,7 +207,7 @@ window.KubitAuth = (function () {
     }
   }
 
-  /* ─── API PÚBLICA ─── */
+  /* ─── API PUBLICA ─── */
   return {
     login: login,
     logout: logout,

@@ -826,7 +826,7 @@ create table public.pos_compras (
   usuario_id uuid not null references public.pos_usuarios(id),
   fecha_compra date,
   fecha_entrega date,
-  estado text default 'PENDIENTE' check (estado in ('PENDIENTE', 'CONFIRMADA', 'RECIBIDA', 'ANULADA')),
+  estado text default 'PENDIENTE' check (estado in ('PENDIENTE', 'CONFIRMADA', 'RECIBIENDO', 'RECIBIDA', 'ANULADA')),
   subtotal numeric,
   impuesto numeric,
   descuento numeric,
@@ -879,6 +879,8 @@ create table public.pos_compras_detalle (
   subtotal numeric,
   impuesto numeric,
   total numeric,
+  cantidad_recibida int not null default 0,
+  estado_detalle text default 'PENDIENTE' check (estado_detalle in ('PENDIENTE', 'RECIBIDO')),
   created_at timestamptz default now(),
   updated_by uuid references public.pos_usuarios(id),
   deleted_at timestamptz

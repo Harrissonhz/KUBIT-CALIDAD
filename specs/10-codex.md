@@ -413,6 +413,8 @@ async function verificarSesion() {
 
 ## 10. Manejo de Formularios
 
+### 10.1 Helpers JS
+
 ```javascript
 function obtenerDatosFormulario($form) {
   const datos = {};
@@ -432,6 +434,37 @@ function limpiarFormulario($form) {
   });
 }
 ```
+
+### 10.2 Clases CSS para Formularios CRUD
+
+TODOS los formularios POS (excepto `ventas.html`) usan exclusivamente estas clases CSS personalizadas. El diseño visual completo está definido en `05-ui-ux-system.md` sección 6.
+
+| Elemento | Clase CSS | Propósito |
+|---|---|---|
+| **Label** | `label-campo` | uppercase, bold (700), tracking, color slate-600 / dark: slate-300 |
+| **Input / Select / Textarea** | `input-campo` | rounded-xl, border, padding, focus ring, dark mode |
+| **Card colapsable** | `grupo-card` | Contenedor `<details>` con chevron rotable vía CSS |
+| **Sidebar accordion** | `grupo-sidebar` | Agrupación `<details>` en navegación lateral |
+| **Fila multimedia** | `multimedia-row` | Fila dinámica add/remove |
+
+Reglas:
+- Labels e inputs NUNCA usan clases Tailwind directas para estilos base (color, font-weight, border-radius — eso va en las clases personalizadas)
+- Solo usan clases Tailwind para variantes responsive (`sm:col-span-2`, `lg:col-span-4`, `pl-8`, etc.)
+- El grid es SIEMPRE: `grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4`
+- Los campos obligatorios NO llevan asterisco ni indicador visual — se validan con `mostrarToast()` en JS
+- Los `<select>` con clase `input-campo` usan un SVG de chevron como background-image para la flecha desplegable, sin JavaScript
+
+### 10.3 ID Naming para Formularios
+
+| Propósito | Patrón ID | Ejemplo |
+|---|---|---|
+| Campo de texto | `campo-{nombre}` | `campo-nombre`, `campo-email` |
+| Select | `campo-{entidad}` | `campo-categoria`, `campo-rol` |
+| Checkbox/Boolean | `campo-{flag}` | `campo-activo` |
+| Botón guardar | `btn-guardar` | fijo en todos los formularios |
+| Botón limpiar | `btn-limpiar-form` | fijo en todos los formularios |
+| Título del card | `form-titulo` | Texto "Nuevo/Editar Entidad" |
+| ID de entidad (label) | `form-{entidad}-id` | `form-producto-id` |
 
 ---
 
@@ -494,7 +527,7 @@ function generarNumeroVenta(prefijo) {
 
 1. **No inventar tecnologías.** Si algo no está en este codex o en las specs, preguntar
 2. **Seguir la estructura de archivos exacta** de la sección 2
-3. **Usar la plantilla HTML** de la sección 3 para cada nueva página
+3. **Usar la plantilla HTML** de la sección 3 y el **Patrón de Formularios CRUD** de `05-ui-ux-system.md` sección 6. NO aplicar a `ventas.html`
 4. **Respetar naming** de la sección 4
 5. **Toda función ≤ 30 líneas**
 6. **Toda llamada a Supabase usa `consultarSeguro`**

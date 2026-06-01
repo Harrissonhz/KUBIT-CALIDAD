@@ -264,6 +264,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Tailwind:** Preferir clases de utilidad sobre CSS personalizado
 - **Componentes:** Un archivo por componente/funcionalidad
 - **Importaciones:** Evitar dependencias externas. Preferir vanilla JS
+- **Texto UI ASCII plano:** Todo texto visible al usuario sin tildes, diéresis, eñes ni caracteres especiales. Ver tabla de mapeo en `05-ui-ux-system.md` §8.
 
 ---
 

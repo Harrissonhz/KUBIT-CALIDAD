@@ -12,10 +12,10 @@
     html.classList.add('dark');
   }
 
-  // Mostrar mensaje si viene de sesión expirada
+  // Mostrar mensaje si viene de sesion expirada
   var params = new URLSearchParams(window.location.search);
   if (params.get('expired') === '1') {
-    errorEl.textContent = 'Tu sesión ha expirado. Inicia sesión de nuevo.';
+    errorEl.textContent = 'Tu sesion ha expirado. Inicia sesion de nuevo.';
     errorEl.classList.remove('hidden');
   }
 
@@ -32,7 +32,7 @@
     var password = passwordInput.value.trim();
 
     if (!email || !password) {
-      errorEl.textContent = 'Email y contraseña son requeridos';
+      errorEl.textContent = 'Email y contrasena son requeridos';
       errorEl.classList.remove('hidden');
       return;
     }
@@ -63,7 +63,7 @@
     localStorage.setItem('pos_caja_nombre', cajaNombre);
     localStorage.setItem('pos_usuario', email);
 
-    // Actualizar sesión con datos de caja y re-guardar
+    // Actualizar sesion con datos de caja y re-guardar
     var sesion = window.KubitAuth.obtenerUsuario();
     if (sesion) {
       sesion.cajaId = cajaId;

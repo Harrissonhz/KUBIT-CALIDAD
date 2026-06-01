@@ -26,11 +26,11 @@
 
     await Promise.all([cargarCategorias(), cargarProductos()]);
     bindearEventos();
-    agregarFilaMultimedia(); // una fila vacía por defecto
+    agregarFilaMultimedia(); // una fila vacia por defecto
   }
 
   /* ───────────────────────────────────────────────
-     CATEGORÍAS
+     CATEGORIAS
      ─────────────────────────────────────────────── */
   async function cargarCategorias() {
     var res = await DB.categorias.listarTodas();
@@ -38,7 +38,7 @@
     CATEGORIAS = res.data || [];
 
     [$('campo-categoria'), $('filtro-categoria')].forEach(function (sel) {
-      sel.innerHTML = '<option value="">' + (sel.id === 'filtro-categoria' ? 'Todas las categorías' : 'Seleccionar...') + '</option>';
+      sel.innerHTML = '<option value="">' + (sel.id === 'filtro-categoria' ? 'Todas las categorias' : 'Seleccionar...') + '</option>';
       CATEGORIAS.forEach(function (c) {
         sel.innerHTML += '<option value="' + c.id + '">' + c.nombre + '</option>';
       });
@@ -59,7 +59,7 @@
     var res = await DB.productos.listarConDetalle({ skipCache: true });
     if (res.error) {
       console.error('[Productos] Error:', res.error);
-      mostrarErrorTabla('Error al cargar productos. Verifica tu conexión.');
+      mostrarErrorTabla('Error al cargar productos. Verifica tu conexion.');
       return;
     }
     PRODUCTOS = (res.data || []).map(function (d) {
@@ -205,7 +205,7 @@
       '</div>' +
       '<div class="sm:col-span-3">' +
         '<label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1.5">Texto Alternativo</label>' +
-        '<input type="text" class="mm-alt w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Breve descripción de la imagen" value="' + altVal + '">' +
+        '<input type="text" class="mm-alt w-full px-3.5 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Breve descripcion de la imagen" value="' + altVal + '">' +
       '</div>' +
       '<div class="flex items-end">' +
         btnEliminar +
@@ -325,7 +325,7 @@
     var nombre = $('campo-nombre').value.trim();
     if (!nombre) { mostrarToast('El nombre del producto es obligatorio'); return; }
     var categoriaId = $('campo-categoria').value;
-    if (!categoriaId) { mostrarToast('Selecciona una categoría'); return; }
+    if (!categoriaId) { mostrarToast('Selecciona una categoria'); return; }
     var precioVenta = parseFloat($('campo-precio-venta').value) || 0;
     if (precioVenta <= 0) { mostrarToast('El precio de venta debe ser mayor a 0'); return; }
 
@@ -452,7 +452,7 @@
   }
 
   /* ───────────────────────────────────────────────
-     PAGINACIÓN
+     PAGINACION
      ─────────────────────────────────────────────── */
   function irPagina(n) {
     var total = PRODUCTOS_FILTRADOS.length;
@@ -540,7 +540,7 @@
     $('buscador-productos').addEventListener('input', productosFiltrarYRender);
     $('filtro-categoria').addEventListener('change', productosFiltrarYRender);
 
-    // Paginación
+    // Paginacion
     $('pag-controles').addEventListener('click', function (e) {
       var btn = e.target.closest('button');
       if (!btn) return;
@@ -548,7 +548,7 @@
       if (btn.id === 'pag-next') irPagina(PAGINA + 1);
     });
 
-    // Tabla (delegación)
+    // Tabla (delegacion)
     $('productos-tbody').addEventListener('click', function (e) {
       var btn = e.target.closest('button');
       if (!btn) return;
