@@ -51,8 +51,26 @@ if (typeof CONFIG === 'undefined') {
     setAuth: function(token) { AUTH_TOKEN = token; },
     clearAuth: function() { AUTH_TOKEN = null; },
 
-    get: function(path) {
-      return _fetch(path, { method: 'GET' });
+    get: function(path, extra) {
+      return _fetch(path, Object.assign({ method: 'GET' }, extra || {}));
+    },
+    getWithMeta: async function(path, extra) {
+      var res = await fetch(URL + '/rest/v1/' + path, {
+        method: 'GET',
+        headers: headers(Object.assign({ 'Prefer': 'count=exact' }, (extra && extra.headers) || {}))
+      });
+      if (!res.ok) {
+        var text = await res.text();
+        throw new Error('Supabase ' + res.status + ': ' + text);
+      }
+      var data = res.status === 204 ? null : await res.json();
+      var range = res.headers.get('content-range');
+      var total = 0;
+      if (range) {
+        var match = range.match(/\/(\d+)$/);
+        if (match) total = parseInt(match[1], 10);
+      }
+      return { data: data || [], total: total };
     },
     post: function(path, body) {
       return _fetch(path, {

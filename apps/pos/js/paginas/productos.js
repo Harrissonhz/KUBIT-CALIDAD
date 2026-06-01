@@ -2,12 +2,15 @@
   'use strict';
 
   var PRODUCTOS = [];
+  var PRODUCTOS_FILTRADOS = [];
   var CATEGORIAS = [];
   var EDITANDO_ID = null;
   var EDITANDO_PRODUCTO_ID = null;
   var MULTIMEDIA = [];
   var MULTIMEDIA_ELIMINADOS = [];
   var _guardando = false;
+  var PAGE_SIZE = 10;
+  var PAGINA = 1;
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
@@ -45,10 +48,20 @@
   /* ───────────────────────────────────────────────
      PRODUCTOS
      ─────────────────────────────────────────────── */
+  function mostrarErrorTabla(msg) {
+    var tbody = $('productos-tbody');
+    tbody.innerHTML = '<tr><td colspan="6" class="text-center py-10"><div class="flex flex-col items-center gap-2"><svg class="w-8 h-8 text-red-300" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg><p class="text-sm text-slate-400">' + msg + '</p></div></td></tr>';
+  }
+
   async function cargarProductos() {
     $('productos-tbody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Cargando...</td></tr>';
+    PAGINA = 1;
     var res = await DB.productos.listarConDetalle({ skipCache: true });
-    if (res.error) { console.error('[Productos] Error:', res.error); return; }
+    if (res.error) {
+      console.error('[Productos] Error:', res.error);
+      mostrarErrorTabla('Error al cargar productos. Verifica tu conexión.');
+      return;
+    }
     PRODUCTOS = (res.data || []).map(function (d) {
       var p = d.producto || {};
       return {
@@ -79,19 +92,51 @@
         tasaImpuesto: p.tasa_impuesto || 0.19
       };
     });
-    renderizarTabla(PRODUCTOS);
+    productosFiltrarYRender();
   }
 
-  function renderizarTabla(lista) {
+  function renderizarPaginacion() {
+    var total = PRODUCTOS_FILTRADOS.length;
+    var paginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (PAGINA > paginas) PAGINA = paginas;
+    var desde = (PAGINA - 1) * PAGE_SIZE + 1;
+    var hasta = Math.min(PAGINA * PAGE_SIZE, total);
+
+    var info = $('pag-info');
+    var ctrl = $('pag-controles');
+    if (total === 0) {
+      info.textContent = '0 resultados';
+      ctrl.innerHTML = '';
+      ctrl.classList.add('hidden');
+      return;
+    }
+    ctrl.classList.remove('hidden');
+    info.textContent = desde + '–' + hasta + ' de ' + total;
+
+    var disabledPrev = PAGINA <= 1 ? ' opacity-30 pointer-events-none' : '';
+    var disabledNext = PAGINA >= paginas ? ' opacity-30 pointer-events-none' : '';
+    ctrl.innerHTML =
+      '<button id="pag-prev" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors' + disabledPrev + '">Anterior</button>' +
+      '<span class="text-xs text-slate-400">' + PAGINA + ' / ' + paginas + '</span>' +
+      '<button id="pag-next" class="px-3 py-1.5 rounded-lg text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors' + disabledNext + '">Siguiente</button>';
+  }
+
+  function renderizarTabla() {
     var tbody = $('productos-tbody');
-    $('productos-count').textContent = '(' + lista.length + ')';
-    if (!lista.length) {
+    var total = PRODUCTOS_FILTRADOS.length;
+    $('productos-count').textContent = '(' + total + ')';
+    if (!total) {
       tbody.innerHTML = '';
       $('productos-empty').classList.remove('hidden');
+      renderizarPaginacion();
       return;
     }
     $('productos-empty').classList.add('hidden');
-    tbody.innerHTML = lista.map(function (p) {
+
+    var inicio = (PAGINA - 1) * PAGE_SIZE;
+    var pagina = PRODUCTOS_FILTRADOS.slice(inicio, inicio + PAGE_SIZE);
+
+    tbody.innerHTML = pagina.map(function (p) {
       var agotado = p.stock <= 0;
       var bajo = p.stockMin > 0 && p.stock <= p.stockMin;
       var badge = agotado ? 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400' :
@@ -109,6 +154,19 @@
         '<button class="btn-eliminar text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1" data-id="' + p.detalleId + '">Eliminar</button>' +
         '</div></td></tr>';
     }).join('');
+    renderizarPaginacion();
+  }
+
+  function productosFiltrarYRender() {
+    var q = ($('buscador-productos').value || '').toLowerCase().trim();
+    var catId = $('filtro-categoria').value;
+    PRODUCTOS_FILTRADOS = PRODUCTOS.filter(function (p) {
+      var matchCat = !catId || p.categoriaId === catId;
+      var matchQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigoInterno || '').toLowerCase().includes(q) || (p.codigoBarras || '').toLowerCase().includes(q) || (p.marca || '').toLowerCase().includes(q);
+      return matchCat && matchQ;
+    });
+    PAGINA = 1;
+    renderizarTabla();
   }
 
   /* ───────────────────────────────────────────────
@@ -394,17 +452,15 @@
   }
 
   /* ───────────────────────────────────────────────
-     FILTROS
+     PAGINACIÓN
      ─────────────────────────────────────────────── */
-  function filtrarProductos() {
-    var q = $('buscador-productos').value.toLowerCase().trim();
-    var catId = $('filtro-categoria').value;
-    var filtrados = PRODUCTOS.filter(function (p) {
-      var matchCat = !catId || p.categoriaId === catId;
-      var matchQ = !q || p.nombre.toLowerCase().includes(q) || (p.codigoInterno || '').toLowerCase().includes(q) || (p.codigoBarras || '').toLowerCase().includes(q);
-      return matchCat && matchQ;
-    });
-    renderizarTabla(filtrados);
+  function irPagina(n) {
+    var total = PRODUCTOS_FILTRADOS.length;
+    var paginas = Math.max(1, Math.ceil(total / PAGE_SIZE));
+    if (n < 1 || n > paginas) return;
+    PAGINA = n;
+    renderizarTabla();
+    $('productos-tbody').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
   /* ───────────────────────────────────────────────
@@ -481,8 +537,16 @@
     });
 
     // Filtros
-    $('buscador-productos').addEventListener('input', filtrarProductos);
-    $('filtro-categoria').addEventListener('change', filtrarProductos);
+    $('buscador-productos').addEventListener('input', productosFiltrarYRender);
+    $('filtro-categoria').addEventListener('change', productosFiltrarYRender);
+
+    // Paginación
+    $('pag-controles').addEventListener('click', function (e) {
+      var btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn.id === 'pag-prev') irPagina(PAGINA - 1);
+      if (btn.id === 'pag-next') irPagina(PAGINA + 1);
+    });
 
     // Tabla (delegación)
     $('productos-tbody').addEventListener('click', function (e) {

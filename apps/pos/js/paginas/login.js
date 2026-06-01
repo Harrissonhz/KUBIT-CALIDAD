@@ -12,6 +12,13 @@
     html.classList.add('dark');
   }
 
+  // Mostrar mensaje si viene de sesión expirada
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('expired') === '1') {
+    errorEl.textContent = 'Tu sesión ha expirado. Inicia sesión de nuevo.';
+    errorEl.classList.remove('hidden');
+  }
+
   toggleBtn.addEventListener('click', function () {
     html.classList.toggle('dark');
     localStorage.setItem('darkMode', html.classList.contains('dark'));

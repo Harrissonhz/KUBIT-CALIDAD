@@ -91,14 +91,26 @@ window.DB = (function () {
   /* ════════════════════════════════════════════════════════════
      GENERIC CRUD
      ════════════════════════════════════════════════════════════ */
+  function _esErrorAuth(msj) {
+    return msj && (msj.indexOf('401') !== -1 || msj.indexOf('JWT') !== -1 || msj.indexOf('expired') !== -1);
+  }
+
   async function select(tabla, opts) {
     try {
       var qs = _buildQuery(opts || {});
+      var usarMeta = opts && opts.page && opts.pageSize;
+      if (usarMeta) {
+        var meta = await api.getWithMeta(tabla + '?' + qs);
+        return { data: meta.data || [], error: null, count: meta.data.length, total: meta.total };
+      }
       var data = await api.get(tabla + '?' + qs);
       var count = (data && data.length) || 0;
       return { data: data || [], error: null, count: count };
     } catch (e) {
       console.error('[DB] select error:', tabla, e);
+      if (_esErrorAuth(e.message) && window.KubitAuth && window.KubitAuth.manejarErrorAuth) {
+        window.KubitAuth.manejarErrorAuth();
+      }
       return { data: [], error: e.message, count: 0 };
     }
   }
@@ -159,7 +171,7 @@ window.DB = (function () {
         return d.producto && d.producto.activo !== false;
       });
 
-      var result = { data: data, error: res.error, count: data.length };
+      var result = { data: data, error: res.error, count: data.length, total: res.total };
 
       if (!opts || !opts.skipCache) {
         _cacheSet(cacheKey, result, 30000);

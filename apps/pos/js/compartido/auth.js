@@ -196,6 +196,17 @@ window.KubitAuth = (function () {
   /* ─── AUTO-CARGAR ─── */
   cargarSesion();
 
+  /* ─── ERROR DE AUTENTICACIÓN ─── */
+  function manejarErrorAuth() {
+    _limpiarStorage();
+    window.__supabase && window.__supabase.clearAuth();
+    USUARIO_ACTUAL = null;
+    var actual = window.location.pathname.split('/').pop();
+    if (actual !== 'login.html') {
+      window.location.href = 'login.html?expired=1';
+    }
+  }
+
   /* ─── API PÚBLICA ─── */
   return {
     login: login,
@@ -204,6 +215,7 @@ window.KubitAuth = (function () {
     obtenerUsuario: obtenerUsuario,
     tienePermiso: tienePermiso,
     requierePermiso: requierePermiso,
-    aplicarRestriccionesUI: aplicarRestriccionesUI
+    aplicarRestriccionesUI: aplicarRestriccionesUI,
+    manejarErrorAuth: manejarErrorAuth
   };
 })();
