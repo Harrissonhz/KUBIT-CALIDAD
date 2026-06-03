@@ -74,6 +74,14 @@
       margin-top: 2px;
       line-height: 1.5;
     }
+    .inv-logo {
+      height: 32px;
+      width: auto;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 8px;
+      object-fit: contain;
+    }
     .inv-title {
       text-align: right;
     }
@@ -408,7 +416,7 @@
         $('invoice-content').innerHTML =
           '<div class="inv-header">' +
             '<div class="inv-brand">' +
-              (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="h-8 w-auto inline-block align-middle mr-2 object-contain" onerror="this.style.display=\'none\'">' : '') +
+              (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="inv-logo" onerror="this.style.display=\'none\'">' : '') +
               '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
               (empresaNit ? '<p>NIT: ' + escaparHTML(empresaNit) + '</p>' : '') +
               (empresaDir ? '<p>' + escaparHTML(empresaDir) + '</p>' : '') +

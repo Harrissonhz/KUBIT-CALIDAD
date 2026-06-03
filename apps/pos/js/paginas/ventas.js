@@ -768,7 +768,7 @@
     $('btn-nueva-venta').addEventListener('click', nuevaVenta);
     $('btn-imprimir-factura').addEventListener('click', function () {
       if (!ULTIMA_VENTA_ID) return;
-      window.open('factura-print.html?id=' + ULTIMA_VENTA_ID, '_blank');
+      window.open('factura-print?id=' + ULTIMA_VENTA_ID, '_blank');
     });
   }
 

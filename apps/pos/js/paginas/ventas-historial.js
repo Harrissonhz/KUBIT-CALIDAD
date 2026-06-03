@@ -332,7 +332,7 @@
     $('btn-anular-venta').addEventListener('click', anularVenta);
     $('btn-imprimir-venta').addEventListener('click', function () {
       if (!VENTA_ACTUAL) return;
-      window.open('factura-print.html?id=' + VENTA_ACTUAL.id, '_blank');
+      window.open('factura-print?id=' + VENTA_ACTUAL.id, '_blank');
     });
   }
 
