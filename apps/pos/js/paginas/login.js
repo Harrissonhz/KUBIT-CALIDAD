@@ -22,7 +22,9 @@
         img.src = res.data.logo_url;
         img.alt = 'Logo';
         img.className = 'w-full h-full object-contain rounded-xl';
-        img.onerror = function () { img.remove(); };
+        img.onerror = function () {
+          container.innerHTML = '<span class="text-white dark:text-slate-950 text-2xl font-bold">K</span>';
+        };
         container.innerHTML = '';
         container.appendChild(img);
       }
