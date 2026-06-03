@@ -238,6 +238,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Dark mode con toggle y persistencia en localStorage
 - [x] Responsive mobile-first (360px→desktop) en todas las pantallas
 
+#### Despliegue — Configuracion Vercel
+- [x] `apps/pos/vercel.json` — Rewrite rule para clean URLs de factura-print: `"/factura-print" → "/factura-print.html"`. Necesario porque Vercel no tiene clean URLs nativas como `npx serve`.
+
 #### Módulo POS (Punto de Venta) — Fase 8: Logo de Empresa desde DB
 - [x] `database.js` — Bloque autoejecutable `cargarLogoHeader()` al final del IIFE que busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` que restaura `<span>K</span>` como fallback.
 - [x] `login.js` — Carga el logo en el circulo central del login (`.w-14.h-14.bg-slate-950.rounded-2xl`), con mismo fallback K en `onerror`.
@@ -342,6 +345,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/compartido/database.js` | Bloque autoejecutable `cargarLogoHeader()` al final del IIFE: busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header, carga `DB.configuracionEmpresa.obtener()`, y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` para fallback silencioso. Afecta a las 14 pantallas POS sin modificar cada HTML/JS individual. |
 | `apps/pos/js/paginas/login.js` | Carga el logo en el contenedor `.w-14.h-14.bg-slate-950.rounded-2xl` del login, reemplazando la "K" estatica. |
 | `apps/pos/factura-print.html` | Agrega variable `empresaLogo` y renderiza `<img>` condicional en `.inv-brand` (antes del nombre de empresa) si `logo_url` existe. |
+
+### 2026-06-03 — Fix 404 factura-print en Vercel
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/vercel.json` | Nuevo archivo con rewrite: `"/factura-print" → "/factura-print.html"`. Resuelve 404 en Vercel por clean URLs. |
 
 ### 2026-06-03 — Fixes post-implementacion Logo
 
