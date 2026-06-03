@@ -239,10 +239,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Responsive mobile-first (360px→desktop) en todas las pantallas
 
 #### Módulo POS (Punto de Venta) — Fase 8: Logo de Empresa desde DB
-- [x] `database.js` — Bloque autoejecutable `cargarLogoHeader()` que busca el contenedor `.w-8.h-8.bg-slate-950.rounded-lg` en el header de todas las paginas POS y reemplaza la "K" por `<img>` si `logo_url` existe. Maneja fallback a "K" si no hay logo o si la imagen falla.
-- [x] `login.js` — Carga el logo en el circulo central del login (`.w-14.h-14.bg-slate-950.rounded-2xl`)
-- [x] `factura-print.html` — Renderiza `<img>` condicional en el encabezado de la factura imprimible cuando `logo_url` esta presente
-- [x] **Comportamiento:** Si `pos_configuracion_empresa.logo_url` tiene URL valida → se muestra en header, login y factura. Si es null/vacio/falla → se mantiene el fallback visual (K o solo texto)
+- [x] `database.js` — Bloque autoejecutable `cargarLogoHeader()` al final del IIFE que busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` que restaura `<span>K</span>` como fallback.
+- [x] `login.js` — Carga el logo en el circulo central del login (`.w-14.h-14.bg-slate-950.rounded-2xl`), con mismo fallback K en `onerror`.
+- [x] `factura-print.html` — Renderiza `<img>` condicional en `.inv-brand` usando clase CSS nativa `.inv-logo` (40px height, sin Tailwind). La pagina usa CSS plano por ser standalone de impresion.
+- [x] `ventas.js`, `ventas-historial.js` — URLs de factura con formato clean (`factura-print?id=`) para compatibilidad con `npx serve` (evita redireccion 301 que pierde query params).
+- [x] **Comportamiento:** Si `logo_url` tiene URL valida y accesible → se muestra en header, login y factura. Si es null/vacio → fallback visual (K). Si la URL falla al cargar → `onerror` restaura la K silenciosamente.
 
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
@@ -342,11 +343,22 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/login.js` | Carga el logo en el contenedor `.w-14.h-14.bg-slate-950.rounded-2xl` del login, reemplazando la "K" estatica. |
 | `apps/pos/factura-print.html` | Agrega variable `empresaLogo` y renderiza `<img>` condicional en `.inv-brand` (antes del nombre de empresa) si `logo_url` existe. |
 
+### 2026-06-03 — Fixes post-implementacion Logo
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Fallback K en `onerror`: restaura `<span>K</span>` en vez de dejar contenedor vacio (evita cuadro negro) |
+| `apps/pos/js/paginas/login.js` | Mismo fallback K en el circulo del login |
+| `apps/pos/factura-print.html` | Clase CSS nativa `.inv-logo` (height: 40px, object-fit: contain). Reemplazadas clases Tailwind que no funcionaban por ser pagina standalone sin CDN. Iteracion de tamano: 64px -> 32px -> 40px |
+| `apps/pos/js/paginas/ventas.js` | URL de factura cambia a clean URI (`factura-print?id=`) para evitar redireccion 301 de `npx serve` |
+| `apps/pos/js/paginas/ventas-historial.js` | Mismo cambio clean URLs |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
 - **Logo de empresa:** Se carga automaticamente desde `pos_configuracion_empresa.logo_url` en el header (14 paginas), login y factura. Sin modificar HTMLs individuales — la logica centralizada en `database.js` busca el contenedor por clase CSS y lo reemplaza. La IA futura debe mantener esta estrategia centralizada para cambios UI globales.
 - **No usar `file://` para pruebas locales:** Los fetch a Supabase y el manifest.json fallan por CORS policy. Usar `npx serve` o deploy en Vercel.
+- **`factura-print.html` usa CSS nativo:** Por ser pagina de impresion standalone, no carga Tailwind CDN. Todo el estilo se define en el bloque `<style>` con CSS plano. No mezclar con clases Tailwind.
 
 ---
 

@@ -846,9 +846,9 @@ El logo de la empresa se almacena en `pos_configuracion_empresa.logo_url` y se r
 
 | Lugar | Contenedor CSS | Mecanismo |
 |---|---|---|
-| Header de todas las pantallas POS (14 paginas) | `.w-8.h-8.bg-slate-950.rounded-lg` | Bloque autoejecutable en `database.js:945-974` que busca el contenedor y reemplaza la "K" por `<img>` |
-| Pantalla de Login | `.w-14.h-14.bg-slate-950.rounded-2xl` | Logica en `login.js:15-30` que carga el logo en el circulo central |
-| Factura imprimible | `.inv-brand` | Condicional en `factura-print.html:411` que renderiza `<img>` antes del nombre de empresa |
+| Header de todas las pantallas POS (14 paginas) | `.w-8.h-8.bg-slate-950.rounded-lg` | Bloque autoejecutable en `database.js:950-974` que busca el contenedor y reemplaza la "K" por `<img>`. Fallback: restaura `<span>K</span>` en `onerror` |
+| Pantalla de Login | `.w-14.h-14.bg-slate-950.rounded-2xl` | Logica en `login.js:15-30` que carga el logo en el circulo central. Fallback: restaura `<span>K</span>` en `onerror` |
+| Factura imprimible | `.inv-brand` | Condicional en `factura-print.html:411` que renderiza `<img>` (clase CSS nativa `.inv-logo`, 40px). Sin Tailwind. Fallback: `onerror` oculta la imagen |
 
 ### 8.1 Comportamiento
 - Si `logo_url` tiene una URL valida → se muestra la imagen en los 3 lugares
