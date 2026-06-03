@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,7 +9,11 @@
   <script src="js/supabase.js"></script>
   <script src="js/compartido/database.js"></script>
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
@@ -30,14 +35,21 @@
       gap: 12px;
       min-height: 40vh;
     }
+
     .spinner {
-      width: 32px; height: 32px;
+      width: 32px;
+      height: 32px;
       border: 3px solid #e2e8f0;
       border-top-color: #0f172a;
       border-radius: 50%;
       animation: spin .7s linear infinite;
     }
-    @keyframes spin { to { transform: rotate(360deg); } }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
     /* ─── Invoice ─── */
     #invoice-container {
@@ -49,7 +61,7 @@
     .invoice {
       background: #fff;
       padding: 40px 35px;
-      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
       border-radius: 12px;
     }
 
@@ -62,35 +74,41 @@
       border-bottom: 2px solid #0f172a;
       margin-bottom: 24px;
     }
+
     .inv-brand h2 {
       font-size: 20px;
       font-weight: 700;
       color: #0f172a;
       letter-spacing: -.3px;
     }
+
     .inv-brand p {
       font-size: 12px;
       color: #64748b;
       margin-top: 2px;
       line-height: 1.5;
     }
+
     .inv-logo {
-      height: 32px;
+      height: 70px;
       width: auto;
       display: inline-block;
       vertical-align: middle;
       margin-right: 8px;
       object-fit: contain;
     }
+
     .inv-title {
       text-align: right;
     }
+
     .inv-title h1 {
       font-size: 22px;
       font-weight: 800;
       color: #0f172a;
       letter-spacing: -.5px;
     }
+
     .inv-title p {
       font-size: 13px;
       color: #64748b;
@@ -104,9 +122,11 @@
       gap: 24px;
       margin-bottom: 28px;
     }
+
     .inv-info-box {
       flex: 1;
     }
+
     .inv-info-box h3 {
       font-size: 11px;
       font-weight: 600;
@@ -115,6 +135,7 @@
       color: #64748b;
       margin-bottom: 6px;
     }
+
     .inv-info-box p {
       font-size: 13px;
       line-height: 1.55;
@@ -127,6 +148,7 @@
       border-collapse: collapse;
       margin-bottom: 20px;
     }
+
     .inv-table thead th {
       font-size: 11px;
       font-weight: 600;
@@ -137,14 +159,27 @@
       border-bottom: 1.5px solid #e2e8f0;
       text-align: left;
     }
+
     .inv-table thead th:last-child,
-    .inv-table tbody td:last-child { padding-right: 0; text-align: right; }
+    .inv-table tbody td:last-child {
+      padding-right: 0;
+      text-align: right;
+    }
+
     .inv-table thead th:nth-child(2),
-    .inv-table tbody td:nth-child(2) { text-align: center; }
+    .inv-table tbody td:nth-child(2) {
+      text-align: center;
+    }
+
     .inv-table thead th:nth-child(3),
-    .inv-table tbody td:nth-child(3) { text-align: right; }
+    .inv-table tbody td:nth-child(3) {
+      text-align: right;
+    }
+
     .inv-table thead th:nth-child(4),
-    .inv-table tbody td:nth-child(4) { text-align: right; }
+    .inv-table tbody td:nth-child(4) {
+      text-align: right;
+    }
 
     .inv-table tbody td {
       font-size: 13px;
@@ -152,7 +187,10 @@
       border-bottom: 1px solid #e2e8f0;
       color: #0f172a;
     }
-    .inv-table tbody tr:last-child td { border-bottom: none; }
+
+    .inv-table tbody tr:last-child td {
+      border-bottom: none;
+    }
 
     /* Totals */
     .inv-totals {
@@ -160,6 +198,7 @@
       padding-top: 14px;
       margin-bottom: 24px;
     }
+
     .inv-totals-row {
       display: flex;
       justify-content: space-between;
@@ -167,6 +206,7 @@
       padding: 3px 0;
       color: #475569;
     }
+
     .inv-totals-row.total {
       font-size: 16px;
       font-weight: 700;
@@ -182,6 +222,7 @@
       padding-top: 16px;
       text-align: center;
     }
+
     .inv-footer p {
       font-size: 11px;
       color: #94a3b8;
@@ -195,6 +236,7 @@
       margin-top: 20px;
       justify-content: center;
     }
+
     .actions button {
       padding: 10px 28px;
       border-radius: 8px;
@@ -204,16 +246,24 @@
       transition: all .15s;
       border: none;
     }
+
     .btn-print {
       background: #0f172a;
       color: #fff;
     }
-    .btn-print:hover { background: #1e293b; }
+
+    .btn-print:hover {
+      background: #1e293b;
+    }
+
     .btn-close {
       background: #e2e8f0;
       color: #475569;
     }
-    .btn-close:hover { background: #cbd5e1; }
+
+    .btn-close:hover {
+      background: #cbd5e1;
+    }
 
     /* ─── Error ─── */
     #error-msg {
@@ -221,8 +271,17 @@
       text-align: center;
       padding: 40px 20px;
     }
-    #error-msg h2 { font-size: 18px; margin-bottom: 8px; color: #dc2626; }
-    #error-msg p { font-size: 13px; color: #64748b; }
+
+    #error-msg h2 {
+      font-size: 18px;
+      margin-bottom: 8px;
+      color: #dc2626;
+    }
+
+    #error-msg p {
+      font-size: 13px;
+      color: #64748b;
+    }
 
     /* ─── PRINT ─── */
     @page {
@@ -236,19 +295,36 @@
         padding: 0;
         min-height: auto;
       }
-      #loading { display: none !important; }
-      .actions { display: none !important; }
-      #invoice-container { display: block !important; }
+
+      #loading {
+        display: none !important;
+      }
+
+      .actions {
+        display: none !important;
+      }
+
+      #invoice-container {
+        display: block !important;
+      }
+
       .invoice {
         box-shadow: none;
         border-radius: 0;
         padding: 0;
       }
-      .inv-header { border-bottom-color: #000; }
-      .inv-totals-row.total { border-top-color: #000; }
+
+      .inv-header {
+        border-bottom-color: #000;
+      }
+
+      .inv-totals-row.total {
+        border-top-color: #000;
+      }
     }
   </style>
 </head>
+
 <body>
 
   <!-- Loading -->
@@ -415,75 +491,75 @@
 
         $('invoice-content').innerHTML =
           '<div class="inv-header">' +
-            '<div class="inv-brand">' +
-              (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="inv-logo" onerror="this.style.display=\'none\'">' : '') +
-              '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
-              (empresaNit ? '<p>NIT: ' + escaparHTML(empresaNit) + '</p>' : '') +
-              (empresaDir ? '<p>' + escaparHTML(empresaDir) + '</p>' : '') +
-              (empresaTel ? '<p>Tel: ' + escaparHTML(empresaTel) + '</p>' : '') +
-              (empresaEmail ? '<p>' + escaparHTML(empresaEmail) + '</p>' : '') +
-            '</div>' +
-            '<div class="inv-title">' +
-              '<h1>FACTURA DE VENTA</h1>' +
-              '<p>No. ' + escaparHTML(v.numero_venta || '—') + '</p>' +
-              '<p>' + formatearFechaCorta(v.fecha_venta) + '</p>' +
-            '</div>' +
+          '<div class="inv-brand">' +
+          (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="inv-logo" onerror="this.style.display=\'none\'">' : '') +
+          '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
+          (empresaNit ? '<p>NIT: ' + escaparHTML(empresaNit) + '</p>' : '') +
+          (empresaDir ? '<p>' + escaparHTML(empresaDir) + '</p>' : '') +
+          (empresaTel ? '<p>Tel: ' + escaparHTML(empresaTel) + '</p>' : '') +
+          (empresaEmail ? '<p>' + escaparHTML(empresaEmail) + '</p>' : '') +
+          '</div>' +
+          '<div class="inv-title">' +
+          '<h1>FACTURA DE VENTA</h1>' +
+          '<p>No. ' + escaparHTML(v.numero_venta || '—') + '</p>' +
+          '<p>' + formatearFechaCorta(v.fecha_venta) + '</p>' +
+          '</div>' +
           '</div>' +
 
           '<div class="inv-info">' +
-            '<div class="inv-info-box">' +
-              '<h3>Cliente</h3>' +
-              '<p>' + escaparHTML(clienteNombre) + '</p>' +
-              (clienteDoc ? '<p>' + escaparHTML(clienteDoc) + '</p>' : '') +
-              (clienteDir ? '<p>' + escaparHTML(clienteDir) + '</p>' : '') +
-              (clienteTel ? '<p>Tel: ' + escaparHTML(clienteTel) + '</p>' : '') +
-              (clienteEmail ? '<p>' + escaparHTML(clienteEmail) + '</p>' : '') +
-            '</div>' +
-            '<div class="inv-info-box" style="text-align:right;">' +
-              '<h3>Informacion de Venta</h3>' +
-              '<p>Metodo de pago: ' + metodoLabel + '</p>' +
-              '<p>Canal: ' + escaparHTML(canalNombre) + '</p>' +
-              '<p>Vendedor: ' + escaparHTML(vendedorNombre) + '</p>' +
-              (referencia ? '<p>Ref: ' + escaparHTML(referencia) + '</p>' : '') +
-            '</div>' +
+          '<div class="inv-info-box">' +
+          '<h3>Cliente</h3>' +
+          '<p>' + escaparHTML(clienteNombre) + '</p>' +
+          (clienteDoc ? '<p>' + escaparHTML(clienteDoc) + '</p>' : '') +
+          (clienteDir ? '<p>' + escaparHTML(clienteDir) + '</p>' : '') +
+          (clienteTel ? '<p>Tel: ' + escaparHTML(clienteTel) + '</p>' : '') +
+          (clienteEmail ? '<p>' + escaparHTML(clienteEmail) + '</p>' : '') +
+          '</div>' +
+          '<div class="inv-info-box" style="text-align:right;">' +
+          '<h3>Informacion de Venta</h3>' +
+          '<p>Metodo de pago: ' + metodoLabel + '</p>' +
+          '<p>Canal: ' + escaparHTML(canalNombre) + '</p>' +
+          '<p>Vendedor: ' + escaparHTML(vendedorNombre) + '</p>' +
+          (referencia ? '<p>Ref: ' + escaparHTML(referencia) + '</p>' : '') +
+          '</div>' +
           '</div>' +
 
           '<table class="inv-table">' +
-            '<thead>' +
-              '<tr>' +
-                '<th>Producto</th>' +
-                '<th style="text-align:center;">Cant</th>' +
-                '<th style="text-align:right;">Precio U.</th>' +
-                '<th style="text-align:right;">Total</th>' +
-              '</tr>' +
-            '</thead>' +
-            '<tbody>' + itemsHtml + '</tbody>' +
+          '<thead>' +
+          '<tr>' +
+          '<th>Producto</th>' +
+          '<th style="text-align:center;">Cant</th>' +
+          '<th style="text-align:right;">Precio U.</th>' +
+          '<th style="text-align:right;">Total</th>' +
+          '</tr>' +
+          '</thead>' +
+          '<tbody>' + itemsHtml + '</tbody>' +
           '</table>' +
 
           '<div class="inv-totals">' +
-            '<div class="inv-totals-row">' +
-              '<span>Subtotal</span>' +
-              '<span>' + formatearMoneda(v.subtotal) + '</span>' +
-            '</div>' +
-            (v.descuento > 0 ? '<div class="inv-totals-row"><span>Descuento</span><span>- ' + formatearMoneda(v.descuento) + '</span></div>' : '') +
-            '<div class="inv-totals-row">' +
-              '<span>IVA</span>' +
-              '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
-            '</div>' +
-            (totalCostos > 0 ? '<div class="inv-totals-row" style="font-size:12px;color:#94a3b8;"><span>Costos de canal</span><span>' + formatearMoneda(totalCostos) + '</span></div>' : '') +
-            '<div class="inv-totals-row total">' +
-              '<span>TOTAL</span>' +
-              '<span>' + formatearMoneda(v.total) + '</span>' +
-            '</div>' +
+          '<div class="inv-totals-row">' +
+          '<span>Subtotal</span>' +
+          '<span>' + formatearMoneda(v.subtotal) + '</span>' +
+          '</div>' +
+          (v.descuento > 0 ? '<div class="inv-totals-row"><span>Descuento</span><span>- ' + formatearMoneda(v.descuento) + '</span></div>' : '') +
+          '<div class="inv-totals-row">' +
+          '<span>IVA</span>' +
+          '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
+          '</div>' +
+          (totalCostos > 0 ? '<div class="inv-totals-row" style="font-size:12px;color:#94a3b8;"><span>Costos de canal</span><span>' + formatearMoneda(totalCostos) + '</span></div>' : '') +
+          '<div class="inv-totals-row total">' +
+          '<span>TOTAL</span>' +
+          '<span>' + formatearMoneda(v.total) + '</span>' +
+          '</div>' +
           '</div>' +
 
           (resolucion ? '<div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:16px;line-height:1.4;">' +
             'Resolucion DIAN: ' + escaparHTML(resolucion) +
-          '</div>' : '') +
+            '</div>' : '') +
 
           '<div class="inv-footer">' +
-            (mensajeLegal ? '<p>' + escaparHTML(mensajeLegal) + '</p>' : '') +
-            '<p style="margin-top:4px;">Generado por Kubit POS — ' + formatearFecha(new Date().toISOString()) + '</p>' +
+          (mensajeLegal ? '<p>' + escaparHTML(mensajeLegal) + '</p>' : '') +
+          '<p style="margin-top:4px;">Generado por Kubit POS — ' + formatearFecha(new Date().toISOString()) + '</p>' +
           '</div>';
       }
 
@@ -491,4 +567,5 @@
     })();
   </script>
 </body>
+
 </html>
