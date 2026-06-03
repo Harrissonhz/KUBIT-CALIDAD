@@ -326,7 +326,7 @@ window.DB = (function () {
 
     obtener: async function (id) {
       var res = await select('pos_ventas', {
-        select: '*,cliente:cliente_id(*),usuario:usuario_id(*),detalles:pos_ventas_detalle(*)',
+        select: '*,cliente:cliente_id(*),usuario:usuario_id(*),canal:canal_id(*),detalles:pos_ventas_detalle(*,detalle:producto_detalle_id(*,producto:producto_id(nombre)))',
         filters: [{ col: 'id', val: id }],
         limit: 1
       });

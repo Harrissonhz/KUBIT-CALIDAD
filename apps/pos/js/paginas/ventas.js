@@ -25,6 +25,7 @@
       cargarMetodosPago(),
       cargarVendedores()
     ]);
+    setClienteDefecto();
     setFechaDefecto();
     setearValoresDefecto();
     bindearEventos();
@@ -141,6 +142,14 @@
     }
   }
 
+  function setClienteDefecto() {
+    var cliente = CLIENTES.find(function(c) { return c.numero_id === '222222222222'; });
+    if (!cliente) return;
+    var nombre = [cliente.primer_nombre, cliente.segundo_nombre, cliente.primer_apellido, cliente.segundo_apellido].filter(Boolean).join(' ');
+    $('input-cliente').value = nombre;
+    $('selected-cliente-id').value = cliente.id;
+  }
+
   function setFechaDefecto() {
     var ahora = new Date();
     var y = ahora.getFullYear();
@@ -158,13 +167,10 @@
 
   function toggleCostosCanal(canal) {
     var costosSection = $('costos-canal-section');
-    var comisionInfo = $('comision-info');
     if (canal === 'mercadolibre') {
       costosSection.classList.remove('hidden');
-      comisionInfo.classList.remove('hidden');
     } else {
       costosSection.classList.add('hidden');
-      comisionInfo.classList.add('hidden');
     }
   }
 
@@ -329,6 +335,18 @@
     validarFormulario();
   }
 
+  function actualizarSubtotalRow(detalleId, inputEl) {
+    var item = CARRITO.find(function (i) { return i.detalleId === detalleId; });
+    if (!item) return;
+    var row = inputEl.closest('tr');
+    if (!row) return;
+    var cell = row.querySelector('.cell-subtotal');
+    if (!cell) return;
+    var base = item.precio * item.cantidad;
+    var desc = base * (item.descuento / 100);
+    cell.textContent = formatearMoneda(base - desc);
+  }
+
   function actualizarBadge() {
     var badge = $('cart-count-badge');
     if (badge) {
@@ -355,7 +373,7 @@
           '<td class="py-2.5 px-2 text-right"><input type="number" class="input-precio-item w-24 px-1.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs text-right focus:outline-none focus:ring-1 focus:ring-slate-950 dark:focus:ring-white/20" value="' + i.precio + '" min="0" step="any" data-id="' + i.detalleId + '"></td>' +
           '<td class="py-2.5 px-2 text-center"><div class="inline-flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-lg"><button class="btn-cant-menos w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-950 dark:hover:text-white rounded-lg transition-colors" data-id="' + i.detalleId + '">-</button><span class="w-6 text-center text-sm font-medium text-slate-950 dark:text-white">' + i.cantidad + '</span><button class="btn-cant-mas w-7 h-7 flex items-center justify-center text-slate-500 hover:text-slate-950 dark:hover:text-white rounded-lg transition-colors" data-id="' + i.detalleId + '">+</button></div></td>' +
           '<td class="py-2.5 px-2 text-center"><input type="number" class="input-dto-item w-14 px-1.5 py-1 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs text-center focus:outline-none focus:ring-1 focus:ring-slate-950 dark:focus:ring-white/20" value="' + i.descuento + '" min="0" max="' + maxD + '" step="0.5" data-id="' + i.detalleId + '"></td>' +
-          '<td class="py-2.5 px-2 text-right font-medium text-slate-950 dark:text-white">' + formatearMoneda(sub) + '</td>' +
+          '<td class="cell-subtotal py-2.5 px-2 text-right font-medium text-slate-950 dark:text-white">' + formatearMoneda(sub) + '</td>' +
           '<td class="py-2.5 pl-2 text-center"><button class="btn-eliminar-item w-7 h-7 flex items-center justify-center text-slate-300 hover:text-red-500 dark:hover:text-red-400 transition-colors" data-id="' + i.detalleId + '"><svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg></button></td>' +
           '</tr>';
       }).join('');
@@ -373,7 +391,17 @@
     return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
   }
 
+  function actualizarStatsCarrito() {
+    var count = CARRITO.length;
+    var unidades = CARRITO.reduce(function (s, i) { return s + i.cantidad; }, 0);
+    var subtotal = CARRITO.reduce(function (s, i) { return s + (i.precio * i.cantidad); }, 0);
+    $('stats-productos').textContent = count;
+    $('stats-unidades').textContent = unidades;
+    $('stats-ticket-prom').textContent = count > 0 ? formatearMoneda(subtotal / count) : '$0';
+  }
+
   function actualizarTotales() {
+    actualizarStatsCarrito();
     var subtotal = CARRITO.reduce(function (s, i) {
       return s + (i.precio * i.cantidad);
     }, 0);
@@ -562,9 +590,6 @@
       var resumen = formatearMoneda(t.total) + ' · ' + metodoNombre + ' · ' + CARRITO.reduce(function (s, i) { return s + i.cantidad; }, 0) + ' items';
       $('exito-resumen').textContent = resumen;
       $('modal-exito').classList.remove('hidden');
-
-      CARRITO = [];
-      actualizarCarrito();
     } catch (e) {
       console.error('[Ventas] Error en procesarVenta:', e);
       mostrarToast('Error inesperado al procesar la venta');
@@ -720,11 +745,13 @@
       var dtoInput = e.target.closest('.input-dto-item');
       if (dtoInput) {
         cambiarDescuentoItem(dtoInput.dataset.id, dtoInput.value);
+        actualizarSubtotalRow(dtoInput.dataset.id, dtoInput);
         return;
       }
       var precioInput = e.target.closest('.input-precio-item');
       if (precioInput) {
         cambiarPrecioItem(precioInput.dataset.id, precioInput.value);
+        actualizarSubtotalRow(precioInput.dataset.id, precioInput);
       }
     });
 

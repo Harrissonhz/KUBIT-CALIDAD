@@ -721,6 +721,15 @@ Selecciona método de pago → Confirma venta →
   → Ofrece generar factura electrónica
 ```
 
+#### 4.1.1 Politica de Edicion de Ventas
+
+- **No se permite editar** ventas en estado CONFIRMADA, FACTURADA o ANULADA
+- Para corregir una venta confirmada debe seguirse el flujo **Void + Recreate**:
+  1. Anular la venta actual (revierte stock y resta de finanzas mensuales)
+  2. Crear una nueva venta con los datos corregidos
+- Ventas en estado **PENDIENTE** pueden editarse directamente (no han afectado stock ni contabilidad)
+- Esta politica aplica por integridad de inventario, contabilidad y compliance DIAN
+
 ### 4.2 Flujo de Apertura y Cierre de Caja
 ```
 Cajero inicia sesión → Abre caja (registra monto_inicial) →

@@ -136,6 +136,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Diseño UI | Ultra-minimalista, monocromático Slate (Tailwind) |
 | Responsive | Mobile-first, mínimo 360px |
 | Navegación | Sin frameworks SPA. HTML vanilla con navegación tradicional o Alpine.js ligero si es necesario |
+| Editar ventas confirmadas | NO permitido. Usar Void + Recreate (Anular + Nueva Venta). Patrón estándar POS |
 
 ---
 
@@ -245,6 +246,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
 - [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
+- [x] **Refactor UI (Jun 2026):** Canal de Venta movido a header, Tarjeta Totales rediseñada a formato recibo full-width con barra de stats
+- [x] **Fix bugs (Jun 2026):** Menú hamburguesa, subtotal en tiempo real, fondo modal post-venta
+- [x] **Historial mejorado:** Modal más ancho (4xl), nombre producto vs UUID, canal visible
+- [x] **Decisión CRUD:** No implementar "Editar Venta". Usar Void + Recreate
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
@@ -303,6 +308,29 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] `apps/pos/js/config.js` agregado a `.gitignore`
 - [ ] Credenciales de producción configuradas en Vercel o servidor
 - [ ] `config.ejemplo.js` actualizado con template de producción
+
+---
+
+## 12. Registro de Cambios
+
+### 2026-06-03 — UI Fixes & Refinements POS
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/ventas.html` | Canal de Venta movido de "Informacion de la Venta" al header, entre subtitulo y link "Modo Mostrador" |
+| `apps/pos/ventas.html` | Tarjeta Totales redisenada: `max-w-lg ml-auto` eliminado, ahora full-width con barra de stats (productos, unidades, ticket prom.) |
+| `apps/pos/js/paginas/ventas.js` | Fix menu hamburguesa: eliminada referencia a `comision-info` (elemento inexistente) que crasheaba `init()` |
+| `apps/pos/js/paginas/ventas.js` | Agregada funcion `setClienteDefecto()`: auto-completa cliente con documento "222222222222" |
+| `apps/pos/js/paginas/ventas.js` | Fix subtotal en tiempo real: agregada clase `cell-subtotal` + funcion `actualizarSubtotalRow()` para actualizar subtotal sin re-renderizar toda la tabla |
+| `apps/pos/js/paginas/ventas.js` | Fix modal post-venta: `CARRITO = []` y `actualizarCarrito()` movidos de `procesarVenta()` a `nuevaVenta()` para evitar confusion de valores en background |
+| `apps/pos/js/paginas/ventas.js` | Agregada funcion `actualizarStatsCarrito()` para calcular stats de la barra en Totales |
+| `apps/pos/js/compartido/database.js` | `ventas.obtener()`: agregado `canal:canal_id(*)` y nested `detalle:producto_detalle_id(*,producto:producto_id(nombre))` para traer nombre del producto |
+| `apps/pos/ventas-historial.html` | Modal de detalle: `sm:max-w-lg` -> `sm:max-w-2xl` -> `sm:max-w-4xl` (896px) |
+| `apps/pos/js/paginas/ventas-historial.js` | Productos en modal: muestra `d.detalle.producto.nombre` en vez del UUID, formato 4-columnas (nombre, und., precio u., total) |
+
+### Decisiones de Diseno Tomadas
+
+- No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
 
 ---
 

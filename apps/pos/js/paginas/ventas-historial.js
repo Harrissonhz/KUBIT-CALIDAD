@@ -175,7 +175,13 @@
     var detProd = $('det-productos');
     if (v.detalles && v.detalles.length) {
       detProd.innerHTML = v.detalles.map(function (d) {
-        return '<div class="flex justify-between text-sm py-1"><span class="text-slate-600 dark:text-slate-400">' + escaparHTML(d.producto_detalle_id || 'Producto') + ' <span class="text-slate-400">x' + d.cantidad + '</span></span><span class="text-slate-950 dark:text-white font-medium">' + formatearMoneda(d.total) + '</span></div>';
+        var prodName = 'Producto';
+        if (d.detalle && d.detalle.producto) {
+          prodName = d.detalle.producto.nombre;
+        } else if (d.detalle) {
+          prodName = d.detalle.codigo_interno || d.producto_detalle_id;
+        }
+        return '<div class="flex items-center justify-between text-sm py-1.5 gap-4"><span class="text-slate-900 dark:text-slate-100 font-medium truncate min-w-0 flex-1">' + escaparHTML(prodName) + '</span><span class="text-slate-400 whitespace-nowrap shrink-0">' + d.cantidad + ' und.</span><span class="text-slate-400 whitespace-nowrap shrink-0 w-24 text-right">' + formatearMoneda(d.precio_unitario) + '</span><span class="text-slate-950 dark:text-white font-medium whitespace-nowrap shrink-0 w-28 text-right">' + formatearMoneda(d.total) + '</span></div>';
       }).join('');
     } else {
       detProd.innerHTML = '<p class="text-sm text-slate-400">Sin detalle</p>';
