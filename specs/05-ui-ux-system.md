@@ -53,7 +53,7 @@ Este documento rige la interfaz visual y el comportamiento en dispositivos de to
 
 ```
 Page Layout
-├── Navbar (header) — logo K, título, botón dark mode, hamburguesa
+├── Navbar (header) — logo dinamico desde DB (pos_configuracion_empresa.logo_url), título, botón dark mode, hamburguesa
 ├── Sidebar (nav) — accordion `<details>` agrupado con links
 ├── Overlay (div#sidebar-overlay) — fondo semitransparente en mobile
 └── Contenido (div flex-1 overflow-y-auto)

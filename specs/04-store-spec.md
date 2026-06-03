@@ -51,6 +51,8 @@ El módulo **Store (Tienda Virtual)** es el componente de comercio electrónico 
 | `pos_roles` | Roles del sistema (administrador, moderador de reseñas) |
 | `pos_rol_permisos` | Permisos para gestión de tienda |
 
+> **Nota sobre el logo:** Actualmente el modulo Store usa un archivo estatico `img/LogoTodasPublicaciones.jpg` hardcodeado en `navbar-store.js`, `footer-store.js` y `sobre-nosotros.html`. NO se lee desde `pos_configuracion_empresa.logo_url`. Migracion futura pendiente.
+
 ### 2.3 Tablas Exclusivas del Store (`st_*`)
 
 | Tabla | Propósito |

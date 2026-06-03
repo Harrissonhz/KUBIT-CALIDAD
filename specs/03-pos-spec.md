@@ -840,7 +840,28 @@ Los permisos se organizan por módulo (`modulo`) con clave única (`clave`):
 
 ---
 
-## 8. Glosario
+## 8. Visualización del Logo de Empresa
+
+El logo de la empresa se almacena en `pos_configuracion_empresa.logo_url` y se renderiza automaticamente en 3 lugares del POS:
+
+| Lugar | Contenedor CSS | Mecanismo |
+|---|---|---|
+| Header de todas las pantallas POS (14 paginas) | `.w-8.h-8.bg-slate-950.rounded-lg` | Bloque autoejecutable en `database.js:945-974` que busca el contenedor y reemplaza la "K" por `<img>` |
+| Pantalla de Login | `.w-14.h-14.bg-slate-950.rounded-2xl` | Logica en `login.js:15-30` que carga el logo en el circulo central |
+| Factura imprimible | `.inv-brand` | Condicional en `factura-print.html:411` que renderiza `<img>` antes del nombre de empresa |
+
+### 8.1 Comportamiento
+- Si `logo_url` tiene una URL valida → se muestra la imagen en los 3 lugares
+- Si `logo_url` es null/vacio → se mantiene el fallback visual (letra "K" en header/login, solo texto en factura)
+- Si la imagen falla al cargar (`onerror`) → se elimina silenciosamente y se muestra el fallback
+
+### 8.2 Estrategia de Implementación (No Reabrir)
+- **Centralizada:** La carga del logo en el header se hace desde `database.js` mediante un bloque autoejecutable que busca el contenedor por clase CSS. No requiere modificar HTMLs individuales ni JS de pagina.
+- **Futuras modificaciones:** Cualquier cambio visual del logo debe hacerse en `database.js` (para header) o en los archivos especificos (login, factura). No duplicar logica en paginas individuales.
+
+---
+
+## 9. Glosario
 
 | Término | Definición |
 |---|---|

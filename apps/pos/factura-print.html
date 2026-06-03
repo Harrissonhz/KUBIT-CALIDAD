@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Factura — Kubit POS</title>
+  <script src="js/config.js"></script>
+  <script src="js/supabase.js"></script>
+  <script src="js/compartido/database.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f1f5f9;
+      color: #0f172a;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    /* ─── Loading ─── */
+    #loading {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      min-height: 40vh;
+    }
+    .spinner {
+      width: 32px; height: 32px;
+      border: 3px solid #e2e8f0;
+      border-top-color: #0f172a;
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ─── Invoice ─── */
+    #invoice-container {
+      display: none;
+      width: 100%;
+      max-width: 210mm;
+    }
+
+    .invoice {
+      background: #fff;
+      padding: 40px 35px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      border-radius: 12px;
+    }
+
+    /* Header */
+    .inv-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      padding-bottom: 24px;
+      border-bottom: 2px solid #0f172a;
+      margin-bottom: 24px;
+    }
+    .inv-brand h2 {
+      font-size: 20px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -.3px;
+    }
+    .inv-brand p {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 2px;
+      line-height: 1.5;
+    }
+    .inv-title {
+      text-align: right;
+    }
+    .inv-title h1 {
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: -.5px;
+    }
+    .inv-title p {
+      font-size: 13px;
+      color: #64748b;
+      margin-top: 2px;
+    }
+
+    /* Info blocks */
+    .inv-info {
+      display: flex;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 28px;
+    }
+    .inv-info-box {
+      flex: 1;
+    }
+    .inv-info-box h3 {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #64748b;
+      margin-bottom: 6px;
+    }
+    .inv-info-box p {
+      font-size: 13px;
+      line-height: 1.55;
+      color: #0f172a;
+    }
+
+    /* Table */
+    .inv-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 20px;
+    }
+    .inv-table thead th {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .5px;
+      color: #64748b;
+      padding: 8px 6px 8px 0;
+      border-bottom: 1.5px solid #e2e8f0;
+      text-align: left;
+    }
+    .inv-table thead th:last-child,
+    .inv-table tbody td:last-child { padding-right: 0; text-align: right; }
+    .inv-table thead th:nth-child(2),
+    .inv-table tbody td:nth-child(2) { text-align: center; }
+    .inv-table thead th:nth-child(3),
+    .inv-table tbody td:nth-child(3) { text-align: right; }
+    .inv-table thead th:nth-child(4),
+    .inv-table tbody td:nth-child(4) { text-align: right; }
+
+    .inv-table tbody td {
+      font-size: 13px;
+      padding: 8px 6px 8px 0;
+      border-bottom: 1px solid #e2e8f0;
+      color: #0f172a;
+    }
+    .inv-table tbody tr:last-child td { border-bottom: none; }
+
+    /* Totals */
+    .inv-totals {
+      border-top: 1.5px solid #e2e8f0;
+      padding-top: 14px;
+      margin-bottom: 24px;
+    }
+    .inv-totals-row {
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      padding: 3px 0;
+      color: #475569;
+    }
+    .inv-totals-row.total {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0f172a;
+      padding-top: 8px;
+      margin-top: 6px;
+      border-top: 1.5px solid #0f172a;
+    }
+
+    /* Footer */
+    .inv-footer {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 16px;
+      text-align: center;
+    }
+    .inv-footer p {
+      font-size: 11px;
+      color: #94a3b8;
+      line-height: 1.5;
+    }
+
+    /* ─── Actions (hidden in print) ─── */
+    .actions {
+      display: flex;
+      gap: 10px;
+      margin-top: 20px;
+      justify-content: center;
+    }
+    .actions button {
+      padding: 10px 28px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all .15s;
+      border: none;
+    }
+    .btn-print {
+      background: #0f172a;
+      color: #fff;
+    }
+    .btn-print:hover { background: #1e293b; }
+    .btn-close {
+      background: #e2e8f0;
+      color: #475569;
+    }
+    .btn-close:hover { background: #cbd5e1; }
+
+    /* ─── Error ─── */
+    #error-msg {
+      display: none;
+      text-align: center;
+      padding: 40px 20px;
+    }
+    #error-msg h2 { font-size: 18px; margin-bottom: 8px; color: #dc2626; }
+    #error-msg p { font-size: 13px; color: #64748b; }
+
+    /* ─── PRINT ─── */
+    @page {
+      size: A4;
+      margin: 15mm 18mm;
+    }
+
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+        min-height: auto;
+      }
+      #loading { display: none !important; }
+      .actions { display: none !important; }
+      #invoice-container { display: block !important; }
+      .invoice {
+        box-shadow: none;
+        border-radius: 0;
+        padding: 0;
+      }
+      .inv-header { border-bottom-color: #000; }
+      .inv-totals-row.total { border-top-color: #000; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loading -->
+  <div id="loading">
+    <div class="spinner"></div>
+    <p style="font-size:13px;color:#64748b;">Cargando factura...</p>
+  </div>
+
+  <!-- Error -->
+  <div id="error-msg">
+    <h2>Error al cargar la factura</h2>
+    <p id="error-text">No se pudo obtener la informacion de la venta.</p>
+    <div class="actions">
+      <button class="btn-close" onclick="window.close()">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- Invoice -->
+  <div id="invoice-container">
+    <div class="invoice" id="invoice-content"></div>
+
+    <div class="actions">
+      <button class="btn-print" onclick="window.print()">Imprimir / PDF</button>
+      <button class="btn-close" onclick="window.close()">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+
+      function escaparHTML(str) {
+        if (!str) return '';
+        return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+      }
+
+      function formatearMoneda(valor) {
+        return '$' + Number(valor || 0).toLocaleString('es-CO', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+      }
+
+      function formatearFecha(iso) {
+        if (!iso) return '—';
+        var d = new Date(iso);
+        return d.toLocaleDateString('es-CO', {
+          year: 'numeric', month: 'long', day: 'numeric',
+          hour: '2-digit', minute: '2-digit'
+        });
+      }
+
+      function formatearFechaCorta(iso) {
+        if (!iso) return '—';
+        var d = new Date(iso);
+        return d.toLocaleDateString('es-CO', {
+          year: 'numeric', month: '2-digit', day: '2-digit'
+        });
+      }
+
+      function obtenerParametro(nombre) {
+        var params = new URLSearchParams(window.location.search);
+        return params.get(nombre);
+      }
+
+      async function init() {
+        var ventaId = obtenerParametro('id');
+        if (!ventaId) {
+          mostrarError('No se ha especificado el ID de la venta.');
+          return;
+        }
+
+        try {
+          var [resVenta, resConfig] = await Promise.all([
+            DB.ventas.obtener(ventaId),
+            DB.configuracionEmpresa.obtener()
+          ]);
+
+          if (resVenta.error || !resVenta.data) {
+            mostrarError('Error al cargar la venta: ' + (resVenta.error || 'Datos no encontrados'));
+            return;
+          }
+
+          var venta = resVenta.data;
+          var config = resConfig.data || null;
+
+          renderizarFactura(venta, config);
+
+          $('loading').style.display = 'none';
+          $('invoice-container').style.display = 'block';
+
+          // Auto-print after a brief delay to let fonts render
+          setTimeout(function () { window.print(); }, 500);
+
+        } catch (e) {
+          console.error('[FacturaPrint] Error:', e);
+          mostrarError('Error inesperado: ' + (e.message || 'desconocido'));
+        }
+      }
+
+      function mostrarError(msg) {
+        $('loading').style.display = 'none';
+        $('error-msg').style.display = 'block';
+        $('error-text').textContent = msg;
+      }
+
+      function renderizarFactura(v, config) {
+        var empresaNombre = config ? config.nombre_empresa : 'Mi Empresa';
+        var empresaNit = config ? config.nit : '';
+        var empresaDir = config ? config.direccion : '';
+        var empresaTel = config ? config.telefono : '';
+        var empresaEmail = config ? config.email : '';
+        var empresaLogo = config ? config.logo_url : '';
+        var mensajeLegal = config ? config.mensaje_legal : '';
+        var prefijo = config ? config.prefijo_facturacion : '';
+        var resolucion = config ? config.resolucion_dian : '';
+
+        var clienteNombre = 'Consumidor Final';
+        var clienteDoc = '';
+        var clienteDir = '';
+        var clienteTel = '';
+        var clienteEmail = '';
+
+        if (v.cliente) {
+          var c = v.cliente;
+          clienteNombre = [c.primer_nombre, c.segundo_nombre, c.primer_apellido, c.segundo_apellido].filter(Boolean).join(' ');
+          var tipoDoc = c.tipo_id || '';
+          clienteDoc = (tipoDoc ? tipoDoc + ' ' : '') + (c.numero_id || '');
+          clienteDir = c.direccion || '';
+          clienteTel = c.celular || c.telefono || '';
+          clienteEmail = c.email || '';
+        }
+
+        var metodoPago = v.metodo_pago || '—';
+        var metodoLabel = {
+          'transferencia': 'Transferencia',
+          'efectivo': 'Efectivo',
+          'tarjeta': 'Tarjeta',
+          'mixto': 'Mixto'
+        }[metodoPago] || metodoPago;
+
+        var canalNombre = v.canal ? v.canal.nombre : '—';
+        var vendedorNombre = v.usuario ? v.usuario.nombre_completo : '—';
+        var referencia = v.referencia_externa || '';
+
+        var totalCostos = (v.costo_cargo_venta || 0) + (v.costo_impuestos || 0) + (v.costo_envios || 0);
+
+        var itemsHtml = '';
+        if (v.detalles && v.detalles.length) {
+          itemsHtml = v.detalles.map(function (d) {
+            var prodName = 'Producto';
+            if (d.detalle && d.detalle.producto) {
+              prodName = d.detalle.producto.nombre;
+            } else if (d.detalle) {
+              prodName = d.detalle.codigo_interno || d.producto_detalle_id;
+            }
+            return '<tr>' +
+              '<td>' + escaparHTML(prodName) + '</td>' +
+              '<td>' + d.cantidad + '</td>' +
+              '<td>' + formatearMoneda(d.precio_unitario) + '</td>' +
+              '<td>' + formatearMoneda(d.total) + '</td>' +
+              '</tr>';
+          }).join('');
+        } else {
+          itemsHtml = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px 0;">Sin detalle de productos</td></tr>';
+        }
+
+        $('invoice-content').innerHTML =
+          '<div class="inv-header">' +
+            '<div class="inv-brand">' +
+              (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="h-16 w-auto mb-2 object-contain" onerror="this.style.display=\'none\'">' : '') +
+              '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
+              (empresaNit ? '<p>NIT: ' + escaparHTML(empresaNit) + '</p>' : '') +
+              (empresaDir ? '<p>' + escaparHTML(empresaDir) + '</p>' : '') +
+              (empresaTel ? '<p>Tel: ' + escaparHTML(empresaTel) + '</p>' : '') +
+              (empresaEmail ? '<p>' + escaparHTML(empresaEmail) + '</p>' : '') +
+            '</div>' +
+            '<div class="inv-title">' +
+              '<h1>FACTURA DE VENTA</h1>' +
+              '<p>No. ' + escaparHTML(v.numero_venta || '—') + '</p>' +
+              '<p>' + formatearFechaCorta(v.fecha_venta) + '</p>' +
+            '</div>' +
+          '</div>' +
+
+          '<div class="inv-info">' +
+            '<div class="inv-info-box">' +
+              '<h3>Cliente</h3>' +
+              '<p>' + escaparHTML(clienteNombre) + '</p>' +
+              (clienteDoc ? '<p>' + escaparHTML(clienteDoc) + '</p>' : '') +
+              (clienteDir ? '<p>' + escaparHTML(clienteDir) + '</p>' : '') +
+              (clienteTel ? '<p>Tel: ' + escaparHTML(clienteTel) + '</p>' : '') +
+              (clienteEmail ? '<p>' + escaparHTML(clienteEmail) + '</p>' : '') +
+            '</div>' +
+            '<div class="inv-info-box" style="text-align:right;">' +
+              '<h3>Informacion de Venta</h3>' +
+              '<p>Metodo de pago: ' + metodoLabel + '</p>' +
+              '<p>Canal: ' + escaparHTML(canalNombre) + '</p>' +
+              '<p>Vendedor: ' + escaparHTML(vendedorNombre) + '</p>' +
+              (referencia ? '<p>Ref: ' + escaparHTML(referencia) + '</p>' : '') +
+            '</div>' +
+          '</div>' +
+
+          '<table class="inv-table">' +
+            '<thead>' +
+              '<tr>' +
+                '<th>Producto</th>' +
+                '<th style="text-align:center;">Cant</th>' +
+                '<th style="text-align:right;">Precio U.</th>' +
+                '<th style="text-align:right;">Total</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' + itemsHtml + '</tbody>' +
+          '</table>' +
+
+          '<div class="inv-totals">' +
+            '<div class="inv-totals-row">' +
+              '<span>Subtotal</span>' +
+              '<span>' + formatearMoneda(v.subtotal) + '</span>' +
+            '</div>' +
+            (v.descuento > 0 ? '<div class="inv-totals-row"><span>Descuento</span><span>- ' + formatearMoneda(v.descuento) + '</span></div>' : '') +
+            '<div class="inv-totals-row">' +
+              '<span>IVA</span>' +
+              '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
+            '</div>' +
+            (totalCostos > 0 ? '<div class="inv-totals-row" style="font-size:12px;color:#94a3b8;"><span>Costos de canal</span><span>' + formatearMoneda(totalCostos) + '</span></div>' : '') +
+            '<div class="inv-totals-row total">' +
+              '<span>TOTAL</span>' +
+              '<span>' + formatearMoneda(v.total) + '</span>' +
+            '</div>' +
+          '</div>' +
+
+          (resolucion ? '<div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:16px;line-height:1.4;">' +
+            'Resolucion DIAN: ' + escaparHTML(resolucion) +
+          '</div>' : '') +
+
+          '<div class="inv-footer">' +
+            (mensajeLegal ? '<p>' + escaparHTML(mensajeLegal) + '</p>' : '') +
+            '<p style="margin-top:4px;">Generado por Kubit POS — ' + formatearFecha(new Date().toISOString()) + '</p>' +
+          '</div>';
+      }
+
+      document.addEventListener('DOMContentLoaded', init);
+    })();
+  </script>
+</body>
+</html>

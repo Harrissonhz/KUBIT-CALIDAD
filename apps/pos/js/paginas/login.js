@@ -12,6 +12,23 @@
     html.classList.add('dark');
   }
 
+  // Cargar logo de empresa desde la configuracion
+  (function () {
+    var container = document.querySelector('.w-14.h-14.bg-slate-950.rounded-2xl');
+    if (!container) return;
+    DB.configuracionEmpresa.obtener().then(function (res) {
+      if (res.data && res.data.logo_url) {
+        var img = document.createElement('img');
+        img.src = res.data.logo_url;
+        img.alt = 'Logo';
+        img.className = 'w-full h-full object-contain rounded-xl';
+        img.onerror = function () { img.remove(); };
+        container.innerHTML = '';
+        container.appendChild(img);
+      }
+    }).catch(function () {});
+  })();
+
   // Mostrar mensaje si viene de sesion expirada
   var params = new URLSearchParams(window.location.search);
   if (params.get('expired') === '1') {

@@ -330,6 +330,10 @@
     });
 
     $('btn-anular-venta').addEventListener('click', anularVenta);
+    $('btn-imprimir-venta').addEventListener('click', function () {
+      if (!VENTA_ACTUAL) return;
+      window.open('factura-print.html?id=' + VENTA_ACTUAL.id, '_blank');
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);

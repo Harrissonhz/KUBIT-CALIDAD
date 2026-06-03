@@ -941,3 +941,34 @@ window.DB = (function () {
     configuracionEmpresa: configuracionEmpresa
   };
 })();
+
+/* ════════════════════════════════════════════════════════════
+    AUTO: Cargar logo de empresa en el header de todas las paginas POS
+    Busca el contenedor .w-8.h-8.bg-slate-950.rounded-lg y reemplaza
+    la "K" por el logo si existe logo_url en la configuracion.
+    ════════════════════════════════════════════════════════════ */
+(function () {
+  function cargarLogoHeader() {
+    var container = document.querySelector('.w-8.h-8.bg-slate-950.rounded-lg');
+    if (!container) return;
+
+    DB.configuracionEmpresa.obtener().then(function (res) {
+      if (!res.data || !res.data.logo_url) return;
+
+      var img = document.createElement('img');
+      img.src = res.data.logo_url;
+      img.alt = 'Logo';
+      img.className = 'w-full h-full object-contain rounded-sm';
+      img.onerror = function () { img.remove(); };
+
+      container.innerHTML = '';
+      container.appendChild(img);
+    }).catch(function () {});
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cargarLogoHeader);
+  } else {
+    cargarLogoHeader();
+  }
+})();

@@ -9,6 +9,7 @@
   var METODOS_PAGO = [];
   var CANAL_ACTIVO = 'mercadolibre';
   var _loading = false;
+  var ULTIMA_VENTA_ID = null;
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
@@ -560,7 +561,7 @@
         return;
       }
 
-      var ventaId = res.data.id;
+      ULTIMA_VENTA_ID = res.data.id;
 
       for (var j = 0; j < CARRITO.length; j++) {
         var item = CARRITO[j];
@@ -765,6 +766,10 @@
     $('btn-limpiar').addEventListener('click', limpiarFormulario);
     $('btn-cerrar-exito').addEventListener('click', cerrarExito);
     $('btn-nueva-venta').addEventListener('click', nuevaVenta);
+    $('btn-imprimir-factura').addEventListener('click', function () {
+      if (!ULTIMA_VENTA_ID) return;
+      window.open('factura-print.html?id=' + ULTIMA_VENTA_ID, '_blank');
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);

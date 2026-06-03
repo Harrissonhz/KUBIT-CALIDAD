@@ -238,6 +238,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Dark mode con toggle y persistencia en localStorage
 - [x] Responsive mobile-first (360px→desktop) en todas las pantallas
 
+#### Módulo POS (Punto de Venta) — Fase 8: Logo de Empresa desde DB
+- [x] `database.js` — Bloque autoejecutable `cargarLogoHeader()` que busca el contenedor `.w-8.h-8.bg-slate-950.rounded-lg` en el header de todas las paginas POS y reemplaza la "K" por `<img>` si `logo_url` existe. Maneja fallback a "K" si no hay logo o si la imagen falla.
+- [x] `login.js` — Carga el logo en el circulo central del login (`.w-14.h-14.bg-slate-950.rounded-2xl`)
+- [x] `factura-print.html` — Renderiza `<img>` condicional en el encabezado de la factura imprimible cuando `logo_url` esta presente
+- [x] **Comportamiento:** Si `pos_configuracion_empresa.logo_url` tiene URL valida → se muestra en header, login y factura. Si es null/vacio/falla → se mantiene el fallback visual (K o solo texto)
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
@@ -256,7 +262,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
 
 ### 7.4 Próximo Paso Recomendado
-**Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB.
+**Despues del deploy:** Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal.
 
 ---
 
@@ -328,9 +334,19 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/ventas-historial.html` | Modal de detalle: `sm:max-w-lg` -> `sm:max-w-2xl` -> `sm:max-w-4xl` (896px) |
 | `apps/pos/js/paginas/ventas-historial.js` | Productos en modal: muestra `d.detalle.producto.nombre` en vez del UUID, formato 4-columnas (nombre, und., precio u., total) |
 
+### 2026-06-03 — Logo de Empresa desde DB (Fase 8)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Bloque autoejecutable `cargarLogoHeader()` al final del IIFE: busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header, carga `DB.configuracionEmpresa.obtener()`, y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` para fallback silencioso. Afecta a las 14 pantallas POS sin modificar cada HTML/JS individual. |
+| `apps/pos/js/paginas/login.js` | Carga el logo en el contenedor `.w-14.h-14.bg-slate-950.rounded-2xl` del login, reemplazando la "K" estatica. |
+| `apps/pos/factura-print.html` | Agrega variable `empresaLogo` y renderiza `<img>` condicional en `.inv-brand` (antes del nombre de empresa) si `logo_url` existe. |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
+- **Logo de empresa:** Se carga automaticamente desde `pos_configuracion_empresa.logo_url` en el header (14 paginas), login y factura. Sin modificar HTMLs individuales — la logica centralizada en `database.js` busca el contenedor por clase CSS y lo reemplaza. La IA futura debe mantener esta estrategia centralizada para cambios UI globales.
+- **No usar `file://` para pruebas locales:** Los fetch a Supabase y el manifest.json fallan por CORS policy. Usar `npx serve` o deploy en Vercel.
 
 ---
 
