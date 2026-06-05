@@ -272,6 +272,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
 - [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
 - [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
+- [ ] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
@@ -395,6 +396,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/compartido/auth.js` | Nueva función `poblarUserHeader()` centralizada, llamada desde `cargarSesion()` y `login()` |
 | `specs/02-database-schema.sql` | Trigger de slug actualizado: sufijo numérico `-1`, `-2`... en colisiones |
 
+### 2026-06-05 — Fix Sidebar: Admin ve todas las paginas
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/auth.js` | `tienePermiso()`: agregado bypass `if (USUARIO_ACTUAL.rolNombre === 'Administrador') return true;` al inicio |
+| `apps/pos/caja.html` | Sidebar normalizado: agregados grupos Compras, Clientes, Administracion + links Historial, Gastos, Reportes |
+| `apps/pos/inventario.html` | Sidebar normalizado: agregados grupos Compras, Clientes + links Historial, Movimientos |
+| `specs/seed-permisos.sql` | Nuevo archivo con seed data para `pos_roles`, `pos_permisos`, `pos_rol_permisos` |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -404,6 +414,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Modo oscuro default:** Se implementa con `class="dark"` directo en `<html>` + anti-flash script que lo remueve si localStorage dice `'false'`. El JS existente en cada página sigue funcionando para el toggle, pero la inicialización la maneja el script inline en el `<head>`.
 - **Multi-variante con filas expandibles:** Los campos secundarios (precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones) se editan en filas expandibles (▼) en vez de columnas fijas, para mantener la tabla compacta.
 - **IA debe ejecutar `npx serve apps/pos` para pruebas:** No usar `file://` porque los fetch a Supabase y el manifest.json fallan por CORS.
+- **Admin bypass de permisos en `tienePermiso()`:** El rol 'Administrador' siempre retorna `true` en `tienePermiso()` sin consultar DB, para garantizar que vea todas las pantallas aunque fallen los datos semilla de `pos_rol_permisos`.
+- **Sidebar normalizado:** `caja.html` e `inventario.html` ahora tienen el sidebar completo con los 6 grupos (Ventas, Inventario, Compras, Clientes, Caja/Finanzas, Administracion) idéntico al de `ventas.html`.
 
 ---
 

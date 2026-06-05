@@ -155,6 +155,7 @@ window.KubitAuth = (function () {
   /* ─── PERMISOS ─── */
   function tienePermiso(permiso) {
     if (!USUARIO_ACTUAL) return false;
+    if (USUARIO_ACTUAL.rolNombre === 'Administrador') return true;
     var p = USUARIO_ACTUAL.permisos || [];
     if (p.indexOf(permiso) !== -1) return true;
     if (p.indexOf(permiso.split('.')[0] + '.*') !== -1) return true;
