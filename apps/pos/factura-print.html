@@ -467,8 +467,6 @@
         var vendedorNombre = v.usuario ? v.usuario.nombre_completo : '—';
         var referencia = v.referencia_externa || '';
 
-        var totalCostos = (v.costo_cargo_venta || 0) + (v.costo_impuestos || 0) + (v.costo_envios || 0);
-
         var itemsHtml = '';
         if (v.detalles && v.detalles.length) {
           itemsHtml = v.detalles.map(function (d) {
@@ -546,7 +544,6 @@
           '<span>IVA</span>' +
           '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
           '</div>' +
-          (totalCostos > 0 ? '<div class="inv-totals-row" style="font-size:12px;color:#94a3b8;"><span>Costos de canal</span><span>' + formatearMoneda(totalCostos) + '</span></div>' : '') +
           '<div class="inv-totals-row total">' +
           '<span>TOTAL</span>' +
           '<span>' + formatearMoneda(v.total) + '</span>' +
