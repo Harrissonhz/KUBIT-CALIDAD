@@ -171,17 +171,15 @@
   <div class="flex-1 overflow-y-auto transition-colors duration-300 pt-16">
     <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
 
-      <!-- ═══ Card 1: Nueva Orden de Compra ═══ -->
+      <!-- ═══ Card 1: Datos del Proveedor ═══ -->
       <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
         <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
-          <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
-          <span class="flex-1" id="form-titulo">Nueva Orden de Compra</span>
+          <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+          <span class="flex-1" id="form-titulo">Datos del Proveedor</span>
           <span class="text-xs text-slate-400 font-normal" id="form-compra-id"></span>
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-
-          <!-- Datos de la orden -->
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
             <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Proveedor</label>
@@ -214,54 +212,63 @@
               <textarea id="campo-notas" class="input-campo" rows="2" placeholder="Notas de la orden de compra"></textarea>
             </div>
           </div>
+        </div>
+      </details>
 
-          <hr class="my-4 border-slate-200 dark:border-slate-800">
-
-          <!-- ═══ Catalogo de Productos Inline ═══ -->
-          <div class="mb-4">
-            <div class="flex items-center justify-between mb-3">
-              <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Catalogo de Productos</h3>
-            </div>
-            <div class="flex flex-col sm:flex-row gap-2 mb-3">
-              <div class="relative flex-1">
-                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
-                <input type="text" id="catalogo-busqueda" class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Buscar producto por nombre, codigo o marca...">
-              </div>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="w-full text-sm">
-                <thead>
-                  <tr class="border-b border-slate-200/60 dark:border-slate-800">
-                    <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Producto</th>
-                    <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden sm:table-cell">Codigo</th>
-                    <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden md:table-cell">Stock</th>
-                    <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">P. Compra</th>
-                    <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider" style="width:50px;"></th>
-                  </tr>
-                </thead>
-                <tbody id="catalogo-tbody">
-                  <tr><td colspan="5" class="text-center py-6 text-slate-400 text-sm">Cargando productos...</td></tr>
-                </tbody>
-              </table>
-            </div>
-            <div id="catalogo-paginacion" class="flex items-center justify-between gap-4 pt-2 mt-2">
-              <span id="catalogo-pag-info" class="text-xs text-slate-400">0 resultados</span>
-              <div id="catalogo-pag-controles" class="flex items-center gap-3"></div>
+      <!-- ═══ Card 2: Catalogo de Productos ═══ -->
+      <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
+        <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
+          <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+          <span class="flex-1">Catalogo de Productos</span>
+          <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </summary>
+        <div class="px-5 pb-5">
+          <div class="flex flex-col sm:flex-row gap-2 mb-3">
+            <div class="relative flex-1">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
+              <input type="text" id="catalogo-busqueda" class="w-full pl-9 pr-4 py-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Buscar producto por nombre, codigo o marca...">
             </div>
           </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-sm">
+              <thead>
+                <tr class="border-b border-slate-200/60 dark:border-slate-800">
+                  <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Producto</th>
+                  <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden sm:table-cell">Codigo</th>
+                  <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden md:table-cell">Stock</th>
+                  <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">P. Compra</th>
+                  <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider" style="width:50px;"></th>
+                </tr>
+              </thead>
+              <tbody id="catalogo-tbody">
+                <tr><td colspan="5" class="text-center py-6 text-slate-400 text-sm">Cargando productos...</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <div id="catalogo-paginacion" class="flex items-center justify-between gap-4 pt-2 mt-2">
+            <span id="catalogo-pag-info" class="text-xs text-slate-400">0 resultados</span>
+            <div id="catalogo-pag-controles" class="flex items-center gap-3"></div>
+          </div>
+        </div>
+      </details>
 
-          <!-- ═══ Detalle de la Orden ═══ -->
+      <!-- ═══ Card 3: Productos en la Orden ═══ -->
+      <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
+        <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
+          <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z"/></svg>
+          <span class="flex-1">Productos en la Orden</span>
+          <span class="text-xs text-slate-400 font-normal" id="detalle-count">0 items</span>
+          <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
+        </summary>
+        <div class="px-5 pb-5">
           <div class="flex items-center justify-between mb-3">
-            <h3 class="text-sm font-semibold text-slate-700 dark:text-slate-300">Productos en la Orden</h3>
             <div class="flex items-center gap-2">
               <button id="btn-recibir-todo" class="hidden px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white text-xs font-medium transition-colors">
                 <svg class="w-3.5 h-3.5 inline mr-1" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/></svg>
                 Recibir Todo
               </button>
-              <span class="text-xs text-slate-400" id="detalle-count">0 items</span>
             </div>
           </div>
-
           <div class="overflow-x-auto">
             <table class="w-full text-sm" id="detalle-table">
               <thead>
@@ -310,11 +317,10 @@
               </tfoot>
             </table>
           </div>
-
         </div>
       </details>
 
-      <!-- ═══ Card 2: Lista de Ordenes ═══ -->
+      <!-- ═══ Card 4: Lista de Ordenes ═══ -->
       <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
         <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
           <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6h16.5M3.75 12h16.5m-16.5 6h16.5"/></svg>
@@ -323,11 +329,22 @@
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="flex flex-col sm:flex-row sm:items-center gap-3 mb-4">
+          <div class="flex flex-col sm:flex-row gap-3 mb-4">
             <div class="relative flex-1 max-w-md">
               <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"/></svg>
               <input type="text" id="buscador-compras" class="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all placeholder:text-slate-400" placeholder="Buscar por orden o proveedor...">
             </div>
+            <select id="filtro-proveedor" class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all min-w-[180px]">
+              <option value="">Todos los proveedores</option>
+            </select>
+            <select id="filtro-estado" class="px-4 py-2.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-sm focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all min-w-[150px]">
+              <option value="">Todos los estados</option>
+              <option value="PENDIENTE">Pendiente</option>
+              <option value="CONFIRMADA">Confirmada</option>
+              <option value="RECIBIENDO">Recibiendo</option>
+              <option value="RECIBIDA">Recibida</option>
+              <option value="ANULADA">Anulada</option>
+            </select>
           </div>
           <div class="overflow-x-auto">
             <table class="w-full text-sm">
@@ -373,6 +390,106 @@
       <div class="flex gap-2 justify-end mt-4">
         <button id="modal-recibir-cancelar" class="px-4 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Cancelar</button>
         <button id="modal-recibir-confirmar" class="px-4 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 transition-all">Confirmar Recepcion</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Detalle de Compra -->
+  <div id="modal-detalle" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto p-6">
+      <div class="flex items-start justify-between mb-5">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-slate-950 dark:bg-white rounded-xl flex items-center justify-center shrink-0">
+            <svg class="w-5 h-5 text-white dark:text-slate-950" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>
+          </div>
+          <div>
+            <h3 class="text-base font-semibold text-slate-950 dark:text-white">Orden de Compra <span id="det-orden">#—</span></h3>
+          </div>
+        </div>
+        <div class="flex items-center gap-3 shrink-0">
+          <span id="det-estado" class="inline-flex px-2.5 py-1 rounded-full text-xs font-medium">—</span>
+          <button id="btn-cerrar-detalle" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-5">
+        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-sky-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8.25 18.75a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h6m-9 0H3.375a1.125 1.125 0 01-1.125-1.125V14.25m17.25 4.5a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m3 0h1.125c.621 0 1.129-.504 1.09-1.124a17.902 17.902 0 00-3.213-9.193 2.056 2.056 0 00-1.58-.86H14.25M16.5 18.75h-2.25m0-11.177v-.958c0-.568-.422-1.048-.987-1.106a48.554 48.554 0 00-10.026 0 1.106 1.106 0 00-.987 1.106v7.635m12-6.677v6.677m0 4.5v-4.5m0 0h-12"/></svg>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Proveedor</span>
+          </div>
+          <p id="det-proveedor" class="text-sm font-medium text-slate-950 dark:text-white">—</p>
+          <p id="det-proveedor-contacto" class="text-xs text-slate-400 mt-1"></p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-amber-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5"/></svg>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Fechas</span>
+          </div>
+          <p class="text-sm text-slate-700 dark:text-slate-300"><span class="text-slate-400">Compra:</span> <span id="det-fecha-compra">—</span></p>
+          <p class="text-sm text-slate-700 dark:text-slate-300"><span class="text-slate-400">Entrega:</span> <span id="det-fecha-entrega">—</span></p>
+        </div>
+        <div class="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4">
+          <div class="flex items-center gap-2 mb-2">
+            <svg class="w-4 h-4 text-emerald-500 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <span class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Totales</span>
+          </div>
+          <div class="flex justify-between text-sm"><span class="text-slate-400">Subtotal</span><span id="det-subtotal" class="text-slate-950 dark:text-white font-medium">—</span></div>
+          <div class="flex justify-between text-sm"><span class="text-slate-400">IVA</span><span id="det-impuesto" class="text-slate-950 dark:text-white font-medium">—</span></div>
+          <div class="flex justify-between text-sm border-t border-slate-200 dark:border-slate-700 pt-1 mt-1"><span class="font-semibold text-slate-950 dark:text-white">Total</span><span id="det-total" class="font-semibold text-slate-950 dark:text-white">—</span></div>
+        </div>
+      </div>
+
+      <div id="det-notas-container" class="hidden mb-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Notas</p>
+        <p id="det-notas" class="text-sm text-slate-700 dark:text-slate-300"></p>
+      </div>
+
+      <div>
+        <h4 class="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-3">Productos</h4>
+        <div class="overflow-x-auto">
+          <table class="w-full text-sm">
+            <thead>
+              <tr class="border-b border-slate-200/60 dark:border-slate-800">
+                <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Producto</th>
+                <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden sm:table-cell">Codigo</th>
+                <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Cant.</th>
+                <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden sm:table-cell">P. Unit.</th>
+                <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden sm:table-cell">Dto</th>
+                <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider hidden md:table-cell">IVA</th>
+                <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Total</th>
+              </tr>
+            </thead>
+            <tbody id="det-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="flex justify-end mt-5 pt-4 border-t border-slate-200/60 dark:border-slate-800">
+        <button id="btn-cerrar-detalle-2" class="px-5 py-2 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Imagen Producto -->
+  <div id="modal-producto-imagen" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl max-w-lg w-full p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-sm font-semibold text-slate-950 dark:text-white truncate pr-2" id="modal-prod-img-nombre">Producto</h3>
+        <button id="btn-cerrar-prod-img" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 shrink-0">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div id="modal-prod-img-loading" class="text-center py-10 text-slate-400 text-sm">Cargando imagen...</div>
+      <div id="modal-prod-img-content" class="hidden text-center">
+        <img id="modal-prod-img" src="" alt="" class="max-h-[70vh] w-full mx-auto rounded-xl object-contain">
+        <p id="modal-prod-img-alt" class="text-xs text-slate-400 mt-2"></p>
+      </div>
+      <div id="modal-prod-img-empty" class="hidden text-center py-10 text-slate-400 text-sm">
+        <svg class="w-12 h-12 mx-auto mb-2 text-slate-300 dark:text-slate-600" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/></svg>
+        Sin imagen disponible
       </div>
     </div>
   </div>

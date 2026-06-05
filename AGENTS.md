@@ -21,6 +21,11 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 - Seguir estrictamente las clases Tailwind definidas en `05-ui-ux-system.md`.
 - No se aceptan diseños que no funcionen en pantallas táctiles.
 
+### 1.4 Sin Commits Automaticos a GitHub
+- La IA **NUNCA debe hacer `git commit` ni `git push`** a menos que el usuario lo solicite explícitamente con instrucciones como "commitea", "haz commit", "sincroniza", "pushea" o similar.
+- Todos los cambios se mantienen en el working directory hasta que el usuario decida sincronizar.
+- Esta regla aplica a cualquier repositorio, branch o entorno.
+
 ---
 
 ## 2. Stack Tecnológico (Confirmado)
@@ -405,6 +410,23 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/inventario.html` | Sidebar normalizado: agregados grupos Compras, Clientes + links Historial, Movimientos |
 | `specs/seed-permisos.sql` | Nuevo archivo con seed data para `pos_roles`, `pos_permisos`, `pos_rol_permisos` |
 
+### 2026-06-05 — IVA Fix, Cards Layout, Modal Imagen, Filtros en Compras
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/compras.js` | Fix IVA: `tasa = (d.tasa_impuesto \|\| 0)` sin `/ 100` en `renderizarDetalle()` y `onDetalleChange()` — DB almacena 0.19 (decimal), no 19 |
+| `apps/pos/js/paginas/compras.js` | Fix IVA display en modal detalle (line 715): `Math.round(parseFloat(d.tasa_impuesto) * 100) + '%'` muestra "19%" en vez de "0.19%" |
+| `apps/pos/compras.html` | Card 1 "Nueva Orden de Compra" partida en 3 cards independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden |
+| `apps/pos/compras.html` | Card 2 "Lista de Ordenes" renumerada a Card 4 |
+| `apps/pos/compras.html` | Nuevo modal `#modal-producto-imagen` (max-w-lg, responsive, loading/image/empty states) |
+| `apps/pos/js/paginas/compras.js` | `renderizarCatalogo()`: agregado `data-producto-id`, icono SVG imagen, `cursor-pointer select-none` en celda nombre |
+| `apps/pos/js/paginas/compras.js` | Nuevas funciones: `abrirModalImagenProducto(productoId, nombre)` y `cerrarModalImagenProducto()` |
+| `apps/pos/js/paginas/compras.js` | Eventos imagen: `dblclick` en nombre (desktop), `click` en icono `.btn-ver-img-catalogo` (mobile+desktop), Escape/overlay/X |
+| `apps/pos/compras.html` | Card 4: agregados dropdowns `#filtro-proveedor` y `#filtro-estado` en la barra de busqueda |
+| `apps/pos/js/paginas/compras.js` | `filtrarYRender()`: filtro combinado texto + proveedor_id + estado (AND) |
+| `apps/pos/js/paginas/compras.js` | `cargarProveedores()`: pobla tambien `#filtro-proveedor` con opciones |
+| `apps/pos/js/paginas/compras.js` | `bindearEventos()`: listeners `change` en `#filtro-proveedor` y `#filtro-estado` |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -416,6 +438,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **IA debe ejecutar `npx serve apps/pos` para pruebas:** No usar `file://` porque los fetch a Supabase y el manifest.json fallan por CORS.
 - **Admin bypass de permisos en `tienePermiso()`:** El rol 'Administrador' siempre retorna `true` en `tienePermiso()` sin consultar DB, para garantizar que vea todas las pantallas aunque fallen los datos semilla de `pos_rol_permisos`.
 - **Sidebar normalizado:** `caja.html` e `inventario.html` ahora tienen el sidebar completo con los 6 grupos (Ventas, Inventario, Compras, Clientes, Caja/Finanzas, Administracion) idéntico al de `ventas.html`.
+- **IVA embebido en compras:** `precio_unitario` en orden de compra YA incluye IVA. Calculo: `totalConIva = cantidad * precio_unitario * (1 - descuento%)`, luego `subtotal = totalConIva / (1 + tasa)`, `impuesto = totalConIva - subtotal`, `total = totalConIva`. `tasa_impuesto` en DB es decimal (0.19 para 19%) — NO dividir entre 100.
+- **Cards separadas en compras:** La pagina `compras.html` tiene 4 cards `<details>` independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden, Lista de Ordenes. Cada una colapsable individualmente para mejor usabilidad.
+- **Modal imagen producto via dblclick + icono:** En desktop, doble clic en nombre del producto en catalogo abre modal con imagen. En mobile (dblclick no existe), icono SVG de imagen siempre visible al lado del nombre. Imagen via `DB.productosMultimedia.listar(productoId)` con filtro `tipo === 'imagen'`.
+- **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
 
 ---
 
@@ -440,3 +466,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |
 | Archivos informativos externos | `ArchivosInformativos/` |
 | Glosario de dominio | `CONTEXT.md` |
+| Codigo Compras | `apps/pos/js/paginas/compras.js` |
+| Filtros en Ordenes de Compra | `filtrarYRender()`, `#filtro-proveedor`, `#filtro-estado` |
+| Modal imagen producto | `abrirModalImagenProducto()`, `#modal-producto-imagen` |
+| IVA en compras (tasa decimal) | `tasa_impuesto` es decimal (0.19), NO dividir entre 100 |

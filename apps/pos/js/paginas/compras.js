@@ -41,6 +41,9 @@
     var sel = $('campo-proveedor');
     sel.innerHTML = '<option value="">Seleccionar proveedor...</option>' +
       PROVEEDORES.map(function (p) { return '<option value="' + p.id + '">' + p.razon_social + ' (' + (p.numero_id || '') + ')</option>'; }).join('');
+    var filtroSel = $('filtro-proveedor');
+    filtroSel.innerHTML = '<option value="">Todos los proveedores</option>' +
+      PROVEEDORES.map(function (p) { return '<option value="' + p.id + '">' + p.razon_social + '</option>'; }).join('');
   }
 
   async function cargarCatalogo() {
@@ -74,7 +77,7 @@
       var stock = parseInt(d.stock_actual || 0);
       var stockLabel = stock > 0 ? '<span class="text-emerald-500 font-medium">' + stock + '</span>' : '<span class="text-red-400">' + stock + '</span>';
       return '<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">' +
-        '<td class="py-2 px-2"><span class="text-sm font-medium text-slate-950 dark:text-white">' + nombre + '</span><span class="text-xs text-slate-400 ml-1">' + presentacion + '</span></td>' +
+        '<td class="py-2 px-2 cursor-pointer select-none" data-producto-id="' + (d.producto_id || '') + '"><span class="text-sm font-medium text-slate-950 dark:text-white">' + nombre + '</span><span class="text-xs text-slate-400 ml-1">' + presentacion + '</span><button class="btn-ver-img-catalogo inline-flex items-center justify-center w-6 h-6 ml-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-400 align-middle" title="Ver imagen"><svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 15.75l5.159-5.159a2.25 2.25 0 013.182 0l5.159 5.159m-1.5-1.5l1.409-1.409a2.25 2.25 0 013.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0022.5 18.75V5.25A2.25 2.25 0 0020.25 3H3.75A2.25 2.25 0 001.5 5.25v13.5A2.25 2.25 0 003.75 21z"/></svg></button></td>' +
         '<td class="py-2 px-2 text-center text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + codigo + '</td>' +
         '<td class="py-2 px-2 text-center text-sm hidden md:table-cell">' + stockLabel + '</td>' +
         '<td class="py-2 px-2 text-right text-sm text-slate-950 dark:text-white font-medium">' + precioCompra + '</td>' +
@@ -166,11 +169,11 @@
     tbody.innerHTML = DETALLE.map(function (d, i) {
       var nombre = d.producto_nombre || d._nombre || 'Producto #' + (i + 1);
       var codigo = d.codigo_interno || '';
-      var subtotal = (d.cantidad || 0) * (d.precio_unitario || 0) * (1 - (d.descuento || 0) / 100);
-      var impuesto = subtotal * ((d.tasa_impuesto || 0) / 100);
-      d.subtotal = subtotal;
-      d.impuesto = impuesto;
-      d.total = subtotal + impuesto;
+      var totalConIva = (d.cantidad || 0) * (d.precio_unitario || 0) * (1 - (d.descuento || 0) / 100);
+      var tasa = (d.tasa_impuesto || 0);
+      d.subtotal = totalConIva / (1 + tasa);
+      d.impuesto = totalConIva - d.subtotal;
+      d.total = totalConIva;
 
       var recibi = parseInt(d.cantidad_recibida || 0);
       var totalCant = parseInt(d.cantidad || 1);
@@ -192,7 +195,7 @@
         '<td class="py-2 px-2"><input type="number" class="cantidad-detalle w-20 text-center input-campo py-1 text-xs" value="' + (d.cantidad || 1) + '" min="1" data-idx="' + i + '"></td>' +
         '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="precio-detalle w-32 text-right input-campo py-1 text-xs" value="' + (d.precio_unitario || '') + '" step="1" min="0" data-idx="' + i + '" placeholder="0"></td>' +
         '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="descuento-detalle w-20 text-right input-campo py-1 text-xs" value="' + (d.descuento || '') + '" step="1" min="0" max="100" data-idx="' + i + '" placeholder="0"></td>' +
-        '<td class="py-2 px-2 hidden sm:table-cell"><span class="text-sm text-slate-500">' + (d.tasa_impuesto || 0) + '%</span></td>' +
+        '<td class="py-2 px-2 hidden sm:table-cell"><span class="text-sm text-slate-500">' + Math.round((d.tasa_impuesto || 0) * 100) + '%</span></td>' +
         '<td class="py-2 px-2 text-right text-sm text-slate-950 dark:text-white font-medium hidden md:table-cell">' + formatCOP(d.total || 0) + '</td>' +
         '<td class="py-2 px-2 text-center">' + recibidoHtml + '</td>' +
         '<td class="py-2 px-2 text-center">' + btnRecibir + '</td>' +
@@ -228,9 +231,11 @@
     if (e.target.classList.contains('cantidad-detalle')) row.cantidad = parseInt(e.target.value) || 0;
     if (e.target.classList.contains('precio-detalle')) row.precio_unitario = parseFloat(e.target.value) || 0;
     if (e.target.classList.contains('descuento-detalle')) row.descuento = parseFloat(e.target.value) || 0;
-    row.subtotal = (row.cantidad || 0) * (row.precio_unitario || 0) * (1 - (row.descuento || 0) / 100);
-    row.impuesto = row.subtotal * ((row.tasa_impuesto || 0) / 100);
-    row.total = row.subtotal + row.impuesto;
+    var totalConIva = (row.cantidad || 0) * (row.precio_unitario || 0) * (1 - (row.descuento || 0) / 100);
+    var tasa = (row.tasa_impuesto || 0);
+    row.subtotal = totalConIva / (1 + tasa);
+    row.impuesto = totalConIva - row.subtotal;
+    row.total = totalConIva;
     recalcular();
   }
 
@@ -358,17 +363,16 @@
 
   function recalcular() {
     var descGlobal = parseFloat($('campo-descuento').value) || 0;
-    var subtotal = 0;
-    var impuesto = 0;
+    var totalConIvaSum = 0, subtotalSum = 0, impuestoSum = 0;
     DETALLE.forEach(function (d) {
-      subtotal += d.subtotal || 0;
-      impuesto += d.impuesto || 0;
+      totalConIvaSum += d.total || 0;
+      subtotalSum += d.subtotal || 0;
+      impuestoSum += d.impuesto || 0;
     });
-    var descGlobalMonto = subtotal * (descGlobal / 100);
-    var finalSubtotal = subtotal - descGlobalMonto;
-    $('res-subtotal').textContent = formatCOP(finalSubtotal);
-    $('res-impuesto').textContent = formatCOP(impuesto);
-    $('res-total').textContent = formatCOP(finalSubtotal + impuesto);
+    var factorDesc = (100 - descGlobal) / 100;
+    $('res-subtotal').textContent = formatCOP(subtotalSum * factorDesc);
+    $('res-impuesto').textContent = formatCOP(impuestoSum * factorDesc);
+    $('res-total').textContent = formatCOP(totalConIvaSum * factorDesc);
   }
 
   function coloresEstado(estado) {
@@ -408,6 +412,7 @@
         '<td class="py-3 px-2 text-right text-sm text-slate-950 dark:text-white font-medium hidden md:table-cell">' + totalStr + '</td>' +
         '<td class="py-3 px-2 text-center"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + coloresEstado(c.estado) + '">' + (c.estado || 'PENDIENTE') + '</span></td>' +
         '<td class="py-3 px-2 text-right"><div class="flex gap-1 justify-end">' +
+        '<button class="btn-ver text-xs text-slate-400 hover:text-sky-500 transition-colors px-2 py-1" data-id="' + c.id + '">Ver</button>' +
         '<button class="btn-editar text-xs text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors px-2 py-1" data-id="' + c.id + '">Editar</button>' +
         '<button class="btn-eliminar text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1" data-id="' + c.id + '">Eliminar</button>' +
         '</div></td></tr>';
@@ -452,10 +457,15 @@
 
   function filtrarYRender() {
     var q = ($('buscador-compras').value || '').toLowerCase().trim();
+    var estadoFiltro = $('filtro-estado').value;
+    var proveedorFiltro = $('filtro-proveedor').value;
     COMPRAS_FILTRADAS = COMPRAS.filter(function (c) {
       var ord = String(c.numero_orden || '');
       var prov = (c.proveedor ? c.proveedor.razon_social : '') || '';
-      return ord.includes(q) || prov.toLowerCase().includes(q);
+      var matchesText = !q || ord.includes(q) || prov.toLowerCase().includes(q);
+      var matchesEstado = !estadoFiltro || c.estado === estadoFiltro;
+      var matchesProveedor = !proveedorFiltro || c.proveedor_id === proveedorFiltro;
+      return matchesText && matchesEstado && matchesProveedor;
     });
     PAGINA = 1;
     renderizarTabla();
@@ -492,13 +502,13 @@
     filtrarYRender();
   }
 
-  function limpiarFormulario() {
+  async function limpiarFormulario() {
     EDITANDO_ID = null;
     DETALLE = [];
     $('form-titulo').textContent = 'Nueva Orden de Compra';
     $('form-compra-id').textContent = '';
     $('campo-proveedor').value = '';
-    generarNumeroOrden();
+    await generarNumeroOrden();
     $('campo-estado').value = 'PENDIENTE';
     $('campo-fecha-compra').value = new Date().toISOString().slice(0, 10);
     $('campo-fecha-entrega').value = '';
@@ -554,13 +564,13 @@
   function obtenerDatosForm() {
     var user = window.KubitAuth.obtenerUsuario();
     var descGlobal = parseFloat($('campo-descuento').value) || 0;
-    var subtotal = 0;
-    var impuesto = 0;
+    var totalConIvaSum = 0, subtotalSum = 0, impuestoSum = 0;
     DETALLE.forEach(function (d) {
-      subtotal += d.subtotal || 0;
-      impuesto += d.impuesto || 0;
+      totalConIvaSum += d.total || 0;
+      subtotalSum += d.subtotal || 0;
+      impuestoSum += d.impuesto || 0;
     });
-    var descMonto = subtotal * (descGlobal / 100);
+    var factorDesc = (100 - descGlobal) / 100;
     return {
       proveedor_id: $('campo-proveedor').value,
       usuario_id: user ? user.id : null,
@@ -568,10 +578,10 @@
       estado: $('campo-estado').value,
       fecha_compra: $('campo-fecha-compra').value || null,
       fecha_entrega: $('campo-fecha-entrega').value || null,
-      subtotal: subtotal - descMonto,
-      impuesto: impuesto,
+      subtotal: subtotalSum * factorDesc,
+      impuesto: impuestoSum * factorDesc,
       descuento: descGlobal,
-      total: subtotal - descMonto + impuesto,
+      total: totalConIvaSum * factorDesc,
       notas: $('campo-notas').value.trim() || null
     };
   }
@@ -645,7 +655,7 @@
         }
       }
 
-      limpiarFormulario();
+      await limpiarFormulario();
       await cargarCompras();
     } catch (e) {
       console.error('[Compras] Error guardar:', e);
@@ -662,8 +672,72 @@
     var r = await DB.compras.eliminar(id);
     if (r.error) { mostrarToast('Error: ' + r.error); return; }
     mostrarToast('Compra eliminada');
-    if (EDITANDO_ID === id) limpiarFormulario();
+    if (EDITANDO_ID === id) await limpiarFormulario();
     await cargarCompras();
+  }
+
+  async function verDetalle(id) {
+    var c = COMPRAS.find(function (x) { return x.id === id; });
+    if (!c) { mostrarToast('Compra no encontrada'); return; }
+    $('det-orden').textContent = '#' + (c.numero_orden || '—');
+    var estado = c.estado || 'PENDIENTE';
+    var badge = $('det-estado');
+    badge.textContent = estado;
+    badge.className = 'inline-flex px-2.5 py-1 rounded-full text-xs font-medium ' + coloresEstado(estado);
+    var prov = c.proveedor || {};
+    $('det-proveedor').textContent = prov.razon_social || '—';
+    var contactoHtml = '';
+    if (prov.persona_contacto) contactoHtml += prov.persona_contacto;
+    if (prov.telefono || prov.celular) {
+      if (contactoHtml) contactoHtml += ' &middot; ';
+      contactoHtml += prov.telefono || prov.celular;
+    }
+    $('det-proveedor-contacto').innerHTML = contactoHtml || '';
+    $('det-fecha-compra').textContent = c.fecha_compra ? c.fecha_compra.slice(0, 10) : '—';
+    $('det-fecha-entrega').textContent = c.fecha_entrega ? c.fecha_entrega.slice(0, 10) : '—';
+    $('det-subtotal').textContent = formatCOP(parseFloat(c.subtotal || 0));
+    $('det-impuesto').textContent = formatCOP(parseFloat(c.impuesto || 0));
+    $('det-total').textContent = formatCOP(parseFloat(c.total || 0));
+    var notasContainer = $('det-notas-container');
+    var notasEl = $('det-notas');
+    if (c.notas) {
+      notasEl.textContent = c.notas;
+      notasContainer.classList.remove('hidden');
+    } else {
+      notasContainer.classList.add('hidden');
+    }
+    var res = await DB.comprasDetalle.listarPorCompra(id);
+    var items = res.data || [];
+    var tbody = $('det-items-tbody');
+    if (!items.length) {
+      tbody.innerHTML = '<tr><td colspan="7" class="text-center py-6 text-slate-400 text-sm">Sin productos</td></tr>';
+    } else {
+      tbody.innerHTML = items.map(function (d) {
+        var pd = d.producto_detalle || {};
+        var prod = pd.producto || {};
+        var nombre = prod.nombre || 'Producto';
+        var codigo = pd.codigo_interno || '';
+        var pu = formatCOP(parseFloat(d.precio_unitario || 0));
+        var total = formatCOP(parseFloat(d.total || 0));
+        var dto = parseFloat(d.descuento || 0) > 0 ? parseFloat(d.descuento) + '%' : '—';
+        var iva = parseFloat(d.tasa_impuesto || 0) > 0 ? Math.round(parseFloat(d.tasa_impuesto) * 100) + '%' : '—';
+        return '<tr class="border-b border-slate-100 dark:border-slate-800/50">' +
+          '<td class="py-2 px-2 text-sm text-slate-700 dark:text-slate-300">' + nombre + '</td>' +
+          '<td class="py-2 px-2 text-center text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + codigo + '</td>' +
+          '<td class="py-2 px-2 text-center text-sm text-slate-950 dark:text-white font-medium">' + (d.cantidad || 0) + '</td>' +
+          '<td class="py-2 px-2 text-right text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + pu + '</td>' +
+          '<td class="py-2 px-2 text-right text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + dto + '</td>' +
+          '<td class="py-2 px-2 text-right text-sm text-slate-500 dark:text-slate-400 hidden md:table-cell">' + iva + '</td>' +
+          '<td class="py-2 px-2 text-right text-sm text-slate-950 dark:text-white font-medium">' + total + '</td></tr>';
+      }).join('');
+    }
+    $('modal-detalle').classList.remove('hidden');
+    $('modal-detalle').classList.add('flex');
+  }
+
+  function cerrarDetalle() {
+    $('modal-detalle').classList.add('hidden');
+    $('modal-detalle').classList.remove('flex');
   }
 
   function mostrarToast(msg) {
@@ -689,6 +763,40 @@
     }
   }
 
+  function abrirModalImagenProducto(productoId, nombre) {
+    $('modal-prod-img-nombre').textContent = nombre || 'Producto';
+    $('modal-prod-img-loading').classList.remove('hidden');
+    $('modal-prod-img-content').classList.add('hidden');
+    $('modal-prod-img-empty').classList.add('hidden');
+    $('modal-producto-imagen').classList.remove('hidden');
+    $('modal-producto-imagen').classList.add('flex');
+
+    DB.productosMultimedia.listar(productoId).then(function (res) {
+      $('modal-prod-img-loading').classList.add('hidden');
+      var imagenes = (res.data || []).filter(function (m) { return m.tipo === 'imagen' && m.url; });
+      if (imagenes.length) {
+        $('modal-prod-img').src = imagenes[0].url;
+        $('modal-prod-img').alt = imagenes[0].alt_text || nombre;
+        $('modal-prod-img-alt').textContent = imagenes[0].alt_text || '';
+        $('modal-prod-img-content').classList.remove('hidden');
+      } else {
+        $('modal-prod-img-empty').classList.remove('hidden');
+      }
+    }).catch(function () {
+      $('modal-prod-img-loading').classList.add('hidden');
+      $('modal-prod-img-empty').classList.remove('hidden');
+    });
+  }
+
+  function cerrarModalImagenProducto() {
+    $('modal-producto-imagen').classList.add('hidden');
+    $('modal-producto-imagen').classList.remove('flex');
+    $('modal-prod-img-loading').classList.add('hidden');
+    $('modal-prod-img-content').classList.add('hidden');
+    $('modal-prod-img-empty').classList.add('hidden');
+    $('modal-prod-img').src = '';
+  }
+
   function bindearEventos() {
     $('btn-dark').addEventListener('click', function () {
       html.classList.toggle('dark');
@@ -702,6 +810,8 @@
     $('btn-guardar').addEventListener('click', guardar);
     $('btn-limpiar-form').addEventListener('click', limpiarFormulario);
     $('buscador-compras').addEventListener('input', filtrarYRender);
+    $('filtro-proveedor').addEventListener('change', filtrarYRender);
+    $('filtro-estado').addEventListener('change', filtrarYRender);
     $('catalogo-busqueda').addEventListener('input', filtrarCatalogo);
     $('campo-descuento').addEventListener('input', recalcular);
 
@@ -715,6 +825,7 @@
     $('compras-tbody').addEventListener('click', function (e) {
       var btn = e.target.closest('button');
       if (!btn) return;
+      if (btn.classList.contains('btn-ver')) verDetalle(btn.dataset.id);
       if (btn.classList.contains('btn-editar')) cargarEnForm(btn.dataset.id);
       if (btn.classList.contains('btn-eliminar')) eliminar(btn.dataset.id);
     });
@@ -728,6 +839,40 @@
     $('modal-recibir-cantidad').addEventListener('keydown', function (e) {
       if (e.key === 'Enter') confirmarRecepcion();
       if (e.key === 'Escape') cerrarModalRecibir();
+    });
+
+    $('btn-cerrar-detalle').addEventListener('click', cerrarDetalle);
+    $('btn-cerrar-detalle-2').addEventListener('click', cerrarDetalle);
+    $('modal-detalle').addEventListener('click', function (e) {
+      if (e.target === this) cerrarDetalle();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('modal-detalle').classList.contains('hidden')) cerrarDetalle();
+    });
+
+    // Imagen producto modal
+    $('catalogo-tbody').addEventListener('dblclick', function (e) {
+      var td = e.target.closest('td[data-producto-id]');
+      if (td) {
+        var nombre = td.querySelector('span:first-child').textContent;
+        abrirModalImagenProducto(td.dataset.productoId, nombre);
+      }
+    });
+    $('catalogo-tbody').addEventListener('click', function (e) {
+      var btn = e.target.closest('.btn-ver-img-catalogo');
+      if (!btn) return;
+      var td = btn.closest('td[data-producto-id]');
+      if (td) {
+        var nombre = td.querySelector('span:first-child').textContent;
+        abrirModalImagenProducto(td.dataset.productoId, nombre);
+      }
+    });
+    $('btn-cerrar-prod-img').addEventListener('click', cerrarModalImagenProducto);
+    $('modal-producto-imagen').addEventListener('click', function (e) {
+      if (e.target === this) cerrarModalImagenProducto();
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape' && !$('modal-producto-imagen').classList.contains('hidden')) cerrarModalImagenProducto();
     });
   }
 

@@ -28,6 +28,10 @@ ADS-Store
 ADS-POS/
 ADS-POS
 
+# --- Planes de IA (OpenCode / Claude) ---
+.opencode/
+.claude/
+
 # --- Archivos de Sistema y Temporales ---
 .DS_Store
 Thumbs.db
