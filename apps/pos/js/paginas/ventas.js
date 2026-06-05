@@ -565,13 +565,21 @@
 
       for (var j = 0; j < CARRITO.length; j++) {
         var item = CARRITO[j];
-        await DB.productos.ajustarStock(
+        var stockRes = await DB.productos.ajustarStock(
           item.detalleId,
           -item.cantidad,
           'salida',
           'Venta #' + ventaData.numero_venta,
           { usuarioId: user.id }
         );
+        if (stockRes.data && stockRes.data.stock_nuevo !== undefined) {
+          for (var k = 0; k < PRODUCTOS.length; k++) {
+            if (PRODUCTOS[k].detalleId === item.detalleId) {
+              PRODUCTOS[k].stock = stockRes.data.stock_nuevo;
+              break;
+            }
+          }
+        }
       }
 
       var fd = new Date(fechaVenta);
@@ -657,9 +665,10 @@
     $('modal-exito').classList.add('hidden');
   }
 
-  function nuevaVenta() {
+  async function nuevaVenta() {
     limpiarFormulario();
     cerrarExito();
+    await cargarProductos();
     mostrarToast('Listo para nueva venta');
   }
 

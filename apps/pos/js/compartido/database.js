@@ -252,6 +252,8 @@ window.DB = (function () {
         created_by: user
       });
 
+      _cacheClear('productos');
+
       return { data: { stock_anterior: detalle.stock_actual, stock_nuevo: nuevoStock, movimiento: movRes.data }, error: null };
     }
   };

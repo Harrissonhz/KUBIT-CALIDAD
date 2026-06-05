@@ -258,11 +258,27 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `ventas.js`, `ventas-historial.js` — URLs de factura con formato clean (`factura-print?id=`) para compatibilidad con `npx serve` (evita redireccion 301 que pierde query params).
 - [x] **Comportamiento:** Si `logo_url` tiene URL valida y accesible → se muestra en header, login y factura. Si es null/vacio → fallback visual (K). Si la URL falla al cargar → `onerror` restaura la K silenciosamente.
 
+#### Módulo POS (Punto de Venta) — Fase 6: UI de Clientes, Proveedores y Compras
+- [x] `clientes.html` + `clientes.js` — CRUD completo con `DB.clientes` (listar, crear, actualizar, eliminar, busqueda, paginacion)
+- [x] `proveedores.html` + `proveedores.js` — CRUD completo con `DB.proveedores` (listar, crear, actualizar, eliminar, busqueda, paginacion)
+- [x] `compras.html` + `compras.js` — CRUD completo con `DB.compras`, cards layout, IVA fix (tasa decimal 0.19), modal imagen producto, filtros combinados (texto+proveedor+estado), modal detalle de orden
+
+#### Módulo POS (Punto de Venta) — Fase 7: UI de Facturacion, Gastos, Configuracion y Reportes
+- [x] `facturacion.html` + `facturacion.js` — Listado de facturas con `DB.facturacion`, emitir/anular, filtro por periodo
+- [x] `gastos.html` + `gastos.js` — CRUD de gastos con `DB.gastos` y `DB.gastoCategorias`, filtro por periodo, calculo de totales
+- [x] `configuracion.html` + `configuracion.js` — Formulario de empresa con `DB.configuracionEmpresa` (logo_url, resolucion DIAN, NIT, etc.)
+- [x] `reportes.html` + `reportes.js` — Dashboard financiero con `DB.finanzasMensuales`, ventas recientes, productos con bajo stock
+
+#### Módulo POS (Punto de Venta) — Fase 9: Fix Stock Local Post-Venta
+- [x] `database.js` — `_cacheClear('productos')` agregado en `ajustarStock()` (consistencia con otras mutaciones)
+- [x] `ventas.js` — `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente
+- [x] `ventas.js` — `nuevaVenta()` ahora recarga productos via `await cargarProductos()`
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
-- [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
+- [x] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
 - [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
@@ -277,9 +293,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
 - [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
 - [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
-- [ ] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
-- [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
-- [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
+- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
+- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
+- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
 
@@ -426,6 +442,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/compras.js` | `filtrarYRender()`: filtro combinado texto + proveedor_id + estado (AND) |
 | `apps/pos/js/paginas/compras.js` | `cargarProveedores()`: pobla tambien `#filtro-proveedor` con opciones |
 | `apps/pos/js/paginas/compras.js` | `bindearEventos()`: listeners `change` en `#filtro-proveedor` y `#filtro-estado` |
+
+### 2026-06-05 — Fix Stock Local Post-Venta
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | `_cacheClear('productos')` agregado en `ajustarStock()` (linea 255) para invalidar cache tras cada ajuste de stock |
+| `apps/pos/js/paginas/ventas.js` | `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente (lineas 568-582) |
+| `apps/pos/js/paginas/ventas.js` | `nuevaVenta()` ahora es `async` y recarga productos via `await cargarProductos()` (linea 668-673) |
 
 ### Decisiones de Diseno Tomadas
 
