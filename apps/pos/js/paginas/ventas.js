@@ -469,10 +469,10 @@
     $('input-cliente').value = '';
     $('selected-cliente-id').value = '';
     $('input-referencia').value = '';
-    $('input-descuento-global').value = '0';
-    $('input-costo-cargo').value = '0';
-    $('input-costo-impuestos').value = '0';
-    $('input-costo-envios').value = '0';
+    $('input-descuento-global').value = '';
+    $('input-costo-cargo').value = '';
+    $('input-costo-impuestos').value = '';
+    $('input-costo-envios').value = '';
     $('input-buscar-producto').value = '';
     $('producto-suggestions').classList.add('hidden');
     setFechaDefecto();

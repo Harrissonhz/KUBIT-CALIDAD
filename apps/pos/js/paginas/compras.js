@@ -190,8 +190,8 @@
         '<td class="py-2 px-2 text-sm text-slate-700 dark:text-slate-300">' + nombre + '</td>' +
         '<td class="py-2 px-2 text-center text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + codigo + '</td>' +
         '<td class="py-2 px-2"><input type="number" class="cantidad-detalle w-20 text-center input-campo py-1 text-xs" value="' + (d.cantidad || 1) + '" min="1" data-idx="' + i + '"></td>' +
-        '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="precio-detalle w-32 text-right input-campo py-1 text-xs" value="' + (d.precio_unitario || 0) + '" step="1" min="0" data-idx="' + i + '"></td>' +
-        '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="descuento-detalle w-20 text-right input-campo py-1 text-xs" value="' + (d.descuento || 0) + '" step="1" min="0" max="100" data-idx="' + i + '"></td>' +
+        '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="precio-detalle w-32 text-right input-campo py-1 text-xs" value="' + (d.precio_unitario || '') + '" step="1" min="0" data-idx="' + i + '" placeholder="0"></td>' +
+        '<td class="py-2 px-2 hidden sm:table-cell"><input type="number" class="descuento-detalle w-20 text-right input-campo py-1 text-xs" value="' + (d.descuento || '') + '" step="1" min="0" max="100" data-idx="' + i + '" placeholder="0"></td>' +
         '<td class="py-2 px-2 hidden sm:table-cell"><span class="text-sm text-slate-500">' + (d.tasa_impuesto || 0) + '%</span></td>' +
         '<td class="py-2 px-2 text-right text-sm text-slate-950 dark:text-white font-medium hidden md:table-cell">' + formatCOP(d.total || 0) + '</td>' +
         '<td class="py-2 px-2 text-center">' + recibidoHtml + '</td>' +
@@ -503,7 +503,7 @@
     $('campo-fecha-compra').value = new Date().toISOString().slice(0, 10);
     $('campo-fecha-entrega').value = '';
     $('campo-notas').value = '';
-    $('campo-descuento').value = '0';
+    $('campo-descuento').value = '';
     renderizarDetalle();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

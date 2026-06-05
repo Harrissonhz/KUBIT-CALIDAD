@@ -234,7 +234,7 @@
      APERTURA
      ════════════════════════════════════════════════════════════ */
   function abrirModalApertura() {
-    $('monto-inicial-input').value = 0;
+    $('monto-inicial-input').value = '';
     $('modal-apertura').classList.remove('hidden');
     setTimeout(function () { $('monto-inicial-input').focus(); }, 100);
   }
