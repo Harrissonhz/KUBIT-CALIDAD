@@ -137,6 +137,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Responsive | Mobile-first, mínimo 360px |
 | Navegación | Sin frameworks SPA. HTML vanilla con navegación tradicional o Alpine.js ligero si es necesario |
 | Editar ventas confirmadas | NO permitido. Usar Void + Recreate (Anular + Nueva Venta). Patrón estándar POS |
+| Header POS | `fixed top-0 left-0 right-0 z-30` en todas las páginas. El contenido tiene `pt-16` para compensar |
+| Modo oscuro por defecto | Todas las páginas cargan con `class="dark"` en `<html>`. Anti-flash script: si localStorage dice `'false'` lo remueve |
+| Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
+| IVA siempre visible | `tasa_impuesto` está fuera del toggle single/multi-variante, visible siempre |
+| Multi-variante | Las variantes se guardan como N registros en `pos_productos_detalle` con `atributos jsonb`. Edición inline con filas expandibles (▼) |
 
 ---
 
@@ -260,6 +265,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Fix bugs (Jun 2026):** Menú hamburguesa, subtotal en tiempo real, fondo modal post-venta
 - [x] **Historial mejorado:** Modal más ancho (4xl), nombre producto vs UUID, canal visible
 - [x] **Decisión CRUD:** No implementar "Editar Venta". Usar Void + Recreate
+- [x] **Completado (Jun 2026):** Multi-variante — formulario con toggle single/multi, atributos dinámicos (color/talla/diseño), tabla editable inline, filas expandibles (▼) con precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones
+- [x] **Completado (Jun 2026):** IVA siempre visible fuera del toggle variantes, default 0% (Exento)
+- [x] **Completado (Jun 2026):** Stock Min por defecto = 2 (single y multi-variante)
+- [x] **Completado (Jun 2026):** Modo oscuro como default en todas las páginas con anti-flash script inline
+- [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
+- [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
+- [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
@@ -362,12 +374,36 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/ventas.js` | URL de factura cambia a clean URI (`factura-print?id=`) para evitar redireccion 301 de `npx serve` |
 | `apps/pos/js/paginas/ventas-historial.js` | Mismo cambio clean URLs |
 
+### 2026-06-05 — Multi-variante, Modo Oscuro Default, Header Fixed, Usuario en Header
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | Nuevo campo `#campo-tags` en card Multimedia |
+| `apps/pos/productos.html` | Cards "Precios y Costos" + "Inventario" reemplazadas por "Variantes y Precios" con toggle single/multi-variante, tabla editable, filas expandibles (▼) |
+| `apps/pos/productos.html` | `#campo-impuesto` movido fuera del toggle, siempre visible |
+| `apps/pos/productos.html` | Default IVA cambiado a `value="0" selected` (0% Exento) |
+| `apps/pos/js/paginas/productos.js` | Funciones: `toggleModoVariantes()`, `renderizarAtributos()`, `leerAtributosDesdeDOM()`, `syncVariantesFromDOM()`, `renderizarTablaVariantes()`, `agregarVariante()`, `eliminarVariante()`, `resetVariantState()` |
+| `apps/pos/js/paginas/productos.js` | `guardarProducto()`: guarda N variantes con `atributos`, `precio_original`, `precio_mayorista`, `descuento_max`, `stock_min/max`, `peso`, `dimensiones` |
+| `apps/pos/js/paginas/productos.js` | `cargarEnForm()`: carga multi-variante desde DB |
+| `apps/pos/js/paginas/productos.js` | Fix `agregarVariante()`: corrige typo `attrs`→`attr`, agrega `syncVariantesFromDOM()` antes de re-renderizar |
+| `apps/pos/js/paginas/productos.js` | Stock Min por defecto = 2 en `agregarVariante()` y `limpiarFormulario()` |
+| `apps/pos/js/compartido/database.js` | Nuevo método `DB.productos.detalleEliminar()` (softDelete) |
+| `apps/pos/*.html` (14 páginas) | Modo oscuro default: `<html class="dark">` + anti-flash script inline |
+| `apps/pos/*.html` (14 páginas) | Header fixed: `shrink-0` → `fixed top-0 left-0 right-0 z-30` |
+| `apps/pos/*.html` (14 páginas) | Scroll container: `pt-16` agregado para compensar header fixed |
+| `apps/pos/*.html` (12 páginas) | Sección de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header |
+| `apps/pos/js/compartido/auth.js` | Nueva función `poblarUserHeader()` centralizada, llamada desde `cargarSesion()` y `login()` |
+| `specs/02-database-schema.sql` | Trigger de slug actualizado: sufijo numérico `-1`, `-2`... en colisiones |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
 - **Logo de empresa:** Se carga automaticamente desde `pos_configuracion_empresa.logo_url` en el header (14 paginas), login y factura. Sin modificar HTMLs individuales — la logica centralizada en `database.js` busca el contenedor por clase CSS y lo reemplaza. La IA futura debe mantener esta estrategia centralizada para cambios UI globales.
-- **No usar `file://` para pruebas locales:** Los fetch a Supabase y el manifest.json fallan por CORS policy. Usar `npx serve` o deploy en Vercel.
-- **`factura-print.html` usa CSS nativo:** Por ser pagina de impresion standalone, no carga Tailwind CDN. Todo el estilo se define en el bloque `<style>` con CSS plano. No mezclar con clases Tailwind.
+- **Sección de usuario en header:** Centralizada en `auth.js::poblarUserHeader()`. Cualquier página futura solo necesita agregar los IDs `#user-avatar`, `#user-name`, `#user-rol` en el header y se puebla automáticamente.
+- **Header fixed vs sticky:** Se usa `position: fixed` porque el scroll container es un `flex-1 overflow-y-auto` hijo del body (no el body mismo). `sticky` no funcionaría por ser hermanos, no padre-hijo.
+- **Modo oscuro default:** Se implementa con `class="dark"` directo en `<html>` + anti-flash script que lo remueve si localStorage dice `'false'`. El JS existente en cada página sigue funcionando para el toggle, pero la inicialización la maneja el script inline en el `<head>`.
+- **Multi-variante con filas expandibles:** Los campos secundarios (precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones) se editan en filas expandibles (▼) en vez de columnas fijas, para mantener la tabla compacta.
+- **IA debe ejecutar `npx serve apps/pos` para pruebas:** No usar `file://` porque los fetch a Supabase y el manifest.json fallan por CORS.
 
 ---
 
@@ -384,6 +420,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Código del POS | `apps/pos/` |
 | Capa de datos (DatabaseService) | `apps/pos/js/compartido/database.js` |
 | Código del Store | `apps/store/` |
+| Auth (centralizada) | `apps/pos/js/compartido/auth.js` (exporta `window.KubitAuth`) |
+| Poblar header usuario | `auth.js::poblarUserHeader()`, busca IDs `user-avatar`, `user-name`, `user-rol` |
+| Variantes de producto | `productos.js`: `toggleModoVariantes()`, `atributos jsonb`, `pos_productos_detalle` |
 | Decisiones de diseño | `AGENTS.md` sección 5 |
 | Seguridad credenciales | `AGENTS.md` sección 10 |
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |

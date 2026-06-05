@@ -11,6 +11,10 @@
   var _guardando = false;
   var PAGE_SIZE = 10;
   var PAGINA = 1;
+  var MODO_VARIANTES = false;
+  var ATRIBUTOS_DEF = [];
+  var VARIANTES = [];
+  var VARIANTES_ELIMINADOS = [];
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
@@ -170,6 +174,181 @@
   }
 
   /* ───────────────────────────────────────────────
+     VARIANTES
+     ─────────────────────────────────────────────── */
+  function toggleModoVariantes() {
+    MODO_VARIANTES = $('toggle-variantes').checked;
+    $('modo-single').classList.toggle('hidden', MODO_VARIANTES);
+    $('modo-multi').classList.toggle('hidden', !MODO_VARIANTES);
+    if (MODO_VARIANTES) {
+      if (ATRIBUTOS_DEF.length === 0) {
+        ATRIBUTOS_DEF = [{ nombre: 'Color' }, { nombre: 'Talla' }];
+        renderizarAtributos();
+      }
+      renderizarTablaVariantes();
+    }
+  }
+
+  function renderizarAtributos() {
+    var container = $('atributos-container');
+    container.innerHTML = ATRIBUTOS_DEF.map(function (a, i) {
+      return '<div class="atributo-row flex items-center gap-2 bg-slate-50/30 dark:bg-slate-800/20 rounded-xl px-3 py-2">' +
+        '<input type="text" class="attr-nombre flex-1 px-3 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" placeholder="Ej: Color" value="' + a.nombre + '">' +
+        '<button type="button" class="btn-eliminar-atributo w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors" data-idx="' + i + '">' +
+          '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>' +
+        '</button>' +
+      '</div>';
+    }).join('');
+  }
+
+  function leerAtributosDesdeDOM() {
+    var rows = $('atributos-container').querySelectorAll('.atributo-row');
+    ATRIBUTOS_DEF = Array.from(rows).map(function (r) {
+      return { nombre: r.querySelector('.attr-nombre').value.trim() };
+    }).filter(function (a) { return a.nombre; });
+  }
+
+  function syncVariantesFromDOM() {
+    var rows = $('variantes-tbody').querySelectorAll('.variant-row');
+    if (!rows.length || rows.length !== VARIANTES.length) return;
+    rows.forEach(function (row, i) {
+      var v = VARIANTES[i];
+      if (!v) return;
+      var attrs = {};
+      row.querySelectorAll('.v-attr').forEach(function (inp) {
+        var ai = parseInt(inp.dataset.attrIdx);
+        var name = ATRIBUTOS_DEF[ai] ? ATRIBUTOS_DEF[ai].nombre : 'a' + ai;
+        attrs[name] = inp.value;
+      });
+      v.atributos = attrs;
+      v.codigo_interno = row.querySelector('.v-codigo').value;
+      v.precio_venta = parseFloat(row.querySelector('.v-precio-venta').value) || 0;
+      v.precio_compra = parseFloat(row.querySelector('.v-precio-compra').value) || 0;
+      v.stock_actual = parseInt(row.querySelector('.v-stock').value) || 0;
+      var sec = row.nextElementSibling;
+      if (sec && sec.classList.contains('variant-row-secondary')) {
+        v.precio_original = parseFloat(sec.querySelector('.v-precio-original').value) || 0;
+        v.precio_mayorista = parseFloat(sec.querySelector('.v-precio-mayorista').value) || 0;
+        v.descuento_max = parseInt(sec.querySelector('.v-descuento-max').value) || 0;
+        v.stock_min = parseInt(sec.querySelector('.v-stock-min').value) || 0;
+        v.stock_max = parseInt(sec.querySelector('.v-stock-max').value) || 0;
+        v.peso = parseFloat(sec.querySelector('.v-peso').value) || null;
+        v.dimensiones = sec.querySelector('.v-dimensiones').value || '';
+      }
+    });
+  }
+
+  function renderizarTablaVariantes() {
+    syncVariantesFromDOM();
+    leerAtributosDesdeDOM();
+    var thead = $('variantes-thead');
+    var attrTh = ATRIBUTOS_DEF.map(function (a) {
+      return '<th class="text-left py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider min-w-[80px]">' + a.nombre + '</th>';
+    }).join('');
+    thead.innerHTML = '<tr class="border-b border-slate-200/60 dark:border-slate-800">' +
+      '<th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider w-8">#</th>' +
+      attrTh +
+      '<th class="text-left py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider min-w-[80px]">Codigo</th>' +
+      '<th class="text-right py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider min-w-[80px]">P. Venta</th>' +
+      '<th class="text-right py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider min-w-[80px]">P. Compra</th>' +
+      '<th class="text-center py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider w-16">Stock</th>' +
+      '<th class="text-center py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider w-8"></th>' +
+      '<th class="text-center py-2 px-1 text-xs text-slate-400 font-medium uppercase tracking-wider w-10"></th>' +
+    '</tr>';
+
+    var tbody = $('variantes-tbody');
+    if (!VARIANTES.length) {
+      tbody.innerHTML = '';
+      $('variantes-empty').classList.remove('hidden');
+      return;
+    }
+    $('variantes-empty').classList.add('hidden');
+
+    tbody.innerHTML = VARIANTES.map(function (v, i) {
+      var attrTds = ATRIBUTOS_DEF.map(function (a, ai) {
+        var val = v.atributos[a.nombre] || '';
+        return '<td class="py-1.5 px-1"><input type="text" class="v-attr w-full min-w-[60px] px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" data-attr-idx="' + ai + '" value="' + val + '" placeholder="' + a.nombre + '"></td>';
+      }).join('');
+
+      var expanded = v._expandido;
+      var chevronClass = expanded ? 'rotate-180' : '';
+
+      return '<tr class="variant-row border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">' +
+        '<td class="py-1.5 px-2 text-xs text-slate-400 text-center">' + (i + 1) + '</td>' +
+        attrTds +
+        '<td class="py-1.5 px-1"><input type="text" class="v-codigo w-full min-w-[60px] px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" value="' + (v.codigo_interno || '') + '" placeholder="SKU"></td>' +
+        '<td class="py-1.5 px-1"><input type="number" class="v-precio-venta w-full min-w-[70px] px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="0.01" min="0" value="' + v.precio_venta + '"></td>' +
+        '<td class="py-1.5 px-1"><input type="number" class="v-precio-compra w-full min-w-[70px] px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="0.01" min="0" value="' + v.precio_compra + '"></td>' +
+        '<td class="py-1.5 px-1"><input type="number" class="v-stock w-full min-w-[50px] px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="1" min="0" value="' + v.stock_actual + '"></td>' +
+        '<td class="py-1.5 px-1 text-center">' +
+          '<button type="button" class="btn-expand-variante w-6 h-6 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors" data-idx="' + i + '">' +
+            '<svg class="w-3.5 h-3.5 transition-transform duration-200 ' + chevronClass + '" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>' +
+          '</button>' +
+        '</td>' +
+        '<td class="py-1.5 px-1 text-center">' +
+          '<button type="button" class="btn-eliminar-variante w-7 h-7 flex items-center justify-center rounded-lg text-red-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/20 transition-colors" data-idx="' + i + '">' +
+            '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0"/></svg>' +
+          '</button>' +
+          '<input type="hidden" class="v-id" value="' + (v.id || '') + '">' +
+        '</td>' +
+      '</tr>' +
+      '<tr class="variant-row-secondary' + (expanded ? '' : ' hidden') + '">' +
+        '<td colspan="99" class="p-3 bg-slate-50/50 dark:bg-slate-800/10">' +
+          '<div class="grid grid-cols-2 sm:grid-cols-4 gap-x-4 gap-y-3">' +
+            '<div><label class="block text-xs text-slate-400 mb-1">P. Original ($)</label><input type="number" class="v-precio-original w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="0.01" min="0" value="' + (v.precio_original || '') + '" placeholder="0.00"></div>' +
+            '<div><label class="block text-xs text-slate-400 mb-1">P. Mayorista ($)</label><input type="number" class="v-precio-mayorista w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="0.01" min="0" value="' + (v.precio_mayorista || '') + '" placeholder="0.00"></div>' +
+            '<div><label class="block text-xs text-slate-400 mb-1">Dto. Max (%)</label><input type="number" class="v-descuento-max w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="1" min="0" max="100" value="' + (v.descuento_max || '0') + '" placeholder="0"></div>' +
+            '<div><label class="block text-xs text-slate-400 mb-1">Stock Min</label><input type="number" class="v-stock-min w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="1" min="0" value="' + (v.stock_min || '0') + '" placeholder="0"></div>' +
+            '<div><label class="block text-xs text-slate-400 mb-1">Stock Max</label><input type="number" class="v-stock-max w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="1" min="0" value="' + (v.stock_max || '0') + '" placeholder="0"></div>' +
+            '<div><label class="block text-xs text-slate-400 mb-1">Peso (kg)</label><input type="number" class="v-peso w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" step="0.01" min="0" value="' + (v.peso || '') + '" placeholder="0.00"></div>' +
+            '<div class="col-span-2 sm:col-span-2"><label class="block text-xs text-slate-400 mb-1">Dimensiones</label><input type="text" class="v-dimensiones w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-950 dark:text-white text-xs focus:outline-none focus:ring-2 focus:ring-slate-950 dark:focus:ring-white/20 transition-all" value="' + (v.dimensiones || '') + '" placeholder="Largo x Ancho x Alto (cm)"></div>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  function agregarVariante() {
+    var attr = {};
+    ATRIBUTOS_DEF.forEach(function (a) {
+      attr[a.nombre] = '';
+    });
+      VARIANTES.push({
+        id: null,
+        atributos: attr,
+        codigo_interno: '',
+        precio_venta: 0,
+        precio_compra: 0,
+        stock_actual: 0,
+        precio_original: 0,
+        precio_mayorista: 0,
+        descuento_max: 0,
+        stock_min: 2,
+        stock_max: 0,
+        peso: null,
+        dimensiones: ''
+      });
+    renderizarTablaVariantes();
+  }
+
+  function eliminarVariante(idx) {
+    var v = VARIANTES[idx];
+    if (v && v.id) VARIANTES_ELIMINADOS.push(v.id);
+    VARIANTES.splice(idx, 1);
+    renderizarTablaVariantes();
+  }
+
+  function resetVariantState() {
+    MODO_VARIANTES = false;
+    ATRIBUTOS_DEF = [];
+    VARIANTES = [];
+    VARIANTES_ELIMINADOS = [];
+    $('atributos-container').innerHTML = '';
+    $('variantes-tbody').innerHTML = '';
+    $('variantes-empty').classList.add('hidden');
+  }
+
+  /* ───────────────────────────────────────────────
      MULTIMEDIA
      ─────────────────────────────────────────────── */
   function agregarFilaMultimedia(data) {
@@ -273,17 +452,25 @@
     ].forEach(function (id) { var el = $(id); if (el) el.value = ''; });
     $('campo-stock').value = '0';
     $('campo-descuento-max').value = '0';
+    $('campo-stock-min').value = '2';
     $('campo-margen').value = '';
     $('campo-categoria').value = '';
-    $('campo-impuesto').value = '19';
+    $('campo-impuesto').value = '0';
     $('campo-activo').checked = true;
+
+    $('toggle-variantes').checked = false;
+    MODO_VARIANTES = false;
+    $('modo-single').classList.remove('hidden');
+    $('modo-multi').classList.add('hidden');
+    resetVariantState();
+
     MULTIMEDIA_ELIMINADOS = [];
     $('multimedia-container').innerHTML = '';
     agregarFilaMultimedia();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  function cargarEnForm(detalleId) {
+  async function cargarEnForm(detalleId) {
     var p = PRODUCTOS.find(function (x) { return x.detalleId === detalleId; });
     if (!p) return;
     EDITANDO_ID = detalleId;
@@ -291,28 +478,80 @@
     $('form-titulo').textContent = 'Editar Producto';
     $('form-producto-id').textContent = p.nombre;
     $('campo-nombre').value = p.nombre;
-    $('campo-codigo-interno').value = p.codigoInterno;
-    $('campo-codigo-barras').value = p.codigoBarras;
     $('campo-marca').value = p.marca;
     $('campo-modelo').value = p.modelo;
     $('campo-tipo-producto').value = p.tipoProducto;
     $('campo-descripcion').value = p.descripcion;
-    $('campo-precio-venta').value = p.precio;
-    $('campo-precio-compra').value = p.precioCompra;
-    $('campo-precio-original').value = p.precioOriginal;
-    $('campo-precio-mayorista').value = p.precioMayorista;
-    $('campo-margen').value = p.margen > 0 ? p.margen + '%' : '';
-    $('campo-descuento-max').value = p.descuentoMax;
-    $('campo-stock').value = p.stock;
-    $('campo-stock-min').value = p.stockMin;
-    $('campo-stock-max').value = p.stockMax;
-    $('campo-peso').value = p.peso || '';
-    $('campo-dimensiones').value = p.dimensiones || '';
     $('campo-categoria').value = p.categoriaId;
     $('campo-tags').value = (p.tags || []).join(', ');
     $('campo-activo').checked = p.activo;
     var tasa = Math.round((p.tasaImpuesto || 0) * 100);
     $('campo-impuesto').value = tasa;
+
+    var res = await DB.productos.listarDetalleActivos({
+      filters: [{ col: 'producto_id', val: p.productoId }]
+    });
+    var detalles = res.data ? res.data.filter(function (d) { return !d.deleted_at; }) : [];
+
+    if (detalles.length <= 1) {
+      $('toggle-variantes').checked = false;
+      MODO_VARIANTES = false;
+      $('modo-single').classList.remove('hidden');
+      $('modo-multi').classList.add('hidden');
+      resetVariantState();
+
+      $('campo-codigo-interno').value = p.codigoInterno;
+      $('campo-codigo-barras').value = p.codigoBarras;
+      $('campo-precio-venta').value = p.precio;
+      $('campo-precio-compra').value = p.precioCompra;
+      $('campo-precio-original').value = p.precioOriginal;
+      $('campo-precio-mayorista').value = p.precioMayorista;
+      $('campo-margen').value = p.margen > 0 ? p.margen + '%' : '';
+      $('campo-descuento-max').value = p.descuentoMax;
+      $('campo-stock').value = p.stock;
+      $('campo-stock-min').value = p.stockMin;
+      $('campo-stock-max').value = p.stockMax;
+      $('campo-peso').value = p.peso || '';
+      $('campo-dimensiones').value = p.dimensiones || '';
+    } else {
+      $('toggle-variantes').checked = true;
+      MODO_VARIANTES = true;
+      $('modo-single').classList.add('hidden');
+      $('modo-multi').classList.remove('hidden');
+
+      var attrKeys = [];
+      detalles.forEach(function (d) {
+        if (d.atributos) {
+          Object.keys(d.atributos).forEach(function (k) {
+            if (attrKeys.indexOf(k) === -1) attrKeys.push(k);
+          });
+        }
+      });
+      ATRIBUTOS_DEF = attrKeys.map(function (k) { return { nombre: k }; });
+      if (!ATRIBUTOS_DEF.length) ATRIBUTOS_DEF = [{ nombre: 'Color' }, { nombre: 'Talla' }];
+      renderizarAtributos();
+
+      VARIANTES = detalles.map(function (d) {
+        return {
+          id: d.id,
+          atributos: d.atributos || {},
+          codigo_interno: d.codigo_interno || '',
+          codigo_barras: d.codigo_barras || '',
+          precio_venta: d.precio_venta || 0,
+          precio_compra: d.precio_compra || 0,
+          stock_actual: d.stock_actual || 0,
+          precio_original: d.precio_original || 0,
+          precio_mayorista: d.precio_mayorista || 0,
+          descuento_max: d.descuento_max || 0,
+          stock_min: d.stock_min || 0,
+          stock_max: d.stock_max || 0,
+          peso: d.peso || null,
+          dimensiones: d.dimensiones || ''
+        };
+      });
+      renderizarTablaVariantes();
+    }
+
     cargarMultimedia(p.productoId);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
@@ -326,8 +565,6 @@
     if (!nombre) { mostrarToast('El nombre del producto es obligatorio'); return; }
     var categoriaId = $('campo-categoria').value;
     if (!categoriaId) { mostrarToast('Selecciona una categoria'); return; }
-    var precioVenta = parseFloat($('campo-precio-venta').value) || 0;
-    if (precioVenta <= 0) { mostrarToast('El precio de venta debe ser mayor a 0'); return; }
 
     _guardando = true;
     $('btn-guardar').disabled = true;
@@ -350,51 +587,121 @@
         updated_by: userId
       };
 
-      var detalleData = {
-        codigo_interno: $('campo-codigo-interno').value.trim() || null,
-        codigo_barras: $('campo-codigo-barras').value.trim() || null,
-        precio_compra: parseFloat($('campo-precio-compra').value) || 0,
-        precio_venta: precioVenta,
-        precio_original: parseFloat($('campo-precio-original').value) || null,
-        precio_mayorista: parseFloat($('campo-precio-mayorista').value) || null,
-        descuento_max: parseInt($('campo-descuento-max').value) || 0,
-        stock_actual: parseInt($('campo-stock').value) || 0,
-        stock_min: parseInt($('campo-stock-min').value) || 0,
-        stock_max: parseInt($('campo-stock-max').value) || 0,
-        peso: parseFloat($('campo-peso').value) || null,
-        dimensiones: $('campo-dimensiones').value.trim() || null,
-        updated_by: userId
-      };
-
-      var precioCompra = parseFloat($('campo-precio-compra').value) || 0;
-      if (precioVenta > 0 && precioCompra > 0) {
-        detalleData.margen_ganancia = Math.round((precioVenta - precioCompra) / precioCompra * 100);
-      }
-
       var productoId;
 
       if (EDITANDO_ID) {
-        // Actualizar producto
         productoData.id = EDITANDO_PRODUCTO_ID;
         var r1 = await DB.productos.actualizar(EDITANDO_PRODUCTO_ID, productoData);
         if (r1.error) { mostrarToast('Error: ' + r1.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
-        var r2 = await DB.productos.detalleActualizar(EDITANDO_ID, detalleData);
-        if (r2.error) { mostrarToast('Error: ' + r2.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
         productoId = EDITANDO_PRODUCTO_ID;
-        mostrarToast('Producto actualizado');
       } else {
-        // Crear producto
         productoData.created_by = userId;
         var r1 = await DB.productos.crear(productoData);
         if (r1.error) { mostrarToast('Error: ' + r1.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
         productoId = r1.data[0].id;
-        detalleData.producto_id = productoId;
-        detalleData.created_by = userId;
-        var r2 = await DB.productos.detalleCrear(detalleData);
-        if (r2.error) { mostrarToast('Error al crear detalle: ' + r2.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
-        EDITANDO_ID = r2.data[0].id;
+      }
+
+      if (MODO_VARIANTES) {
+        leerAtributosDesdeDOM();
+        var variantRows = $('variantes-tbody').querySelectorAll('.variant-row');
+        if (!variantRows.length) { mostrarToast('Agrega al menos una variante'); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+        var savedIds = [];
+
+        for (var vi = 0; vi < variantRows.length; vi++) {
+          var row = variantRows[vi];
+          var vId = row.querySelector('.v-id').value;
+
+          var atributos = {};
+          row.querySelectorAll('.v-attr').forEach(function (inp) {
+            var ai = parseInt(inp.dataset.attrIdx);
+            var attrName = ATRIBUTOS_DEF[ai] ? ATRIBUTOS_DEF[ai].nombre : 'atributo_' + ai;
+            atributos[attrName] = inp.value.trim();
+          });
+
+          var vPrecioVenta = parseFloat(row.querySelector('.v-precio-venta').value) || 0;
+          var vPrecioCompra = parseFloat(row.querySelector('.v-precio-compra').value) || 0;
+
+          var sec = row.nextElementSibling;
+          var detalleData = {
+            codigo_interno: row.querySelector('.v-codigo').value.trim() || null,
+            precio_venta: vPrecioVenta,
+            precio_compra: vPrecioCompra,
+            stock_actual: parseInt(row.querySelector('.v-stock').value) || 0,
+            atributos: atributos,
+            updated_by: userId
+          };
+
+          if (sec && sec.classList.contains('variant-row-secondary')) {
+            detalleData.precio_original = parseFloat(sec.querySelector('.v-precio-original').value) || null;
+            detalleData.precio_mayorista = parseFloat(sec.querySelector('.v-precio-mayorista').value) || null;
+            detalleData.descuento_max = parseInt(sec.querySelector('.v-descuento-max').value) || 0;
+            detalleData.stock_min = parseInt(sec.querySelector('.v-stock-min').value) || 0;
+            detalleData.stock_max = parseInt(sec.querySelector('.v-stock-max').value) || 0;
+            detalleData.peso = parseFloat(sec.querySelector('.v-peso').value) || null;
+            detalleData.dimensiones = sec.querySelector('.v-dimensiones').value.trim() || null;
+          }
+
+          if (vPrecioVenta > 0 && vPrecioCompra > 0) {
+            detalleData.margen_ganancia = Math.round((vPrecioVenta - vPrecioCompra) / vPrecioCompra * 100);
+          }
+
+          if (vId) {
+            var ru = await DB.productos.detalleActualizar(vId, detalleData);
+            if (ru.error) { mostrarToast('Error al actualizar variante: ' + ru.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+            savedIds.push(vId);
+          } else {
+            detalleData.producto_id = productoId;
+            detalleData.created_by = userId;
+            var rc = await DB.productos.detalleCrear(detalleData);
+            if (rc.error) { mostrarToast('Error al crear variante: ' + rc.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+            savedIds.push(rc.data[0].id);
+          }
+        }
+
+        for (var ei = 0; ei < VARIANTES_ELIMINADOS.length; ei++) {
+          await DB.productos.detalleEliminar(VARIANTES_ELIMINADOS[ei]);
+        }
+
         EDITANDO_PRODUCTO_ID = productoId;
-        mostrarToast('Producto creado');
+        mostrarToast('Producto guardado con variantes');
+      } else {
+        var precioVenta = parseFloat($('campo-precio-venta').value) || 0;
+        if (precioVenta <= 0) { mostrarToast('El precio de venta debe ser mayor a 0'); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+
+        var detalleData = {
+          codigo_interno: $('campo-codigo-interno').value.trim() || null,
+          codigo_barras: $('campo-codigo-barras').value.trim() || null,
+          precio_compra: parseFloat($('campo-precio-compra').value) || 0,
+          precio_venta: precioVenta,
+          precio_original: parseFloat($('campo-precio-original').value) || null,
+          precio_mayorista: parseFloat($('campo-precio-mayorista').value) || null,
+          descuento_max: parseInt($('campo-descuento-max').value) || 0,
+          stock_actual: parseInt($('campo-stock').value) || 0,
+          stock_min: parseInt($('campo-stock-min').value) || 0,
+          stock_max: parseInt($('campo-stock-max').value) || 0,
+          peso: parseFloat($('campo-peso').value) || null,
+          dimensiones: $('campo-dimensiones').value.trim() || null,
+          updated_by: userId
+        };
+
+        var precioCompra = parseFloat($('campo-precio-compra').value) || 0;
+        if (precioVenta > 0 && precioCompra > 0) {
+          detalleData.margen_ganancia = Math.round((precioVenta - precioCompra) / precioCompra * 100);
+        }
+
+        if (EDITANDO_ID) {
+          var r2 = await DB.productos.detalleActualizar(EDITANDO_ID, detalleData);
+          if (r2.error) { mostrarToast('Error: ' + r2.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+          mostrarToast('Producto actualizado');
+        } else {
+          detalleData.producto_id = productoId;
+          detalleData.created_by = userId;
+          var r2 = await DB.productos.detalleCrear(detalleData);
+          if (r2.error) { mostrarToast('Error al crear detalle: ' + r2.error); _guardando = false; $('btn-guardar').disabled = false; $('btn-guardar').textContent = 'Guardar Producto'; return; }
+          EDITANDO_ID = r2.data[0].id;
+          EDITANDO_PRODUCTO_ID = productoId;
+          mostrarToast('Producto creado');
+        }
       }
 
       // Guardar multimedia
@@ -418,13 +725,11 @@
         }
       });
 
-      // Eliminar multimedia marcados
       MULTIMEDIA_ELIMINADOS.forEach(function (id) {
         mmPromises.push(DB.productosMultimedia.eliminar(id));
       });
 
       await Promise.all(mmPromises);
-
       limpiarFormulario();
       await cargarProductos();
     } catch (e) {
@@ -528,6 +833,60 @@
     // Margen auto
     $('campo-precio-venta').addEventListener('input', calcularMargen);
     $('campo-precio-compra').addEventListener('input', calcularMargen);
+
+    // Variantes
+    $('toggle-variantes').addEventListener('change', toggleModoVariantes);
+
+    $('btn-agregar-atributo').addEventListener('click', function () {
+      ATRIBUTOS_DEF.push({ nombre: '' });
+      renderizarAtributos();
+      renderizarTablaVariantes();
+    });
+
+    $('atributos-container').addEventListener('click', function (e) {
+      var btn = e.target.closest('.btn-eliminar-atributo');
+      if (!btn) return;
+      var idx = parseInt(btn.dataset.idx);
+      ATRIBUTOS_DEF.splice(idx, 1);
+      renderizarAtributos();
+      renderizarTablaVariantes();
+    });
+
+    $('atributos-container').addEventListener('change', function () {
+      renderizarTablaVariantes();
+    });
+
+    $('btn-agregar-variante').addEventListener('click', function () {
+      syncVariantesFromDOM();
+      leerAtributosDesdeDOM();
+      agregarVariante();
+    });
+
+    $('variantes-tbody').addEventListener('click', function (e) {
+      var btn = e.target.closest('.btn-eliminar-variante');
+      if (btn) {
+        var idx = parseInt(btn.dataset.idx);
+        eliminarVariante(idx);
+        return;
+      }
+      var expandBtn = e.target.closest('.btn-expand-variante');
+      if (expandBtn) {
+        var idx2 = parseInt(expandBtn.dataset.idx);
+        var row = expandBtn.closest('.variant-row');
+        var secondary = row ? row.nextElementSibling : null;
+        if (secondary && secondary.classList.contains('variant-row-secondary')) {
+          secondary.classList.toggle('hidden');
+          var svg = expandBtn.querySelector('svg');
+          if (svg) svg.classList.toggle('rotate-180');
+          if (VARIANTES[idx2]) VARIANTES[idx2]._expandido = !secondary.classList.contains('hidden');
+        }
+        return;
+      }
+    });
+
+    $('variantes-tbody').addEventListener('input', function () {
+      leerAtributosDesdeDOM();
+    });
 
     // Multimedia
     $('btn-agregar-mm').addEventListener('click', function () { agregarFilaMultimedia(); });

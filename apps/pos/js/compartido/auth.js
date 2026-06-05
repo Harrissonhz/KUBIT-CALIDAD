@@ -119,6 +119,7 @@ window.KubitAuth = (function () {
       };
 
       _guardarSesion();
+      poblarUserHeader();
       return { exito: true, sesion: USUARIO_ACTUAL };
 
     } catch (e) {
@@ -143,6 +144,7 @@ window.KubitAuth = (function () {
       }
       USUARIO_ACTUAL = s;
     }
+    poblarUserHeader();
     return USUARIO_ACTUAL;
   }
 
@@ -183,6 +185,17 @@ window.KubitAuth = (function () {
     });
   }
 
+  function poblarUserHeader() {
+    var avatar = document.getElementById('user-avatar');
+    var nameEl = document.getElementById('user-name');
+    var rolEl = document.getElementById('user-rol');
+    if (!avatar || !nameEl || !rolEl) return;
+    if (!USUARIO_ACTUAL) return;
+    nameEl.textContent = USUARIO_ACTUAL.nombre || 'Admin';
+    rolEl.textContent = USUARIO_ACTUAL.rolNombre || '';
+    avatar.textContent = (USUARIO_ACTUAL.nombre || 'A').charAt(0).toUpperCase();
+  }
+
   function _mostrarError(msg) {
     var toast = document.getElementById('toast');
     if (toast) {
@@ -216,6 +229,7 @@ window.KubitAuth = (function () {
     tienePermiso: tienePermiso,
     requierePermiso: requierePermiso,
     aplicarRestriccionesUI: aplicarRestriccionesUI,
+    poblarUserHeader: poblarUserHeader,
     manejarErrorAuth: manejarErrorAuth
   };
 })();

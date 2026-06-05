@@ -24,6 +24,7 @@ Este documento rige la interfaz visual y el comportamiento en dispositivos de to
 - Botón Principal: `dark:bg-white dark:text-slate-950 dark:hover:bg-slate-100`
 - Bordes y Separadores: `dark:border-slate-800`
 - Toggle con botón en navbar, persistencia en `localStorage('darkMode')`
+- **Modo oscuro por defecto en todas las páginas:** `<html class="dark">` + script anti-flash inline que remueve la clase si localStorage es `'false'`
 - Aplicado en todas las pantallas del POS mediante clase `dark` en `<html>`
 
 ## 3. Adaptabilidad (Responsivo Mobile-First)
@@ -53,7 +54,7 @@ Este documento rige la interfaz visual y el comportamiento en dispositivos de to
 
 ```
 Page Layout
-├── Navbar (header) — logo dinamico desde DB (pos_configuracion_empresa.logo_url), título, botón dark mode, hamburguesa
+├── Navbar (header) — `fixed top-0 left-0 right-0 z-30`, logo dinámico desde DB, título, botón dark mode, hamburguesa, avatar/nombre/rol del usuario logueado
 ├── Sidebar (nav) — accordion `<details>` agrupado con links
 ├── Overlay (div#sidebar-overlay) — fondo semitransparente en mobile
 └── Contenido (div flex-1 overflow-y-auto)

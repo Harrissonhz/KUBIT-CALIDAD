@@ -136,6 +136,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Diseño UI | Ultra-minimalista, monocromático Slate (Tailwind) |
 | Responsive | Mobile-first, mínimo 360px |
 | Navegación | Sin frameworks SPA. HTML vanilla con navegación tradicional o Alpine.js ligero si es necesario |
+| Editar ventas confirmadas | NO permitido. Usar Void + Recreate (Anular + Nueva Venta). Patrón estándar POS |
+| Header POS | `fixed top-0 left-0 right-0 z-30` en todas las páginas. El contenido tiene `pt-16` para compensar |
+| Modo oscuro por defecto | Todas las páginas cargan con `class="dark"` en `<html>`. Anti-flash script: si localStorage dice `'false'` lo remueve |
+| Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
+| IVA siempre visible | `tasa_impuesto` está fuera del toggle single/multi-variante, visible siempre |
+| Multi-variante | Las variantes se guardan como N registros en `pos_productos_detalle` con `atributos jsonb`. Edición inline con filas expandibles (▼) |
 
 ---
 
@@ -210,6 +216,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Persistencia de apertura/cierre en `pos_caja_apertura`
 - [x] Eliminados CAJAS_MOCK y HISTORIAL en memoria RAM
 
+#### Módulo POS (Punto de Venta) — Fase 5: UI de Productos, Categorías e Inventario
+- [x] `database.js` — Métodos `DB.movimientosInventario`, `DB.productos.ajustarStock()` añadidos
+- [x] `productos.html` + `productos.js` — CRUD completo de productos con tabla, formulario, búsqueda, edición inline
+- [x] `categorias.html` + `categorias.js` — CRUD completo de categorías con color, padre, activo/inactivo
+- [x] `inventario.html` + `inventario.js` — Dashboard de existencias (total/con stock/bajo/agotado), ajuste manual de stock, historial de movimientos
+- [x] Sidebar de `ventas.html` actualizado con links a productos.html, categorias.html, inventario.html
+
 #### Módulo POS (Punto de Venta) — Anterior (UI/UX con datos mock)
 - [x] `ventas.html` + `ventas.js` — Pantalla principal POS con:
   - Layout híbrido (Opción C): split-panel desktop, bottom sheet mobile
@@ -230,6 +243,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Dark mode con toggle y persistencia en localStorage
 - [x] Responsive mobile-first (360px→desktop) en todas las pantallas
 
+#### Despliegue — Configuracion Vercel
+- [x] `apps/pos/vercel.json` — Rewrite rule para clean URLs de factura-print: `"/factura-print" → "/factura-print.html"`. Necesario porque Vercel no tiene clean URLs nativas como `npx serve`.
+
+#### Módulo POS (Punto de Venta) — Fase 8: Logo de Empresa desde DB
+- [x] `database.js` — Bloque autoejecutable `cargarLogoHeader()` al final del IIFE que busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` que restaura `<span>K</span>` como fallback.
+- [x] `login.js` — Carga el logo en el circulo central del login (`.w-14.h-14.bg-slate-950.rounded-2xl`), con mismo fallback K en `onerror`.
+- [x] `factura-print.html` — Renderiza `<img>` condicional en `.inv-brand` usando clase CSS nativa `.inv-logo` (40px height, sin Tailwind). La pagina usa CSS plano por ser standalone de impresion.
+- [x] `ventas.js`, `ventas-historial.js` — URLs de factura con formato clean (`factura-print?id=`) para compatibilidad con `npx serve` (evita redireccion 301 que pierde query params).
+- [x] **Comportamiento:** Si `logo_url` tiene URL valida y accesible → se muestra en header, login y factura. Si es null/vacio → fallback visual (K). Si la URL falla al cargar → `onerror` restaura la K silenciosamente.
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
@@ -237,14 +260,25 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
-- [ ] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
+- [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
+- [x] **Refactor UI (Jun 2026):** Canal de Venta movido a header, Tarjeta Totales rediseñada a formato recibo full-width con barra de stats
+- [x] **Fix bugs (Jun 2026):** Menú hamburguesa, subtotal en tiempo real, fondo modal post-venta
+- [x] **Historial mejorado:** Modal más ancho (4xl), nombre producto vs UUID, canal visible
+- [x] **Decisión CRUD:** No implementar "Editar Venta". Usar Void + Recreate
+- [x] **Completado (Jun 2026):** Multi-variante — formulario con toggle single/multi, atributos dinámicos (color/talla/diseño), tabla editable inline, filas expandibles (▼) con precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones
+- [x] **Completado (Jun 2026):** IVA siempre visible fuera del toggle variantes, default 0% (Exento)
+- [x] **Completado (Jun 2026):** Stock Min por defecto = 2 (single y multi-variante)
+- [x] **Completado (Jun 2026):** Modo oscuro como default en todas las páginas con anti-flash script inline
+- [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
+- [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
+- [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
 - [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
 - [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
 
 ### 7.4 Próximo Paso Recomendado
-**Fase 5:** UI de Productos, Categorías e Inventario conectada a DB.
+**Despues del deploy:** Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal.
 
 ---
 
@@ -257,6 +291,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Tailwind:** Preferir clases de utilidad sobre CSS personalizado
 - **Componentes:** Un archivo por componente/funcionalidad
 - **Importaciones:** Evitar dependencias externas. Preferir vanilla JS
+- **Texto UI ASCII plano:** Todo texto visible al usuario sin tildes, diéresis, eñes ni caracteres especiales. Ver tabla de mapeo en `05-ui-ux-system.md` §8.
 
 ---
 
@@ -298,6 +333,80 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ---
 
+## 12. Registro de Cambios
+
+### 2026-06-03 — UI Fixes & Refinements POS
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/ventas.html` | Canal de Venta movido de "Informacion de la Venta" al header, entre subtitulo y link "Modo Mostrador" |
+| `apps/pos/ventas.html` | Tarjeta Totales redisenada: `max-w-lg ml-auto` eliminado, ahora full-width con barra de stats (productos, unidades, ticket prom.) |
+| `apps/pos/js/paginas/ventas.js` | Fix menu hamburguesa: eliminada referencia a `comision-info` (elemento inexistente) que crasheaba `init()` |
+| `apps/pos/js/paginas/ventas.js` | Agregada funcion `setClienteDefecto()`: auto-completa cliente con documento "222222222222" |
+| `apps/pos/js/paginas/ventas.js` | Fix subtotal en tiempo real: agregada clase `cell-subtotal` + funcion `actualizarSubtotalRow()` para actualizar subtotal sin re-renderizar toda la tabla |
+| `apps/pos/js/paginas/ventas.js` | Fix modal post-venta: `CARRITO = []` y `actualizarCarrito()` movidos de `procesarVenta()` a `nuevaVenta()` para evitar confusion de valores en background |
+| `apps/pos/js/paginas/ventas.js` | Agregada funcion `actualizarStatsCarrito()` para calcular stats de la barra en Totales |
+| `apps/pos/js/compartido/database.js` | `ventas.obtener()`: agregado `canal:canal_id(*)` y nested `detalle:producto_detalle_id(*,producto:producto_id(nombre))` para traer nombre del producto |
+| `apps/pos/ventas-historial.html` | Modal de detalle: `sm:max-w-lg` -> `sm:max-w-2xl` -> `sm:max-w-4xl` (896px) |
+| `apps/pos/js/paginas/ventas-historial.js` | Productos en modal: muestra `d.detalle.producto.nombre` en vez del UUID, formato 4-columnas (nombre, und., precio u., total) |
+
+### 2026-06-03 — Logo de Empresa desde DB (Fase 8)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Bloque autoejecutable `cargarLogoHeader()` al final del IIFE: busca `.w-8.h-8.bg-slate-950.rounded-lg` en el header, carga `DB.configuracionEmpresa.obtener()`, y reemplaza la "K" por `<img>` si `logo_url` existe. Con `onerror` para fallback silencioso. Afecta a las 14 pantallas POS sin modificar cada HTML/JS individual. |
+| `apps/pos/js/paginas/login.js` | Carga el logo en el contenedor `.w-14.h-14.bg-slate-950.rounded-2xl` del login, reemplazando la "K" estatica. |
+| `apps/pos/factura-print.html` | Agrega variable `empresaLogo` y renderiza `<img>` condicional en `.inv-brand` (antes del nombre de empresa) si `logo_url` existe. |
+
+### 2026-06-03 — Fix 404 factura-print en Vercel
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/vercel.json` | Nuevo archivo con rewrite: `"/factura-print" → "/factura-print.html"`. Resuelve 404 en Vercel por clean URLs. |
+
+### 2026-06-03 — Fixes post-implementacion Logo
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Fallback K en `onerror`: restaura `<span>K</span>` en vez de dejar contenedor vacio (evita cuadro negro) |
+| `apps/pos/js/paginas/login.js` | Mismo fallback K en el circulo del login |
+| `apps/pos/factura-print.html` | Clase CSS nativa `.inv-logo` (height: 40px, object-fit: contain). Reemplazadas clases Tailwind que no funcionaban por ser pagina standalone sin CDN. Iteracion de tamano: 64px -> 32px -> 40px |
+| `apps/pos/js/paginas/ventas.js` | URL de factura cambia a clean URI (`factura-print?id=`) para evitar redireccion 301 de `npx serve` |
+| `apps/pos/js/paginas/ventas-historial.js` | Mismo cambio clean URLs |
+
+### 2026-06-05 — Multi-variante, Modo Oscuro Default, Header Fixed, Usuario en Header
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | Nuevo campo `#campo-tags` en card Multimedia |
+| `apps/pos/productos.html` | Cards "Precios y Costos" + "Inventario" reemplazadas por "Variantes y Precios" con toggle single/multi-variante, tabla editable, filas expandibles (▼) |
+| `apps/pos/productos.html` | `#campo-impuesto` movido fuera del toggle, siempre visible |
+| `apps/pos/productos.html` | Default IVA cambiado a `value="0" selected` (0% Exento) |
+| `apps/pos/js/paginas/productos.js` | Funciones: `toggleModoVariantes()`, `renderizarAtributos()`, `leerAtributosDesdeDOM()`, `syncVariantesFromDOM()`, `renderizarTablaVariantes()`, `agregarVariante()`, `eliminarVariante()`, `resetVariantState()` |
+| `apps/pos/js/paginas/productos.js` | `guardarProducto()`: guarda N variantes con `atributos`, `precio_original`, `precio_mayorista`, `descuento_max`, `stock_min/max`, `peso`, `dimensiones` |
+| `apps/pos/js/paginas/productos.js` | `cargarEnForm()`: carga multi-variante desde DB |
+| `apps/pos/js/paginas/productos.js` | Fix `agregarVariante()`: corrige typo `attrs`→`attr`, agrega `syncVariantesFromDOM()` antes de re-renderizar |
+| `apps/pos/js/paginas/productos.js` | Stock Min por defecto = 2 en `agregarVariante()` y `limpiarFormulario()` |
+| `apps/pos/js/compartido/database.js` | Nuevo método `DB.productos.detalleEliminar()` (softDelete) |
+| `apps/pos/*.html` (14 páginas) | Modo oscuro default: `<html class="dark">` + anti-flash script inline |
+| `apps/pos/*.html` (14 páginas) | Header fixed: `shrink-0` → `fixed top-0 left-0 right-0 z-30` |
+| `apps/pos/*.html` (14 páginas) | Scroll container: `pt-16` agregado para compensar header fixed |
+| `apps/pos/*.html` (12 páginas) | Sección de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header |
+| `apps/pos/js/compartido/auth.js` | Nueva función `poblarUserHeader()` centralizada, llamada desde `cargarSesion()` y `login()` |
+| `specs/02-database-schema.sql` | Trigger de slug actualizado: sufijo numérico `-1`, `-2`... en colisiones |
+
+### Decisiones de Diseno Tomadas
+
+- No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
+- **Logo de empresa:** Se carga automaticamente desde `pos_configuracion_empresa.logo_url` en el header (14 paginas), login y factura. Sin modificar HTMLs individuales — la logica centralizada en `database.js` busca el contenedor por clase CSS y lo reemplaza. La IA futura debe mantener esta estrategia centralizada para cambios UI globales.
+- **Sección de usuario en header:** Centralizada en `auth.js::poblarUserHeader()`. Cualquier página futura solo necesita agregar los IDs `#user-avatar`, `#user-name`, `#user-rol` en el header y se puebla automáticamente.
+- **Header fixed vs sticky:** Se usa `position: fixed` porque el scroll container es un `flex-1 overflow-y-auto` hijo del body (no el body mismo). `sticky` no funcionaría por ser hermanos, no padre-hijo.
+- **Modo oscuro default:** Se implementa con `class="dark"` directo en `<html>` + anti-flash script que lo remueve si localStorage dice `'false'`. El JS existente en cada página sigue funcionando para el toggle, pero la inicialización la maneja el script inline en el `<head>`.
+- **Multi-variante con filas expandibles:** Los campos secundarios (precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones) se editan en filas expandibles (▼) en vez de columnas fijas, para mantener la tabla compacta.
+- **IA debe ejecutar `npx serve apps/pos` para pruebas:** No usar `file://` porque los fetch a Supabase y el manifest.json fallan por CORS.
+
+---
+
 ## 11. Palabras Clave de Búsqueda
 
 | Para encontrar | Buscar |
@@ -311,6 +420,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Código del POS | `apps/pos/` |
 | Capa de datos (DatabaseService) | `apps/pos/js/compartido/database.js` |
 | Código del Store | `apps/store/` |
+| Auth (centralizada) | `apps/pos/js/compartido/auth.js` (exporta `window.KubitAuth`) |
+| Poblar header usuario | `auth.js::poblarUserHeader()`, busca IDs `user-avatar`, `user-name`, `user-rol` |
+| Variantes de producto | `productos.js`: `toggleModoVariantes()`, `atributos jsonb`, `pos_productos_detalle` |
 | Decisiones de diseño | `AGENTS.md` sección 5 |
 | Seguridad credenciales | `AGENTS.md` sección 10 |
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |

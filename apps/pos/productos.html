@@ -1,5 +1,6 @@
 <!DOCTYPE html>
-<html lang="es" class="">
+<html lang="es" class="dark">
+<script>if(localStorage.getItem('darkMode')==='false')document.documentElement.classList.remove('dark')</script>
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -27,7 +28,7 @@
 <body class="h-screen flex flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
 
   <!-- NAVBAR -->
-  <header class="shrink-0 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 px-4 py-3 flex items-center justify-between z-30">
+  <header class="fixed top-0 left-0 right-0 z-30 bg-white dark:bg-slate-900 border-b border-slate-200/60 dark:border-slate-800 px-4 py-3 flex items-center justify-between">
     <div class="flex items-center gap-3">
       <button id="btn-menu" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400" aria-label="Menu">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -170,7 +171,7 @@
   <div id="sidebar-overlay" class="fixed inset-0 bg-black/30 z-40 hidden"></div>
 
   <!-- CONTENIDO -->
-  <div class="flex-1 overflow-y-auto transition-colors duration-300">
+  <div class="flex-1 overflow-y-auto transition-colors duration-300 pt-16">
     <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
 
       <!-- ═══ Card 1: Informacion Basica ═══ -->
@@ -220,104 +221,153 @@
                 <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Producto Activo</span>
               </label>
             </div>
+            <div class="sm:col-span-2 lg:col-span-4">
+              <label class="label-campo">Tags (separados por coma)</label>
+              <input type="text" id="campo-tags" class="input-campo" placeholder="Ej: nuevo, destacado, oferta">
+            </div>
           </div>
         </div>
       </details>
 
-      <!-- ═══ Card 2: Precios y Costos ═══ -->
+      <!-- ═══ Card 2: Variantes y Precios ═══ -->
       <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
         <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
           <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818l.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-          <span class="flex-1">Precios y Costos</span>
+          <span class="flex-1" id="form-titulo">Variantes y Precios</span>
+          <span class="text-xs text-slate-400 font-normal" id="form-producto-id"></span>
           <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
         </summary>
         <div class="px-5 pb-5">
-          <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Precio Venta ($)</label>
-              <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                <input type="number" id="campo-precio-venta" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Precio Compra ($)</label>
-              <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                <input type="number" id="campo-precio-compra" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Margen de Ganancia</label>
-              <div class="relative">
-                <input type="text" id="campo-margen" class="input-campo bg-slate-50 dark:bg-slate-800/50" readonly placeholder="Auto">
-                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Descuento Maximo</label>
-              <div class="relative">
-                <input type="number" id="campo-descuento-max" class="input-campo" step="1" min="0" max="100" value="0" placeholder="0">
-                <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Precio Mayorista ($)</label>
-              <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                <input type="number" id="campo-precio-mayorista" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Precio Original ($)</label>
-              <div class="relative">
-                <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
-                <input type="number" id="campo-precio-original" class="input-campo pl-8" step="0.01" min="0" placeholder="Para mostrar tachado">
-              </div>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-4">
-              <label class="label-campo">Tasa de Impuesto (IVA)</label>
-              <select id="campo-impuesto" class="input-campo max-w-xs">
-                <option value="0">0% — Exento</option>
+
+          <!-- IVA siempre visible -->
+          <div class="mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <div class="flex items-center gap-4 flex-wrap">
+              <label class="label-campo mb-0">Tasa de Impuesto (IVA)</label>
+              <select id="campo-impuesto" class="input-campo max-w-[200px]">
+                <option value="0" selected>0% — Exento</option>
                 <option value="5">5% — Tasa reducida</option>
-                <option value="19" selected>19% — IVA General</option>
+                <option value="19">19% — IVA General</option>
               </select>
             </div>
           </div>
-        </div>
-      </details>
 
-      <!-- ═══ Card 3: Inventario ═══ -->
-      <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
-        <summary class="flex items-center gap-3 px-5 py-4 rounded-xl text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/50 text-sm font-semibold transition-colors">
-          <svg class="w-5 h-5 shrink-0 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20.25 6.375c0 2.278-3.694 4.125-8.25 4.125S3.75 8.653 3.75 6.375m16.5 0c0-2.278-3.694-4.125-8.25-4.125S3.75 4.097 3.75 6.375m16.5 0v11.25c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125V6.375m16.5 0v3.75m-16.5-3.75v3.75m16.5 0v3.75C20.25 16.153 16.556 18 12 18s-8.25-1.847-8.25-4.125v-3.75m16.5 0c0 2.278-3.694 4.125-8.25 4.125s-8.25-1.847-8.25-4.125"/></svg>
-          <span class="flex-1">Inventario</span>
-          <svg class="chevron w-4 h-4 transition-transform duration-200 text-slate-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5"/></svg>
-        </summary>
-        <div class="px-5 pb-5">
-          <div class="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-4 gap-x-6 gap-y-4">
-            <div class="sm:col-span-1 lg:col-span-1">
-              <label class="label-campo">Stock Actual</label>
-              <input type="number" id="campo-stock" class="input-campo" step="1" min="0" value="0">
-            </div>
-            <div class="sm:col-span-1 lg:col-span-1">
-              <label class="label-campo">Stock Minimo</label>
-              <input type="number" id="campo-stock-min" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 5">
-            </div>
-            <div class="sm:col-span-1 lg:col-span-1">
-              <label class="label-campo">Stock Maximo</label>
-              <input type="number" id="campo-stock-max" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 100">
-            </div>
-            <div class="sm:col-span-3 lg:col-span-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-1"></div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Peso (kg)</label>
-              <input type="number" id="campo-peso" class="input-campo" step="0.01" min="0" placeholder="0.00">
-            </div>
-            <div class="sm:col-span-2 lg:col-span-2">
-              <label class="label-campo">Dimensiones</label>
-              <input type="text" id="campo-dimensiones" class="input-campo" placeholder="Largo x Ancho x Alto (cm)">
+          <!-- Toggle modo variantes -->
+          <div class="flex items-center gap-3 mb-6 pb-4 border-b border-slate-100 dark:border-slate-800">
+            <label class="inline-flex items-center gap-2.5 cursor-pointer select-none">
+              <input type="checkbox" id="toggle-variantes" class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-950 dark:text-white">
+              <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Producto con multiples variantes (color, talla, diseno)</span>
+            </label>
+          </div>
+
+          <!-- ═══ MODO SINGLE ═══ -->
+          <div id="modo-single">
+            <p class="text-xs text-slate-400 mb-4">Precio y stock unico para este producto</p>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-x-6 gap-y-4">
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Precio Venta ($)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                  <input type="number" id="campo-precio-venta" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Precio Compra ($)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                  <input type="number" id="campo-precio-compra" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Margen de Ganancia</label>
+                <div class="relative">
+                  <input type="text" id="campo-margen" class="input-campo bg-slate-50 dark:bg-slate-800/50" readonly placeholder="Auto">
+                  <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                </div>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Descuento Maximo</label>
+                <div class="relative">
+                  <input type="number" id="campo-descuento-max" class="input-campo" step="1" min="0" max="100" value="0" placeholder="0">
+                  <span class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm">%</span>
+                </div>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Precio Mayorista ($)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                  <input type="number" id="campo-precio-mayorista" class="input-campo pl-8" step="0.01" min="0" placeholder="0.00">
+                </div>
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Precio Original ($)</label>
+                <div class="relative">
+                  <span class="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-medium">$</span>
+                  <input type="number" id="campo-precio-original" class="input-campo pl-8" step="0.01" min="0" placeholder="Para mostrar tachado">
+                </div>
+              </div>
+
+              <div class="sm:col-span-1 lg:col-span-1">
+                <label class="label-campo">Stock Actual</label>
+                <input type="number" id="campo-stock" class="input-campo" step="1" min="0" value="0">
+              </div>
+              <div class="sm:col-span-1 lg:col-span-1">
+                <label class="label-campo">Stock Minimo</label>
+                <input type="number" id="campo-stock-min" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 5">
+              </div>
+              <div class="sm:col-span-1 lg:col-span-1">
+                <label class="label-campo">Stock Maximo</label>
+                <input type="number" id="campo-stock-max" class="input-campo" step="1" min="0" value="0" placeholder="Ej: 100">
+              </div>
+              <div class="sm:col-span-3 lg:col-span-4 border-t border-slate-100 dark:border-slate-800 pt-4 mt-1"></div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Peso (kg)</label>
+                <input type="number" id="campo-peso" class="input-campo" step="0.01" min="0" placeholder="0.00">
+              </div>
+              <div class="sm:col-span-2 lg:col-span-2">
+                <label class="label-campo">Dimensiones</label>
+                <input type="text" id="campo-dimensiones" class="input-campo" placeholder="Largo x Ancho x Alto (cm)">
+              </div>
             </div>
           </div>
+
+          <!-- ═══ MODO MULTI ═══ -->
+          <div id="modo-multi" class="hidden">
+            <div class="mb-6">
+              <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-3">Define los atributos de las variantes (ej: Color, Talla, Diseno)</label>
+              <div id="atributos-container" class="space-y-2 mb-3"></div>
+              <button id="btn-agregar-atributo" type="button" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1.5">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                Agregar atributo
+              </button>
+            </div>
+            <div class="border-t border-slate-100 dark:border-slate-800 pt-4">
+              <div class="flex items-center justify-between mb-3">
+                <span class="text-xs font-medium text-slate-500 dark:text-slate-400">Variantes</span>
+                <button id="btn-agregar-variante" type="button" class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/></svg>
+                  Agregar variante
+                </button>
+              </div>
+              <div class="overflow-x-auto">
+                <table class="w-full text-sm">
+                  <thead id="variantes-thead">
+                    <tr class="border-b border-slate-200/60 dark:border-slate-800">
+                      <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider w-8">#</th>
+                      <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider" id="th-atributos">Atributos</th>
+                      <th class="text-left py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Codigo</th>
+                      <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">P. Venta</th>
+                      <th class="text-right py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">P. Compra</th>
+                      <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider">Stock</th>
+                      <th class="text-center py-2 px-2 text-xs text-slate-400 font-medium uppercase tracking-wider w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody id="variantes-tbody"></tbody>
+                </table>
+              </div>
+              <p id="variantes-empty" class="text-center text-xs text-slate-400 py-6 hidden">No hay variantes. Agrega atributos y luego genera las variantes.</p>
+            </div>
+          </div>
+
         </div>
       </details>
 

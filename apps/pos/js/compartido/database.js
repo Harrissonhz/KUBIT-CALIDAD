@@ -222,6 +222,7 @@ window.DB = (function () {
 
     detalleCrear: async function (data) { _cacheClear('productos'); return insert('pos_productos_detalle', data); },
     detalleActualizar: async function (id, data) { _cacheClear('productos'); return update('pos_productos_detalle', id, data); },
+    detalleEliminar: async function (id) { _cacheClear('productos'); return softDelete('pos_productos_detalle', id); },
     detalleObtener: async function (id) {
       var res = await select('pos_productos_detalle', {
         select: '*,producto:producto_id(id,nombre,slug,categoria_id,tasa_impuesto,activo,tags,marca,modelo,descripcion,categoria:categoria_id(id,nombre))',

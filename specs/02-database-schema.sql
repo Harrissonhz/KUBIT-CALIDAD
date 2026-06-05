@@ -652,12 +652,23 @@ begin
 end;
 $$ language plpgsql immutable;
 
--- Trigger: auto-generar slug al insertar o actualizar nombre
+-- Trigger: auto-generar slug unico al insertar o actualizar nombre
+-- Si el slug ya existe, agrega sufijo numerico (-1, -2, etc.)
 create or replace function public.set_slug()
 returns trigger as $$
+declare
+  base_slug text;
+  new_slug text;
+  counter int := 0;
 begin
   if TG_OP = 'insert' or new.nombre is distinct from old.nombre then
-    new.slug := public.slugify(new.nombre);
+    base_slug := public.slugify(new.nombre);
+    new_slug := base_slug;
+    while exists (select 1 from public.pos_productos where slug = new_slug and id != coalesce(new.id, '00000000-0000-0000-0000-000000000000')) loop
+      counter := counter + 1;
+      new_slug := base_slug || '-' || counter;
+    end loop;
+    new.slug := new_slug;
   end if;
   return new;
 end;
