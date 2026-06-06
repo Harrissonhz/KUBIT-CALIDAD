@@ -108,7 +108,10 @@
         '<td class="py-3 px-2 text-sm text-slate-500 dark:text-slate-400 hidden lg:table-cell whitespace-nowrap">' + fecha + '</td>' +
         '<td class="py-3 px-2 text-center"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + badgeCls + '">' + v.estado + '</span></td>' +
         '<td class="py-3 px-2 text-right text-sm font-medium text-slate-950 dark:text-white">' + formatearMoneda(v.total) + '</td>' +
-        '<td class="py-3 px-2 text-right hidden sm:table-cell"><button class="btn-ver-detalle text-xs text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors px-2 py-1" data-id="' + v.id + '">Ver</button></td>' +
+        '<td class="py-3 px-2 text-right"><button class="btn-ver-detalle text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" data-id="' + v.id + '" aria-label="Ver detalle">' +
+          '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' +
+          '<span class="hidden sm:inline text-xs ml-1">Ver</span>' +
+        '</button></td>' +
         '</tr>';
     }).join('');
     renderizarPaginacion(totalRegistros || total);
