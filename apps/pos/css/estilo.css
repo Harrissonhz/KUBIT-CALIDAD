@@ -212,6 +212,11 @@ select.input-campo {
   padding-right: 2.25rem;
 }
 
+/* Fixed bottom action bar para CRUD forms */
+.content-actions-pb {
+  padding-bottom: 4rem;
+}
+
 /* Safe area bottom para mobile con notch */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
   #cart-mobile-bar {
