@@ -55,9 +55,17 @@ if (typeof CONFIG === 'undefined') {
       return _fetch(path, Object.assign({ method: 'GET' }, extra || {}));
     },
     getWithMeta: async function(path, extra) {
+      var page = extra && extra.page;
+      var pageSize = extra && extra.pageSize;
+      var extraHeaders = (extra && extra.headers) || {};
+      if (page && pageSize) {
+        var from = (page - 1) * pageSize;
+        var to = page * pageSize - 1;
+        extraHeaders['Range'] = from + '-' + to;
+      }
       var res = await fetch(URL + '/rest/v1/' + path, {
         method: 'GET',
-        headers: headers(Object.assign({ 'Prefer': 'count=exact' }, (extra && extra.headers) || {}))
+        headers: headers(Object.assign({ 'Prefer': 'count=exact' }, extraHeaders))
       });
       if (!res.ok) {
         var text = await res.text();

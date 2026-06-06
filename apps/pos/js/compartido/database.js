@@ -100,7 +100,7 @@ window.DB = (function () {
       var qs = _buildQuery(opts || {});
       var usarMeta = opts && opts.page && opts.pageSize;
       if (usarMeta) {
-        var meta = await api.getWithMeta(tabla + '?' + qs);
+        var meta = await api.getWithMeta(tabla + '?' + qs, { page: opts.page, pageSize: opts.pageSize });
         return { data: meta.data || [], error: null, count: meta.data.length, total: meta.total };
       }
       var data = await api.get(tabla + '?' + qs);

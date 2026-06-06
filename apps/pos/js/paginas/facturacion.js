@@ -104,7 +104,9 @@
       if (estado === 'EMITIDA' || estado === 'ACEPTADA') {
         acciones += '<button class="btn-anular text-xs text-red-400 hover:text-red-600 transition-colors px-2 py-1" data-id="' + f.id + '">Anular</button>';
       }
-      acciones += '<button class="btn-ver text-xs text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors px-2 py-1" data-id="' + f.id + '">Ver</button>';
+      acciones += '<button class="btn-ver text-slate-400 hover:text-slate-950 dark:hover:text-white transition-colors p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800" data-id="' + f.id + '" aria-label="Ver detalle">' +
+        '<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>' +
+      '</button>';
 
       return '<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">' +
         '<td class="py-3 px-4"><span class="text-sm font-medium text-slate-950 dark:text-white">' + numero + '</span></td>' +
