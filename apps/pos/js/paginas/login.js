@@ -12,21 +12,32 @@
     html.classList.add('dark');
   }
 
-  // Cargar logo de empresa desde la configuracion
+  // Cargar logo de empresa desde la configuracion con cache en localStorage
   (function () {
     var container = document.querySelector('.w-14.h-14.bg-slate-950.rounded-2xl');
     if (!container) return;
+
+    function cargarLogo(url) {
+      var img = document.createElement('img');
+      img.src = url;
+      img.alt = 'Logo';
+      img.className = 'h-14 w-auto max-w-[240px]';
+      img.onerror = function () {
+        container.innerHTML = '<span class="text-white dark:text-slate-950 text-2xl font-bold">K</span>';
+        container.className = 'w-14 h-14 bg-slate-950 dark:bg-white rounded-2xl flex items-center justify-center mx-auto mb-5 shadow-sm';
+      };
+      container.innerHTML = '';
+      container.className = 'h-14 flex items-center justify-center mx-auto mb-5';
+      container.appendChild(img);
+    }
+
+    var cachedLogo = localStorage.getItem('logo_url');
+    if (cachedLogo) cargarLogo(cachedLogo);
+
     DB.configuracionEmpresa.obtener().then(function (res) {
       if (res.data && res.data.logo_url) {
-        var img = document.createElement('img');
-        img.src = res.data.logo_url;
-        img.alt = 'Logo';
-        img.className = 'w-full h-full object-contain rounded-xl';
-        img.onerror = function () {
-          container.innerHTML = '<span class="text-white dark:text-slate-950 text-2xl font-bold">K</span>';
-        };
-        container.innerHTML = '';
-        container.appendChild(img);
+        localStorage.setItem('logo_url', res.data.logo_url);
+        if (!cachedLogo || cachedLogo !== res.data.logo_url) cargarLogo(res.data.logo_url);
       }
     }).catch(function () {});
   })();

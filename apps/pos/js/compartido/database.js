@@ -961,12 +961,13 @@ window.DB = (function () {
       var img = document.createElement('img');
       img.src = res.data.logo_url;
       img.alt = 'Logo';
-      img.className = 'w-full h-full object-contain rounded-sm';
+      img.className = 'h-8 w-auto max-w-[160px]';
       img.onerror = function () {
         container.innerHTML = '<span class="text-white dark:text-slate-950 font-bold text-sm">K</span>';
+        container.className = 'w-8 h-8 bg-slate-950 dark:bg-white rounded-lg flex items-center justify-center shrink-0';
       };
-
       container.innerHTML = '';
+      container.className = 'h-8 flex items-center shrink-0';
       container.appendChild(img);
     }).catch(function () {});
   }
