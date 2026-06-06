@@ -568,11 +568,14 @@
         var stockRes = await DB.productos.ajustarStock(
           item.detalleId,
           -item.cantidad,
-          'salida',
+          'salida_venta',
           'Venta #' + ventaData.numero_venta,
           { usuarioId: user.id }
         );
-        if (stockRes.data && stockRes.data.stock_nuevo !== undefined) {
+        if (stockRes.error) {
+          console.error('[Ventas] Error ajustando stock de ' + item.nombre + ':', stockRes.error);
+          mostrarToast('Error ajustando stock: ' + stockRes.error);
+        } else if (stockRes.data && stockRes.data.stock_nuevo !== undefined) {
           for (var k = 0; k < PRODUCTOS.length; k++) {
             if (PRODUCTOS[k].detalleId === item.detalleId) {
               PRODUCTOS[k].stock = stockRes.data.stock_nuevo;
