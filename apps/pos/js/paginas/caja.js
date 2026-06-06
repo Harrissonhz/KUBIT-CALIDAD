@@ -158,14 +158,6 @@
     return d.toLocaleString('es-CO', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
   }
 
-  function mostrarToast(msg) {
-    var el = $('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.classList.remove('show'); }, 3000);
-  }
-
   /* ════════════════════════════════════════════════════════════
      CARGA DE DATOS DESDE SUPABASE
      ════════════════════════════════════════════════════════════ */

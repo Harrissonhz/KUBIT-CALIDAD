@@ -232,6 +232,19 @@ window.DB = (function () {
       return { data: res.data && res.data[0] || null, error: res.error };
     },
 
+    buscarPorCodigoInterno: async function (codigo, excluirId) {
+      var opts = {
+        select: 'id,producto:producto_id(id,nombre)',
+        filters: [{ col: 'codigo_interno', val: codigo }],
+        limit: 1
+      };
+      if (excluirId) {
+        opts.filters.push({ col: 'id', op: 'neq', val: excluirId });
+      }
+      var res = await select('pos_productos_detalle', opts);
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
     ajustarStock: async function (detalleId, cantidad, tipoMovimiento, motivo, opts) {
       var res = await productos.detalleObtener(detalleId);
       if (res.error || !res.data) return { data: null, error: res.error || 'Producto no encontrado' };
@@ -978,3 +991,41 @@ window.DB = (function () {
     cargarLogoHeader();
   }
 })();
+
+window.mostrarToast = function (msg, tipo) {
+  var el = document.getElementById('toast');
+  if (!el) return;
+  var iconEl = document.getElementById('toast-icon');
+  var msgEl = document.getElementById('toast-message');
+  var closeEl = document.getElementById('toast-close');
+
+  if (msgEl) msgEl.textContent = msg;
+
+  if (iconEl) {
+    iconEl.classList.remove('hidden');
+    el.classList.remove('border-red-200', 'dark:border-red-800/50', 'border-emerald-200', 'dark:border-emerald-800/50', 'border-sky-200', 'dark:border-sky-800/50');
+
+    if (tipo) {
+      var icons = {
+        error: '<svg class="w-5 h-5 text-red-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z"/></svg>',
+        success: '<svg class="w-5 h-5 text-emerald-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>',
+        info: '<svg class="w-5 h-5 text-sky-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z"/></svg>'
+      };
+      iconEl.innerHTML = icons[tipo] || icons.info;
+      if (tipo === 'error') el.classList.add('border-red-200', 'dark:border-red-800/50');
+      else if (tipo === 'success') el.classList.add('border-emerald-200', 'dark:border-emerald-800/50');
+      else el.classList.add('border-sky-200', 'dark:border-sky-800/50');
+    } else {
+      iconEl.classList.add('hidden');
+    }
+  }
+
+  el.classList.add('show');
+
+  if (closeEl) {
+    closeEl.onclick = function () { el.classList.remove('show'); };
+  }
+
+  clearTimeout(el._timer);
+  el._timer = setTimeout(function () { el.classList.remove('show'); }, 4000);
+};

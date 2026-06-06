@@ -80,14 +80,6 @@
     cargarConfig();
   }
 
-  function mostrarToast(msg) {
-    var el = $('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.classList.remove('show'); }, 3000);
-  }
-
   function toggleSidebar() {
     var sidebar = $('sidebar');
     var overlay = $('sidebar-overlay');

@@ -573,6 +573,36 @@
     var categoriaId = $('campo-categoria').value;
     if (!categoriaId) { mostrarToast('Selecciona una categoria'); return; }
 
+    if (MODO_VARIANTES) {
+      var variantRows = document.querySelectorAll('#variantes-tbody .variant-row');
+      var skusEnForm = {};
+      for (var vi = 0; vi < variantRows.length; vi++) {
+        var vSku = variantRows[vi].querySelector('.v-codigo').value.trim();
+        if (!vSku) continue;
+        if (skusEnForm[vSku]) {
+          mostrarToast('El codigo "' + vSku + '" esta repetido en dos variantes', 'error'); return;
+        }
+        skusEnForm[vSku] = true;
+        var vExcluir = variantRows[vi].querySelector('.v-id').value || null;
+        var dupCheck = await DB.productos.buscarPorCodigoInterno(vSku, vExcluir);
+        if (dupCheck.error) { mostrarToast('Error al validar SKU: ' + dupCheck.error, 'error'); return; }
+        if (dupCheck.data) {
+          var prodNombre = dupCheck.data.producto ? dupCheck.data.producto.nombre : 'otro producto';
+          mostrarToast('El codigo "' + vSku + '" ya existe en: ' + prodNombre, 'error'); return;
+        }
+      }
+    } else {
+      var sku = $('campo-codigo-interno').value.trim();
+      if (sku) {
+        var dupCheck = await DB.productos.buscarPorCodigoInterno(sku, EDITANDO_ID);
+        if (dupCheck.error) { mostrarToast('Error al validar SKU: ' + dupCheck.error, 'error'); return; }
+        if (dupCheck.data) {
+          var prodNombre = dupCheck.data.producto ? dupCheck.data.producto.nombre : 'otro producto';
+          mostrarToast('El codigo "' + sku + '" ya existe en: ' + prodNombre, 'error'); return;
+        }
+      }
+    }
+
     _guardando = true;
     $('btn-guardar').disabled = true;
     $('btn-guardar').textContent = 'Guardando...';
@@ -919,14 +949,6 @@
      ─────────────────────────────────────────────── */
   function formatearMoneda(valor) {
     return '$' + valor.toLocaleString('es-CO', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  }
-
-  function mostrarToast(msg) {
-    var el = $('toast');
-    el.textContent = msg;
-    el.classList.add('show');
-    clearTimeout(el._timer);
-    el._timer = setTimeout(function () { el.classList.remove('show'); }, 3000);
   }
 
   function calcularMargen() {
