@@ -495,6 +495,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/configuracion.html` | pb-20, barra `fixed bottom-0 z-30` con Guardar+Reiniciar, toast `bottom-20 z-40` |
 | **Total:** 6 paginas con CRUD | Ahora todas usan el mismo patron de barra fija inferior para mobile |
 
+### 2026-06-06 — Fixed Bottom Bars Removed (Static Flow como ventas.html)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | Fixed bar removida → flujo normal (`flex flex-col sm:flex-row gap-3 pt-2`), `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/categorias.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/clientes.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/proveedores.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/compras.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/configuracion.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| **Total:** 6 paginas | Botones ahora accesibles via scroll natural, sin overlap jamas. Misma experiencia que `ventas.html` |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -510,7 +522,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Cards separadas en compras:** La pagina `compras.html` tiene 4 cards `<details>` independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden, Lista de Ordenes. Cada una colapsable individualmente para mejor usabilidad.
 - **Modal imagen producto via dblclick + icono:** En desktop, doble clic en nombre del producto en catalogo abre modal con imagen. En mobile (dblclick no existe), icono SVG de imagen siempre visible al lado del nombre. Imagen via `DB.productosMultimedia.listar(productoId)` con filtro `tipo === 'imagen'`.
 - **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
-- **Barra fija inferior en todas las paginas CRUD (global):** Todas las paginas con formularios CRUD (productos, categorias, clientes, proveedores, compras, configuracion) usan el mismo patron: `fixed bottom-0 z-30` con botones Limpiar+Guardar, `pb-20` en el contenedor de contenido, y toast con `bottom-20 z-40` para no quedar detras de la barra. Esto soluciona el problema de mobile donde los formularios con cards expandidas no permitian scrollear hasta los botones. La IA futura debe aplicar este patron en cualquier pagina CRUD nueva. El CSS utilidad `.content-actions-pb` en `estilo.css` esta disponible para estandarizar el padding inferior.
+- **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
 - **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
 
 ---
@@ -541,7 +553,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Modal imagen producto | `abrirModalImagenProducto()`, `#modal-producto-imagen` |
 | IVA en compras (tasa decimal) | `tasa_impuesto` es decimal (0.19), NO dividir entre 100 |
 | Botones icon-only | `btn-editar`, `btn-eliminar`, `btn-ver`, SVG icons + aria-label |
-| Barra fija inferior (global) | `fixed bottom-0 z-30`, `pb-20`, `.content-actions-pb` en `estilo.css` |
+| Barra fija inferior (removida) | ver `estilo.css` `.content-actions-pb` (historial), ya no se usa |
 | Tipo Producto | `#campo-tipo-producto`, `<select>` Fisico/Digital/Servicio |
 | Test suite | `tests/`, `npm test`, `vitest`, `setup.js` |
 | Tests de calculo | `tests/calculos/`, `calculos-pos.js`, `compras.test.js`, `caja.test.js`, `productos.test.js` |

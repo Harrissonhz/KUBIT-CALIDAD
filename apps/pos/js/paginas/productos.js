@@ -37,7 +37,7 @@
      CATEGORIAS
      ─────────────────────────────────────────────── */
   async function cargarCategorias() {
-    var res = await DB.categorias.listarTodas();
+    var res = await DB.categorias.listar();
     if (res.error) { console.error('[Productos] Error categorias:', res.error); return; }
     CATEGORIAS = res.data || [];
 
