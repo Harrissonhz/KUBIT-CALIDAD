@@ -274,6 +274,23 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `ventas.js` — `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente
 - [x] `ventas.js` — `nuevaVenta()` ahora recarga productos via `await cargarProductos()`
 
+#### Módulo POS — Fase 10: Testing Infrastructure (vitest + jsdom)
+- [x] `tests/` — 99 tests, 0 failures: 5 test files + helpers + setup global
+- [x] `tests/compartido/database.test.js` (59 tests) — DB.clientes, DB.proveedores, DB.compras, DB.gastos, DB.gastoCategorias, DB.facturacion, DB.cajaApertura, DB.movimientosInventario, DB.configuracionEmpresa, DB.finanzasMensuales, DB.productos, DB.categorias
+- [x] `tests/compartido/auth.test.js` (8 tests) — tienePermiso admin bypass, wildcard matching, requierePermiso
+- [x] `tests/calculos/compras.test.js` (12 tests), `caja.test.js` (10 tests), `productos.test.js` (10 tests)
+- [x] `tests/helpers/calculos-pos.js` — Funciones puras: IVA, descuento, diferencia caja, formatCOP
+- [x] `tests/setup.js` — Setup global mocks via window.* (__supabase, KubitAuth, localStorage)
+- [x] `vitest.config.js` + `package.json` script `test` → `vitest run`
+- [x] `specs/13-testing-model.md` — Spec de testing automatico obligatorio para toda IA
+
+#### Módulo POS — Fase 11: Icon-only Buttons & Mobile UX
+- [x] `productos.js`, `compras.js`, `clientes.js`, `proveedores.js`, `categorias.js`, `gastos.js` — Todos los botones de accion (Ver/Editar/Eliminar) convertidos a icon-only (SVG + aria-label), sin texto visible
+- [x] `ventas-historial.js`, `facturacion.js` — Boton Ver ya era icon-only desde commits anteriores
+- [x] `productos.html` — Barra fija inferior con botones Limpiar/Guardar (`fixed bottom-0 z-30` + `pb-20` en contenedor + toast `bottom-20 z-40`)
+- [x] `productos.html` — `#campo-tipo-producto` cambiado de `<input>` texto libre a `<select>` con Fisico (default), Digital, Servicio
+- [x] `productos.html` — Seccion de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header (faltaba vs. las otras 13 paginas)
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
@@ -451,6 +468,21 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/ventas.js` | `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente (lineas 568-582) |
 | `apps/pos/js/paginas/ventas.js` | `nuevaVenta()` ahora es `async` y recarga productos via `await cargarProductos()` (linea 668-673) |
 
+### 2026-06-06 — Botones Icon-only, Barra Fija Mobile, Tipo Producto Select, Seccion Usuario Productos
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/productos.js` | Botones Editar/Eliminar: spans de texto reemplazados por SVG icons + aria-label (variantes + multimedia) |
+| `apps/pos/js/paginas/compras.js` | Botones Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/clientes.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/proveedores.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/categorias.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/gastos.js` | Botones Editar/Eliminar (gastos + categorias de gasto): texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/productos.html` | Barra fija inferior: botones "Limpiar" y "Guardar Producto" movidos a `fixed bottom-0 z-30` con `pb-20` + toast `bottom-20 z-40` |
+| `apps/pos/productos.html` | `#campo-tipo-producto`: `<input>` texto libre → `<select>` con Fisico (default), Digital, Servicio |
+| `apps/pos/productos.html` | Seccion de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header |
+| `apps/pos/productos.html` | Header ahora identico a las otras 13 paginas (dark toggle + user section) |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -466,6 +498,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Cards separadas en compras:** La pagina `compras.html` tiene 4 cards `<details>` independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden, Lista de Ordenes. Cada una colapsable individualmente para mejor usabilidad.
 - **Modal imagen producto via dblclick + icono:** En desktop, doble clic en nombre del producto en catalogo abre modal con imagen. En mobile (dblclick no existe), icono SVG de imagen siempre visible al lado del nombre. Imagen via `DB.productosMultimedia.listar(productoId)` con filtro `tipo === 'imagen'`.
 - **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
+- **Barra fija inferior en productos:** Los botones de accion en la pagina de productos usan `fixed bottom-0` con `z-30` para que sean siempre visibles en mobile, donde el formulario con 4 cards expandidas no permitia scrollear hasta los botones. Se agrega `pb-20` al contenedor de contenido para evitar solapamiento. El toast sube a `bottom-20 z-40` para no quedar detras de la barra.
+- **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
 
 ---
 
@@ -494,3 +528,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Filtros en Ordenes de Compra | `filtrarYRender()`, `#filtro-proveedor`, `#filtro-estado` |
 | Modal imagen producto | `abrirModalImagenProducto()`, `#modal-producto-imagen` |
 | IVA en compras (tasa decimal) | `tasa_impuesto` es decimal (0.19), NO dividir entre 100 |
+| Botones icon-only | `btn-editar`, `btn-eliminar`, `btn-ver`, SVG icons + aria-label |
+| Barra fija inferior | `fixed bottom-0 z-30`, `pb-20`, `productos.html` |
+| Tipo Producto | `#campo-tipo-producto`, `<select>` Fisico/Digital/Servicio |
+| Test suite | `tests/`, `npm test`, `vitest`, `setup.js` |
+| Tests de calculo | `tests/calculos/`, `calculos-pos.js`, `compras.test.js`, `caja.test.js`, `productos.test.js` |
+| Testing spec | `specs/13-testing-model.md` |

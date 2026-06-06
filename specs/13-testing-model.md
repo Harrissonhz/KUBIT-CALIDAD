@@ -31,10 +31,16 @@ No se permite Jest, Mocha, Cypress, karma, u otros runners sin autorizacion expl
 /
 ├── tests/
 │   ├── setup.js                     ← Setup global: mocks de window.*, localStorage, etc.
+│   ├── helpers/
+│   │   └── calculos-pos.js          ← Funciones puras de calculo POS (sin dep. externas)
 │   ├── compartido/                  ← Tests para js/compartido/
 │   │   ├── database.test.js         ← Tests de database.js (obligatorio mantener)
 │   │   └── auth.test.js             ← Tests de auth.js
-│   └── paginas/                     ← Tests para js/paginas/
+│   ├── calculos/                    ← Tests de funciones de calculo
+│   │   ├── compras.test.js          ← Tests de IVA, descuentos, totales (P1)
+│   │   ├── caja.test.js             ← Tests de diferencia caja, formato moneda (P1)
+│   │   └── productos.test.js        ← Tests de stock_min, atributos JSONB (P1)
+│   └── paginas/                     ← Tests para js/paginas/ (futuro)
 │       ├── ventas.test.js
 │       ├── productos.test.js
 │       └── ...
@@ -129,7 +135,8 @@ El testing se aborda por capas, de la mas pura a la mas acoplada:
 
 | Prioridad | Capa | Archivo | Tipo | Dependencia de Mocks |
 |---|---|---|---|---|
-| **P1** | Funciones puras | `utils.js` | Unit | Ninguna |
+| **P1** | Funciones puras | `tests/helpers/calculos-pos.js` | Unit | Ninguna |
+| **P1** | Calculos de negocio | `tests/calculos/*.test.js` | Unit | `tests/helpers/calculos-pos.js` |
 | **P2** | Capa de datos | `database.js` | Integration | `window.__supabase` |
 | **P3** | Autenticacion | `auth.js` | Integration | `window.__supabase`, `localStorage` |
 | **P4** | Paginas CRUD | `productos.js`, `clientes.js`, etc. | DOM + Integration | jsdom + `window.__supabase` |
@@ -259,6 +266,7 @@ Para pruebas que requieren una base de datos real (no mocks):
 1. **No modificar codigo fuente para hacerlo testeable** — los mocks se inyectan via `window.*`
 2. **Mantener `tests/setup.js`** actualizado con nuevos mocks conforme se agreguen dependencias
 3. **Todo cambio de logica debe tener test** — P1 y P2 son obligatorios, P3-P5 segun alcance
+4. **Los calculos de negocio (IVA, descuentos, diferencias) van en `tests/calculos/*.test.js`** usando helpers de `tests/helpers/calculos-pos.js`
 4. **`npm run test` debe pasar** antes de marcar cualquier cambio como completado
 5. **Un bug corregido = un test nuevo** que prevenga la regresion
 6. **Los tests se escriben en el mismo estilo que el codigo fuente** — IIFE, `var`, funciones planas, sin ES modules
@@ -269,6 +277,9 @@ Para pruebas que requieren una base de datos real (no mocks):
 
 - `vitest.config.js` — Configuracion del test runner
 - `tests/setup.js` — Setup global con mocks
-- `tests/compartido/database.test.js` — Ejemplo funcional de tests
+- `tests/compartido/database.test.js` — Ejemplo funcional de tests de DB
+- `tests/compartido/auth.test.js` — Tests de permisos y autenticacion
+- `tests/calculos/compras.test.js` — Tests de calculo de IVA y descuentos
+- `tests/helpers/calculos-pos.js` — Funciones auxiliares de calculo POS
 - `apps/pos/js/compartido/database.js` — Codigo bajo prueba
 - `apps/pos/js/supabase.js` — API que se mockea

@@ -47,6 +47,13 @@
       <button id="btn-dark" class="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-slate-500 dark:text-slate-400">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M21.752 15.002A9.72 9.72 0 0118 15.75 9.75 9.75 0 0112 6.75c0-2.25.75-4.25 2-5.75A9.75 9.75 0 0021.752 15.002z"/></svg>
       </button>
+      <div class="flex items-center gap-2 pl-2 border-l border-slate-200 dark:border-slate-700">
+        <div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-medium text-slate-600 dark:text-slate-300" id="user-avatar">A</div>
+        <div class="hidden md:block">
+          <span class="text-sm font-medium text-slate-950 dark:text-white" id="user-name">Admin</span>
+          <span class="text-xs text-slate-400 dark:text-slate-500 block leading-tight" id="user-rol">---</span>
+        </div>
+      </div>
     </div>
   </header>
 
@@ -172,7 +179,7 @@
 
   <!-- CONTENIDO -->
   <div class="flex-1 overflow-y-auto transition-colors duration-300 pt-16">
-    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
+    <div class="max-w-7xl mx-auto p-4 sm:p-6 space-y-4 pb-20">
 
       <!-- ═══ Card 1: Informacion Basica ═══ -->
       <details class="grupo-card bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl" open>
@@ -193,7 +200,11 @@
             </div>
             <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Tipo Producto</label>
-              <input type="text" id="campo-tipo-producto" class="input-campo" placeholder="Ej: Calzado, Electronico">
+              <select id="campo-tipo-producto" class="input-campo">
+                <option value="Fisico" selected>Fisico</option>
+                <option value="Digital">Digital</option>
+                <option value="Servicio">Servicio</option>
+              </select>
             </div>
             <div class="sm:col-span-2 lg:col-span-2">
               <label class="label-campo">Marca</label>
@@ -430,16 +441,18 @@
         </div>
       </details>
 
-      <!-- Acciones -->
-      <div class="flex gap-2 justify-end">
-        <button id="btn-limpiar-form" class="px-6 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Limpiar</button>
-        <button id="btn-guardar" class="px-6 py-2.5 rounded-xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-all">Guardar Producto</button>
+      <!-- Acciones - barra fija inferior -->
+      <div class="fixed bottom-0 left-0 right-0 z-30 bg-white dark:bg-slate-900 border-t border-slate-200/60 dark:border-slate-800 px-4 sm:px-6 py-3">
+        <div class="flex gap-2 justify-end max-w-7xl mx-auto">
+          <button id="btn-limpiar-form" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 text-slate-500 text-sm font-medium hover:bg-slate-50 dark:hover:bg-slate-800 transition-all">Limpiar</button>
+          <button id="btn-guardar" class="flex-1 sm:flex-none px-6 py-2.5 rounded-xl bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-medium hover:bg-slate-800 dark:hover:bg-slate-100 transition-all">Guardar Producto</button>
+        </div>
       </div>
 
     </div>
   </div>
 
-  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-950 dark:bg-white text-white dark:text-slate-950 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all duration-300 opacity-0 translate-y-4 pointer-events-none"></div>
+  <div id="toast" class="fixed bottom-20 left-1/2 -translate-x-1/2 z-40 bg-slate-950 dark:bg-white text-white dark:text-slate-950 px-5 py-3 rounded-xl shadow-lg text-sm font-medium transition-all duration-300 opacity-0 translate-y-4 pointer-events-none"></div>
 
   <!-- Modal Detalle de Producto -->
   <div id="modal-detalle-producto" class="fixed inset-0 bg-black/40 z-50 hidden items-center justify-center p-4">
