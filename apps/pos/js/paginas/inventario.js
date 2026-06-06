@@ -103,7 +103,8 @@
         '<td class="py-3 px-2 text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + (d.codigo_interno || '—') + '</td>' +
         '<td class="py-3 px-2 text-sm text-slate-500 dark:text-slate-400 hidden md:table-cell">' + cat + '</td>' +
         '<td class="py-3 px-2 text-center"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + badgeCls + '">' + stock + ' (' + badgeTxt + ')</span></td>' +
-        '<td class="py-3 px-2 text-right text-sm font-medium text-slate-950 dark:text-white hidden md:table-cell">$' + ((d.precio_venta || 0)).toFixed(2) + '</td></tr>';
+        '<td class="py-3 px-2 text-right text-sm font-medium text-slate-950 dark:text-white hidden md:table-cell">$' + ((d.precio_venta || 0)).toFixed(2) + '</td>' +
+        '<td class="py-3 px-2 text-right text-sm font-semibold text-slate-950 dark:text-white">$' + ((d.precio_venta || 0) * stock).toFixed(2) + '</td></tr>';
     }).join('');
     renderizarPaginacionInventario(lista);
   }
