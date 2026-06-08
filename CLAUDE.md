@@ -147,6 +147,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
 | IVA siempre visible | `tasa_impuesto` está fuera del toggle single/multi-variante, visible siempre |
 | Multi-variante | Las variantes se guardan como N registros en `pos_productos_detalle` con `atributos jsonb`. Edición inline con filas expandibles (▼) |
+| POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local (`npx serve`) y Vercel. Precarga 38 assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
+| Tags de producto (chips) | 6 chips toggle en vez de input texto libre. `data-tag` en minúsculas estrictas. Almacenados como `text[]` en `pos_productos.tags`. Los valores deben coincidir EXACTAMENTE con `badgeMap` del Store. |
+| Ciudad checkout Store | `<datalist>` filtrado por departamento desde `colombia.js` para reducir errores de escritura y garantizar consistencia con datos reales. |
 
 ---
 
@@ -193,6 +196,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Favicon SVG**: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` agregado en las 8 páginas HTML
 - [x] **Navbar fixed**: `navbar-store.js` cambiado de `sticky` a `fixed top-0 left-0 right-0 z-50 w-full` para que el navbar (logo, búsqueda, redes, carrito) permanezca visible al scrollear en todas las páginas. `pt-14` agregado al `<main>` wrapper para compensar altura.
 - [x] **icon2.svg**: Nuevo archivo de icono minimalista (bolsa/tienda) para uso futuro
+- [x] **Badges Store**: `card-producto.js` corregido: badge `mas_vendido` (guion bajo), nuevos badges `nuevo` (azul) e `imperdible` (purpura), grupo `oferta` para oferta/super-oferta/remate
+- [x] **Checkout UX**: Departamento/Ciudad intercambiados, ciudad con `<datalist>` filtrado por departamento desde `colombia.js`
+- [x] **Scrollbar visible**: Menu categorias desktop ahora muestra scrollbar horizontal (`overflow-x-auto`)
+- [x] **Factura-print Store**: Columna "Impuesto" agregada con `d.impuesto || 0`
 
 #### Módulo POS (Punto de Venta) — Fase 1: Auth Real
 - [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
@@ -295,6 +302,17 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `productos.html` — `#campo-tipo-producto` cambiado de `<input>` texto libre a `<select>` con Fisico (default), Digital, Servicio
 - [x] `productos.html` — Seccion de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header (faltaba vs. las otras 13 paginas)
 
+#### Módulo POS (Punto de Venta) — Fase 12: Tags de Producto con Toggle Chips
+- [x] `productos.html` — 6 chips toggle (Nuevo, Destacado, Oferta, Mas Vendido, Liquidacion, Imperdible) con `data-tag` en minuscula
+- [x] `productos.js` — Tags leidos de `.tag-chip.active`, funciones `leerTagsDesdeChips()` y `marcarChipsActivos()`
+- [x] `estilo.css` — Clases `.tag-chip.active` con `!important` para override Tailwind
+
+#### Módulo POS (Punto de Venta) — Fase 13: PWA Completa (17 paginas)
+- [x] `service-worker.js` — Reescrito: 38 assets criticos precacheados, cache-first, `skipWaiting()`, `clients.claim()`, rutas relativas
+- [x] iOS meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-touch-icon`) en 17/17 paginas HTML
+- [x] SW registration (`navigator.serviceWorker.register`) en 17/17 paginas HTML
+- [x] `manifest.json` — Propiedad `categories` agregada: `["business","finance","shopping"]`
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
@@ -317,8 +335,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
 - [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
+- [x] **Store checkout**: Edge Function eliminada, REST API directa con 7 operaciones + seed-anon-grants-store.sql
+- [x] **POS PWA**: Service worker reescrito, iOS meta tags + SW registration en 17 paginas, manifest categories
+- [x] **Tags chips**: Input texto libre reemplazado por 6 toggle chips en productos.html
+- [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
+- [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
+- [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
-- 
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -551,6 +574,31 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `supabase/config.toml` | Seccion `[functions.create-pedido]` eliminada |
 | `specs/seed-anon-grants-store.sql` | Nuevo archivo SQL con grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos`, `st_pedidos_detalle` |
 
+### 2026-06-08 — Store Badges: fix mas_vendido, add nuevo/imperdible, scrollbar, checkout UX
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/card-producto.js` | `badgeMap`: key `'mas-vendido'` corregido a `'mas_vendido'`, agregados `nuevo` e `imperdible` |
+| `apps/store/js/compartido/card-producto.js` | `ofertaTags`: removidos `imperdible` e `imperdibles` |
+| `apps/store/js/compartido/card-producto.js` | `renderBadge`: agregados iconos para `nuevo`, `mas-vendido`, `imperdible` |
+| `apps/store/css/estilo.css` | Clases `.badge-nuevo` (azul), `.badge-imperdible` (purpura) agregadas |
+| `apps/store/css/estilo.css` | Scrollbar horizontal visible en menu categorias desktop |
+| `apps/store/js/paginas/checkout.js` | Campos Departamento y Ciudad intercambiados de orden |
+| `apps/store/js/paginas/checkout.js` | Ciudad ahora usa `<datalist>` con opciones filtradas por departamento seleccionado |
+| `apps/store/factura-print.html` | Columna "Impuesto" agregada con `d.impuesto \|\| 0` |
+
+### 2026-06-08 — POS PWA Completa (Service Worker + iOS Meta Tags + SW Registration)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/service-worker.js` | Reescrito completo: 38 assets precacheados, cache-first con fallback network, `skipWaiting()`, `clients.claim()`, rutas relativas |
+| `apps/pos/*.html` (17 paginas) | Meta tags iOS (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`) + `apple-touch-icon` agregados en `<head>` |
+| `apps/pos/*.html` (17 paginas) | Bloque `navigator.serviceWorker.register('service-worker.js')` agregado al final de `<body>` |
+| `apps/pos/manifest.json` | `categories: ["business","finance","shopping"]` agregado |
+| `apps/pos/index.html` | PWA head tags completos (antes solo tenia manifest link) |
+| `apps/pos/factura-print.html` | PWA head tags completos + SW registration (antes no tenia ninguno) |
+| `tests/` | Verificacion: `npm test` → 99 tests, 0 failures (5 suites) |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -616,3 +664,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Navbar fixed | `navbar-store.js`: `fixed top-0 left-0 right-0 z-50 w-full` + `pt-14` en `<main>` |
 | Favicon Store | `apps/store/*.html`: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` |
 | Iconos Store | `apps/store/img/icon.svg` (complejo), `icon2.svg` (minimalista bolsa) |
+| Store checkout (REST) | `checkout.js`, `__supabase.post()`, 7 operaciones secuenciales (canal, cliente, direccion, pedido, detalle) |
+| Grants anon Store | `specs/seed-anon-grants-store.sql`, `pos_clientes`, `st_direcciones`, `st_pedidos`, `st_pedidos_detalle` |
+| POS PWA service worker | `apps/pos/service-worker.js`, skipWaiting, clients.claim, cache-first, rutas relativas |
+| POS iOS meta tags | `apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, apple-touch-icon, 17 paginas |
+| POS SW registration | `navigator.serviceWorker.register`, 17 paginas POS |
+| POS manifest categories | `apps/pos/manifest.json`, `categories: ["business","finance","shopping"]` |
+| Store scrollbar categorias | `apps/store/css/estilo.css`, `.menu-categorias`, `overflow-x-auto` |
+| Store checkout ciudad | `checkout.js`, `#input-ciudad`, `<datalist>`, colombia.js, filtro por departamento |
+| Badge mas_vendido | `card-producto.js::badgeMap`, key `mas_vendido` con guion bajo |
+| Badge imperdible | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-imperdible` |
+| Badge nuevo | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-nuevo` |

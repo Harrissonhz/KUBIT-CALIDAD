@@ -5,6 +5,12 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Factura — Kubit POS</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#020617">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="img/icon.svg">
+  <link rel="icon" href="img/icon.svg" type="image/svg+xml">
   <script src="js/config.js" charset="UTF-8"></script>
   <script src="js/supabase.js" charset="UTF-8"></script>
   <script src="js/compartido/database.js" charset="UTF-8"></script>
@@ -564,6 +570,11 @@
 
       document.addEventListener('DOMContentLoaded', init);
     })();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
   </script>
 </body>
 

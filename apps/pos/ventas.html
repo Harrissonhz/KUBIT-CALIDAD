@@ -25,6 +25,8 @@
   <meta name="theme-color" content="#020617">
   <meta name="mobile-web-app-capable" content="yes">
   <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="img/icon.svg">
 </head>
 
@@ -733,6 +735,11 @@
   <script src="js/compartido/database.js" charset="UTF-8"></script>
   <script src="js/compartido/auth.js" charset="UTF-8"></script>
   <script src="js/paginas/ventas.js" charset="UTF-8"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('service-worker.js');
+    }
+  </script>
 </body>
 
 </html>

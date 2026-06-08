@@ -1,37 +1,71 @@
-var CACHE_NAME = 'kubit-pos-v1';
-var urlsToCache = [
-  '/apps/pos/ventas.html',
-  '/apps/pos/login.html',
-  '/apps/pos/css/estilo.css',
-  '/apps/pos/js/paginas/ventas.js',
-  '/apps/pos/js/paginas/login.js',
-  '/apps/pos/manifest.json'
+var CACHE = 'kubit-pos-v2';
+
+var ASSETS = [
+  'index.html',
+  'login.html',
+  'ventas.html',
+  'ventas-rapido.html',
+  'ventas-historial.html',
+  'caja.html',
+  'productos.html',
+  'categorias.html',
+  'inventario.html',
+  'clientes.html',
+  'proveedores.html',
+  'compras.html',
+  'facturacion.html',
+  'gastos.html',
+  'configuracion.html',
+  'reportes.html',
+  'factura-print.html',
+  'css/estilo.css',
+  'js/config.js',
+  'js/supabase.js',
+  'js/compartido/database.js',
+  'js/compartido/auth.js',
+  'js/paginas/ventas.js',
+  'js/paginas/caja.js',
+  'js/paginas/productos.js',
+  'js/paginas/categorias.js',
+  'js/paginas/inventario.js',
+  'js/paginas/clientes.js',
+  'js/paginas/proveedores.js',
+  'js/paginas/compras.js',
+  'js/paginas/facturacion.js',
+  'js/paginas/gastos.js',
+  'js/paginas/configuracion.js',
+  'js/paginas/reportes.js',
+  'js/paginas/login.js',
+  'js/paginas/ventas-historial.js',
+  'js/paginas/ventas-rapido.js',
+  'img/icon.svg',
+  'manifest.json',
 ];
 
-self.addEventListener('install', function (event) {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(function (cache) {
-      return cache.addAll(urlsToCache);
+self.addEventListener('install', function (e) {
+  e.waitUntil(
+    caches.open(CACHE).then(function (cache) {
+      return cache.addAll(ASSETS);
     })
   );
+  self.skipWaiting();
 });
 
-self.addEventListener('fetch', function (event) {
-  event.respondWith(
-    caches.match(event.request).then(function (response) {
-      return response || fetch(event.request);
-    })
-  );
-});
-
-self.addEventListener('activate', function (event) {
-  event.waitUntil(
-    caches.keys().then(function (cacheNames) {
+self.addEventListener('activate', function (e) {
+  e.waitUntil(
+    caches.keys().then(function (keys) {
       return Promise.all(
-        cacheNames.map(function (name) {
-          if (name !== CACHE_NAME) return caches.delete(name);
-        })
+        keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })
       );
+    })
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', function (e) {
+  e.respondWith(
+    caches.match(e.request).then(function (r) {
+      return r || fetch(e.request);
     })
   );
 });
