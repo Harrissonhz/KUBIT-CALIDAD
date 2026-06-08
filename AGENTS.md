@@ -612,6 +612,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/img/icon-512x512.png` | Nuevo archivo generado desde `icon.svg` via `sharp` |
 | `apps/pos/*.html` (17 paginas) | `<link rel="apple-touch-icon">` actualizado: `href="img/icon.svg"` → `href="img/icon-192x192.png"` |
 
+### 2026-06-08 — Correo transaccional postergado a post-MVP
+
+| Archivo | Cambio |
+|---|---|
+| `specs/06-servicio-correo.md` | Simplificado: banner POST-MVP, eliminado Database Webhook, campo `tipo`, template cambio-estado y §6.2. Contrato reducido a solo `{ pedidoId }`. Un solo template de confirmacion inline en `index.ts`. Checklist limpiado. |
+| `specs/01-master-spec.md` | `06-servicio-correo.md` agregado al mapa de artefactos. |
+| **Decision** | No implementar en v1. Con ~1 venta/mes, el costo supera el beneficio. Alternativa: modal de exito en checkout + gestion manual del store owner. |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.

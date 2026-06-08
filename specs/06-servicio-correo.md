@@ -1,9 +1,17 @@
 # Especificacion: Servicio de Correo Transaccional
 
+> **POST-MVP** — No implementar en la version inicial (v1).
+> Mantener este documento como referencia para la proxima version.
+> Decision: con ~1 venta/mes, el costo de implementacion y
+> mantenimiento supera el beneficio. Se reemplaza por modal de
+> exito en checkout + gestion manual del store owner.
+
+---
+
 ## 1. Contexto y Entornos
 
 ### 1.1 Proposito
-El modulo Store requiere envio de correos electronicos transaccionales para notificar a los clientes sobre el estado de sus pedidos. No se utiliza un servicio SMTP tradicional sino una API de correo transaccional moderna.
+Enviar un correo de confirmacion al cliente cuando realiza un pedido en la Tienda Virtual. Sin notificaciones de cambio de estado, sin Database Webhooks, sin tracking de eventos.
 
 ### 1.2 Proveedor: Resend
 - **Plan gratuito:** 100 emails/dia, 3.000 emails/mes, 1 dominio, API Key unica
@@ -30,40 +38,31 @@ El modulo Store requiere envio de correos electronicos transaccionales para noti
 ### 2.1 Diagrama de flujo
 
 ```
-┌─────────────────────────────────────────────────────────────────────┐
-│                         STORE (Cliente)                             │
-│  checkout.js                                                        │
-│    ┌─ 1. Crea pedido (7 ops REST)                                   │
-│    └─ 2. POST /functions/v1/send-mail  ──────┐                      │
-└───────────────────────────────────────────────┘                      │
-                                              ▼                       │
-                               ┌──────────────────────────┐            │
-                               │  Supabase Edge Function   │            │
-                               │  send-mail/index.ts       │            │
-                               │                           │            │
-                               │  1. Recibe {tipo, id}     │            │
-                               │  2. Consulta DB:          │            │
-                               │     pedido + cliente      │            │
-                               │  3. Renderiza template    │            │
-                               │     HTML inline           │            │
-                               │  4. POST a Resend API     │            │
-                               │  5. Retorna {exito,error} │            │
-                               └──────────┬───────────────┘            │
-                                          │                            │
-                                          ▼                            │
-                               ┌──────────────────────────┐            │
-                               │     Resend API            │            │
-                               │  POST /emails             │            │
-                               └──────────────────────────┘            │
-
-┌─────────────────────────────────────────────────────────────────────┐
-│  CAMBIO DE ESTADO (desde POS o automatico)                          │
-│                                                                      │
-│  Supabase Database Webhook                                          │
-│  ON UPDATE st_pedidos                                               │
-│  WHERE OLD.estado != NEW.estado                                     │
-│       ──────────────────────────────────────────► send-mail EF      │
-└─────────────────────────────────────────────────────────────────────┘
+┌────────────────────────────────────────────────────────────────┐
+│                    STORE (Cliente)                              │
+│  checkout.js                                                    │
+│    ┌─ 1. Crea pedido (7 ops REST)                               │
+│    └─ 2. POST /functions/v1/send-mail  ──────┐                  │
+└───────────────────────────────────────────────┘                  │
+                                              ▼                    │
+                                ┌──────────────────────────┐      │
+                                │  Supabase Edge Function   │      │
+                                │  send-mail/index.ts       │      │
+                                │                           │      │
+                                │  1. Recibe { pedidoId }   │      │
+                                │  2. Consulta DB:          │      │
+                                │     pedido + cliente      │      │
+                                │  3. Renderiza template    │      │
+                                │     confirmacion HTML     │      │
+                                │  4. POST a Resend API     │      │
+                                │  5. Retorna {exito,error} │      │
+                                └──────────┬───────────────┘      │
+                                           │                      │
+                                           ▼                      │
+                                ┌──────────────────────────┐      │
+                                │     Resend API            │      │
+                                │  POST /emails             │      │
+                                └──────────────────────────┘      │
 ```
 
 ### 2.2 Decisiones de Arquitectura
@@ -71,10 +70,9 @@ El modulo Store requiere envio de correos electronicos transaccionales para noti
 | Decision | Justificacion |
 |---|---|
 | **Edge Function** como intermediario | La API Key de Resend JAMAS debe exponerse al cliente. El EF actua como proxy seguro. |
-| **Una sola Edge Function** (`send-mail`) | Recibe `{ tipo, pedidoId }` y decide internamente que template usar. Evita duplicar logica. |
-| **Database Webhook** para cambios de estado | Los cambios de estado ocurren desde el POS (server-side) o procesos internos. Sin webhook, esos correos nunca se enviarian. |
-| **Sin tabla de tracking** en Fase 1 | Se asume que Resend maneja la entrega. En Fase 2 se agregara `st_notificaciones` para auditoria y retry. |
-| **Templates inline en TypeScript** | Evita dependencias externas y simplifica el despliegue. Los templates son funciones que retornan strings HTML. |
+| **Un unico template** (confirmacion) | Sin cambios de estado ni webhooks. Solo se envia correo al crear el pedido. |
+| **Sin tabla de tracking** | Se asume que Resend maneja la entrega. Si se necesita auditoria, se agrega en version futura. |
+| **Templates inline en TypeScript** | Evita dependencias externas y simplifica el despliegue. Un solo archivo `index.ts` sin `templates.ts` separado. |
 
 ---
 
@@ -132,8 +130,7 @@ Los secrets NO se almacenan en `config.toml`. Se configuran via `supabase secret
 
 ```
 supabase/functions/send-mail/
-├── index.ts          ← Entry point (handler principal)
-└── templates.ts      ← Funciones que generan HTML inline
+└── index.ts          ← Entry point (handler + template inline)
 ```
 
 ### 4.2 Contrato de entrada
@@ -144,11 +141,9 @@ supabase/functions/send-mail/
 - `Content-Type: application/json`
 
 **Payload:**
-
-```typescript
+```json
 {
-  tipo: 'confirmacion' | 'cambio-estado';
-  pedidoId: string;        // UUID de st_pedidos
+  "pedidoId": "uuid-de-st-pedidos"
 }
 ```
 
@@ -173,7 +168,7 @@ supabase/functions/send-mail/
 ```
 POST /send-mail
 │
-├── 1. Validar payload (tipo + pedidoId requeridos)
+├── 1. Validar pedidoId requerido
 │
 ├── 2. Consultar datos del pedido:
 │      SELECT p.*, c.email, c.primer_nombre, c.primer_apellido
@@ -186,9 +181,7 @@ POST /send-mail
 │    Sino:
 │      destinatario = c.email
 │
-├── 4. Segun tipo:
-│      'confirmacion'    → templateConfirmacion(pedido, cliente)
-│      'cambio-estado'   → templateCambioEstado(pedido, cliente)
+├── 4. Renderizar templateConfirmacion(pedido, cliente)
 │
 ├── 5. POST a https://api.resend.com/emails
 │      Headers:
@@ -206,21 +199,15 @@ POST /send-mail
 
 ### 4.4 Seguridad
 
-- **`verify_jwt = false`** en `config.toml`. La funcion NO requiere auth porque es llamada:
-  - Desde el Store (usuario anonimo, sin JWT)
-  - Desde Database Webhook (llamada interna de Supabase, sin JWT del cliente)
+- **`verify_jwt = false`** en `config.toml`. La funcion NO requiere auth porque es llamada desde el Store (usuario anonimo, sin JWT).
 - La API Key de Resend solo existe en `Deno.env.get()`, nunca en codigo ni en el cliente.
 - En QA, el destinatario se SOBRESCRIBE siempre con `ADMIN_EMAIL` para evitar fugas.
 
 ---
 
-## 5. Templates HTML (inline)
+## 5. Template de Confirmacion
 
-Los templates se definen como funciones en `templates.ts`. Cada funcion recibe los datos del pedido y retorna un string HTML completo.
-
-### 5.1 Template: Confirmacion de Pedido
-
-**Disparado por:** `tipo: 'confirmacion'`
+El template se define como una funcion dentro de `index.ts`. Recibe los datos del pedido y retorna un string HTML completo.
 
 **Asunto:** `"Tu pedido #KBT-202606-1234 ha sido confirmado - OutletShop"`
 
@@ -272,7 +259,6 @@ Los templates se definen como funciones en `templates.ts`. Cada funcion recibe l
     <p style="text-align: right;"><strong>Total: ${{total}}</strong></p>
     <p>Estado actual: <strong>{{estado}}</strong></p>
     <p>Metodo de pago: {{metodo_pago}}</p>
-    <p>Recibiras otra notificacion cuando el pedido sea procesado.</p>
     <a href="{{app_url}}/pedido?id={{pedido_id}}"
        style="display: inline-block; background: #020617; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none;">
       Ver mi pedido
@@ -282,10 +268,10 @@ Los templates se definen como funciones en `templates.ts`. Cada funcion recibe l
 </html>
 ```
 
-**Nota de implementacion:** Dado que los templates son inline en TypeScript, las variables se interpolan con template literals (`${}`) directamente, no con un motor de templates externo.
+**Nota de implementacion:** Dado que el template es inline en TypeScript, las variables se interpolan con template literals (`${}`) directamente, no con un motor de templates externo.
 
 ```typescript
-function templateConfirmacion(pedido: Pedido, cliente: Cliente): { subject: string; html: string } {
+function templateConfirmacion(pedido, cliente) {
   const itemsHtml = pedido.items.map(item => `
     <tr>
       <td>${item.nombre}</td>
@@ -295,54 +281,27 @@ function templateConfirmacion(pedido: Pedido, cliente: Cliente): { subject: stri
     </tr>
   `).join('');
 
-  const html = `... ${itemsHtml} ...`;
-  // ...
+  const html = `<!DOCTYPE html>...${itemsHtml}...`;
+  return { subject, html };
 }
 ```
 
-### 5.2 Template: Cambio de Estado
-
-**Disparado por:** `tipo: 'cambio-estado'`
-
-**Asunto:** `"Tu pedido #KBT-202606-1234 ahora esta {{estado_nuevo}} - OutletShop"`
-
-**Variables adicionales:**
-- `pedido.estado_anterior` — Estado previo
-- `pedido.estado` — Estado nuevo
-- `pedido.guia_envio` — Numero de guia (si estado = ENVIADO)
-- `pedido.fecha_actualizacion` — Timestamp del cambio
-
-**Contenido condicional por estado:**
-
-| Estado nuevo | Mensaje | Accion |
-|---|---|---|
-| `PAGADO` | Pago confirmado, estamos preparando tu pedido | Ver detalle |
-| `ENVIADO` | Tu pedido ha sido enviado. Guia: {{guia}} | Rastrear envio |
-| `ENTREGADO` | Tu pedido ha sido entregado | Calificar compra |
-| `CANCELADO` | Tu pedido ha sido cancelado | Contactar soporte |
-
 ---
 
-## 6. Triggers de Envio
-
-### 6.1 Trigger desde Checkout (Store)
+## 6. Trigger de Envio (Checkout)
 
 **Archivo:** `apps/store/js/paginas/checkout.js`
 
-**Punto de insercion:** Despues de la creacion del detalle del pedido (linea ~277), antes del modal de exito.
+**Punto de insercion:** Despues de la creacion del detalle del pedido, antes del modal de exito.
 
 **Codigo a agregar:**
-
 ```javascript
 // Enviar correo de confirmacion
 try {
   var resp = await fetch(__supabase.supabaseUrl + '/functions/v1/send-mail', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      tipo: 'confirmacion',
-      pedidoId: pedidoId
-    })
+    body: JSON.stringify({ pedidoId: pedidoId })
   });
   var result = await resp.json();
   if (!result.exito) {
@@ -356,33 +315,6 @@ try {
 
 **Regla:** El email NO debe bloquear el flujo de checkout. Si falla, se muestra mensaje en consola pero el pedido ya esta creado. El usuario ve el modal de exito igualmente.
 
-### 6.2 Trigger desde Database Webhook
-
-**Configuracion en Supabase Dashboard:**
-1. Ir a Database → Webhooks
-2. Crear nuevo webhook:
-
-| Campo | Valor |
-|---|---|
-| Nombre | `on-pedido-status-change` |
-| Tabla | `st_pedidos` |
-| Eventos | `UPDATE` |
-| Filtro | `OLD.estado != NEW.estado` |
-| Type | `HTTP Request` |
-| Method | `POST` |
-| URL | `https://<project-ref>.supabase.co/functions/v1/send-mail` |
-| Headers | `Content-Type: application/json` |
-
-**Payload enviado por el webhook:**
-```json
-{
-  "tipo": "cambio-estado",
-  "pedidoId": "{{record.id}}"
-}
-```
-
-**Nota:** Los Database Webhooks en Supabase plan gratuito estan limitados pero incluidos. Se pagan por uso dentro del egress mensual (5 GB/mes).
-
 ---
 
 ## 7. Manejo de Errores
@@ -391,42 +323,37 @@ try {
 
 | Escenario | Comportamiento |
 |---|---|
-| Resend API caido | Edge Function retorna `{ exito: false, error: \"Resend: 503\" }`. El frontend/trigger loggea el error. Sin reintento automatico en Fase 1. |
+| Resend API caido | Edge Function retorna `{ exito: false, error: "Resend: 503" }`. El checkout loggea el error. Sin reintento automatico. |
 | Timeout (>10s) | Edge Function corta la conexion y retorna error. |
-| Payload invalido | Edge Function retorna `{ exito: false, error: \"tipo invalido\" }` con status 400. |
-| Pedido no existe | Edge Function retorna `{ exito: false, error: \"pedido no encontrado\" }` con status 404. |
+| Payload invalido | Edge Function retorna `{ exito: false }` con status 400. |
+| Pedido no existe | Edge Function retorna `{ exito: false }` con status 404. |
 | Resend rechaza API Key | Edge Function retorna error 401 de Resend. Se debe revisar `RESEND_API_KEY`. |
 | Destinatario invalido | Resend rechaza el email. Edge Function retorna el error de Resend. |
 
 ### 7.2 Logging
 - El Edge Function usa `console.log()` y `console.error()` para logging.
 - Los logs son visibles en Supabase Dashboard → Edge Functions → Logs.
-- No se persiste en DB (sin tabla de tracking en Fase 1).
+- No se persiste en DB (sin tabla de tracking).
 
 ---
 
-## 8. Fase 2 (Post-MVP)
+## 8. Fase 2 (Ideas para versiones futuras)
 
 | Funcionalidad | Descripcion |
 |---|---|
 | `st_notificaciones` | Tabla para tracking de envios, reintentos y auditoria. |
-| Carrito abandonado | Cron semanal via `pg_cron` o Edge Function programada que consulta carritos en estado `ABANDONADO` con >3 dias de inactividad. |
+| Carrito abandonado | Cron semanal que consulta carritos en estado `ABANDONADO` con >3 dias de inactividad. |
+| Notificaciones de cambio de estado | Correos automaticos cuando el pedido pasa a PAGADO, ENVIADO, ENTREGADO o CANCELADO. Requeriria Database Webhook en Supabase. |
 | Templates externos | Archivos `.html` en `apps/store/emails/` cargados por el servidor. |
 | Batch sending | Administrador puede enviar correos masivos (promociones, recordatorios). |
-| Logros / fidelizacion | Emails automaticos por cumpleanos, puntos acumulados, etc. |
 
 ---
 
-## 9. Checklist de Implementacion
+## 9. Checklist de Implementacion (para la version futura)
 
-- [ ] Crear `supabase/functions/send-mail/index.ts` con el handler
-- [ ] Crear `supabase/functions/send-mail/templates.ts` con los templates HTML
+- [ ] Crear `supabase/functions/send-mail/index.ts` con el handler + template inline
 - [ ] Configurar secrets en Supabase QA (`supabase secrets set ...`)
 - [ ] Desplegar Edge Function (`supabase functions deploy send-mail`)
-- [ ] Configurar Database Webhook en Supabase Dashboard para `st_pedidos`
 - [ ] Agregar llamado a send-mail en `checkout.js` despues de crear detalle
-- [ ] Agregar `apps/store/vercel.json` si se necesita reescribir rutas (opcional)
-- [ ] Probar flujo completo en QA:
-  - [ ] Checkout → correo de confirmacion recibido en admin email
-  - [ ] Cambiar estado del pedido desde POS → correo de cambio recibido
+- [ ] Probar flujo completo en QA: checkout → correo de confirmacion recibido en admin email
 - [ ] Documentar en `AGENTS.md` la nueva funcionalidad
