@@ -34,6 +34,7 @@ Para mantener la integridad del proyecto, se establecen las siguientes reglas:
 - `/specs/03-pos-spec.md`
 - `/specs/04-store-spec.md`
 - `/specs/05-ui-ux-system.md`
+- `/specs/06-servicio-correo.md`
 - `/specs/10-codex.md`
 - `/specs/11-api-contracts.md` (Pendiente)
 - `/specs/12-roadmap.md`
