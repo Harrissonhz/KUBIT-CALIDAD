@@ -653,7 +653,119 @@ POST /rest/v1/rpc/calcular_finanzas_mes
 
 ---
 
-## 6. Códigos de Error
+## 6. Checkout Flow (Guest — REST API Directa)
+
+**Importante:** El Store NO usa Edge Functions. El checkout opera 100% via REST API directa a PostgREST con la anon key.
+
+### 6.1 Obtener Canal Web
+```
+GET /rest/v1/pos_canales_venta?codigo=eq.web&limit=1
+```
+**Response:**
+```json
+[{ "id": "uuid", "nombre": "Web", "codigo": "web" }]
+```
+
+### 6.2 Buscar Cliente por Email
+```
+GET /rest/v1/pos_clientes?email=eq.{email}&deleted_at=is.null&limit=1
+```
+**Response:**
+```json
+[{ "id": "uuid", "primer_nombre": "Juan", "email": "juan@email.com" }]
+```
+Si no existe, se crea con POST.
+
+### 6.3 Crear Cliente (si no existe)
+```
+POST /rest/v1/pos_clientes
+Prefer: return=representation
+```
+**Body:**
+```json
+{
+  "tipo_id": "NIT",
+  "numero_id": "CG-{timestamp}",
+  "primer_nombre": "Juan",
+  "primer_apellido": "Perez",
+  "email": "juan@email.com",
+  "celular": "3001234567"
+}
+```
+**Response:** `[{ "id": "uuid", ... }]`
+
+### 6.4 Crear Dirección de Envío
+```
+POST /rest/v1/st_direcciones
+Prefer: return=representation
+```
+**Body:**
+```json
+{
+  "cliente_id": "uuid",
+  "tipo": "envio",
+  "nombre_destinatario": "Juan Perez",
+  "telefono": "3001234567",
+  "direccion": "Calle 50 #30-20",
+  "ciudad": "Medellin",
+  "departamento": "Antioquia",
+  "pais": "Colombia"
+}
+```
+
+### 6.5 Crear Pedido
+```
+POST /rest/v1/st_pedidos
+Prefer: return=representation
+```
+**Body:**
+```json
+{
+  "numero_pedido": "KBT-202606-1234",
+  "cliente_id": "uuid",
+  "canal_id": "uuid-del-canal-web",
+  "direccion_envio_id": "uuid",
+  "direccion_facturacion_id": "uuid",
+  "fecha_pedido": "2026-06-08",
+  "estado": "PENDIENTE",
+  "subtotal": 150000,
+  "descuento": 0,
+  "costo_envio": 9900,
+  "total": 159900,
+  "notas": "Metodo de pago: transferencia"
+}
+```
+
+### 6.6 Crear Detalle del Pedido (Bulk Insert)
+```
+POST /rest/v1/st_pedidos_detalle
+Prefer: return=representation
+```
+**Body:** (array de objetos)
+```json
+[
+  {
+    "pedido_id": "uuid",
+    "producto_detalle_id": "uuid",
+    "cantidad": 2,
+    "precio_unitario": 50000,
+    "subtotal": 100000,
+    "total": 100000
+  }
+]
+```
+
+### 6.7 Consultar producto_detalle_id
+Se resuelve para cada item del carrito:
+```
+GET /rest/v1/pos_productos_detalle?producto_id=eq.{productoId}&deleted_at=is.null&limit=1
+```
+
+> **Requisito:** El rol `anon` debe tener grants INSERT y policies RLS en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`.
+
+---
+
+## 7. Códigos de Error
 
 | Código HTTP | Error Supabase | Significado | Causa Común |
 |---|---|---|---|
@@ -672,7 +784,7 @@ POST /rest/v1/rpc/calcular_finanzas_mes
 
 ---
 
-## 7. Variables de Entorno (Placeholders)
+## 8. Variables de Entorno (Placeholders)
 
 | Variable | Dónde se usa | Ejemplo |
 |---|---|---|

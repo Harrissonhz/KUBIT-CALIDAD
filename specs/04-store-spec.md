@@ -483,6 +483,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 1. Se requiere al menos: dirección de envío, método de pago y aceptación de términos
 2. El guest checkout captura email, nombre y dirección sin crear cuenta completa en `pos_clientes`
 3. Al confirmar el pedido:
+   - Se ejecutan 7 operaciones REST secuenciales via `__supabase.post()` y `__supabase.get()` directamente contra PostgREST
    - Se crea el registro en `st_pedidos` con estado `PENDIENTE`
    - El carrito pasa a estado `CONVERTIDO`
    - Se envía al cliente a la pasarela de pago
@@ -494,6 +495,17 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 5. Si el pago es `RECHAZADO`:
    - Pedido permanece `PENDIENTE`
    - Se notifica al cliente para reintentar
+
+**Arquitectura del checkout:** NO usa Supabase Edge Functions. Todo el flujo corre 100% en el frontend via REST API directa a PostgREST usando `__supabase` (el mismo cliente del resto del Store). Usa la anon key + RLS policies. Ver `specs/seed-anon-grants-store.sql` para los grants necesarios.
+
+**Flujo interno de `confirmarPedido()` en `checkout.js`:**
+1. `GET pos_canales_venta?codigo=eq.web` — Obtener UUID del canal Web
+2. `GET pos_clientes?email=eq.X` o `POST pos_clientes` — Buscar o crear cliente
+3. `POST st_direcciones` — Crear dirección de envío
+4. *(cálculo)* — Totales y número de pedido (KBT-YYYYMM-NNNN)
+5. `POST st_pedidos` — Crear pedido con `canal_id`, `cliente_id`, `direccion_envio_id`
+6. `GET pos_productos_detalle?producto_id=eq.X` — Resolver `producto_detalle_id` por cada item
+7. `POST st_pedidos_detalle` — Crear detalle del pedido (bulk insert)
 
 ### 3.4 Gestión de Pedidos (Admin)
 
@@ -588,6 +600,45 @@ Cliente solicita devolución → Admin revisa y aprueba →
 3. Los cupones son gestionados solo por administradores
 4. El carrito de un cliente solo es accesible por ese cliente
 5. El guest checkout crea un registro mínimo en `pos_clientes` sin contraseña
+
+### 5.3 Guest Checkout RLS (rol `anon`)
+
+El guest checkout opera con la anon key de Supabase (rol `anon`). Requiere grants y policies adicionales a las del schema base:
+
+**Grants necesarios:**
+```sql
+grant select, insert on public.pos_clientes to anon;
+grant select, insert on public.st_direcciones to anon;
+grant select, insert on public.st_pedidos to anon;
+grant select, insert on public.st_pedidos_detalle to anon;
+```
+
+**Policies:**
+```sql
+-- pos_clientes
+create policy "anon crean clientes"
+  on public.pos_clientes for insert to anon with check (true);
+
+-- st_direcciones
+create policy "anon ven direcciones"
+  on public.st_direcciones for select to anon using (true);
+create policy "anon crean direcciones"
+  on public.st_direcciones for insert to anon with check (true);
+
+-- st_pedidos
+create policy "anon ven pedidos"
+  on public.st_pedidos for select to anon using (true);
+create policy "anon crean pedidos"
+  on public.st_pedidos for insert to anon with check (true);
+
+-- st_pedidos_detalle
+create policy "anon ven detalle de pedidos"
+  on public.st_pedidos_detalle for select to anon using (true);
+create policy "anon crean detalle de pedidos"
+  on public.st_pedidos_detalle for insert to anon with check (true);
+```
+
+> El archivo `specs/seed-anon-grants-store.sql` contiene el SQL completo listo para ejecutar en Supabase.
 
 ---
 

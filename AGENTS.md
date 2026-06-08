@@ -189,6 +189,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `producto.js` — Async detalle producto + relacionados
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
+- [x] `checkout.js` — Guest checkout: crea pedidos via REST API directa (`__supabase.post()`) con 7 operaciones secuenciales (canal Web, cliente, dirección, pedido, detalle). Sin Edge Functions
 
 #### Módulo POS (Punto de Venta) — Fase 1: Auth Real
 - [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
@@ -313,11 +314,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
 - [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
-- [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
-- [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
-
+- [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
+- 
 ### 7.4 Próximo Paso Recomendado
-**Despues del deploy:** Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal.
+**Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
 ---
 
@@ -507,6 +507,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/configuracion.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
 | **Total:** 6 paginas | Botones ahora accesibles via scroll natural, sin overlap jamas. Misma experiencia que `ventas.html` |
 
+### 2026-06-08 — Checkout Store: Edge Function eliminada, REST API directa
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/paginas/checkout.js` | Reemplazada llamada a Edge Function `create-pedido` por 7 operaciones REST directas via `__supabase.get()/post()`: obtener canal Web, buscar/crear cliente, crear direccion, generar numero pedido, crear pedido con `canal_id`, resolver detalle de productos y crear detalle del pedido |
+| `supabase/functions/create-pedido/` | Directorio eliminado — Edge Function ya no se necesita |
+| `supabase/config.toml` | Seccion `[functions.create-pedido]` eliminada |
+| `specs/seed-anon-grants-store.sql` | Nuevo archivo SQL con grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos`, `st_pedidos_detalle` |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -524,6 +533,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
 - **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
 - **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
+- **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
 
 ---
 

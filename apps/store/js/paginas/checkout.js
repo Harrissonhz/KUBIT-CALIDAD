@@ -146,40 +146,98 @@ async function confirmarPedido(items) {
 
   mostrarEstadoCargando(true);
 
-  var totalItems = items.reduce(function(sum, item) { return sum + (item.cantidad || 1); }, 0);
-
-  var FUNCTION_URL = 'https://gxqcybboiskwznxdioun.supabase.co/functions/v1/create-pedido';
-
   try {
-    var res = await fetch(FUNCTION_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        items: items,
-        cliente: {
-          nombre: data.nombre,
-          email: data.email,
-          telefono: data.telefono
-        },
-        direccion: {
-          direccion: data.direccion,
-          ciudad: data.ciudad,
-          departamento: data.departamento
-        },
-        metodoPago: metodoPago
-      })
-    });
+    if (!window.__supabase) throw new Error('Cliente de base de datos no disponible');
 
-    if (!res.ok) {
-      var errBody = await res.text();
-      var errMsg = errBody;
-      try { errMsg = JSON.parse(errBody).error || errBody; } catch (_) {}
-      throw new Error(errMsg);
+    // 1. Obtener canal Web
+    var canales = await __supabase.get('pos_canales_venta?codigo=eq.web&limit=1');
+    if (!canales || !canales.length) throw new Error('Canal de venta Web no encontrado');
+    var canalId = canales[0].id;
+
+    // 2. Buscar cliente existente por email o crear uno nuevo
+    var clientes = await __supabase.get('pos_clientes?email=eq.' + encodeURIComponent(data.email) + '&deleted_at=is.null&limit=1');
+    var clienteId;
+    if (clientes && clientes.length > 0) {
+      clienteId = clientes[0].id;
+    } else {
+      var partesNombre = (data.nombre || '').trim().split(' ');
+      var nuevoCliente = await __supabase.post('pos_clientes', {
+        tipo_id: 'NIT',
+        numero_id: 'CG-' + Date.now().toString(36).toUpperCase(),
+        primer_nombre: partesNombre[0] || 'Invitado',
+        primer_apellido: partesNombre.slice(1).join(' ') || 'Store',
+        email: data.email,
+        celular: data.telefono || null
+      });
+      if (!nuevoCliente || !nuevoCliente.length) throw new Error('Error al crear cliente');
+      clienteId = nuevoCliente[0].id;
     }
 
-    var result = await res.json();
+    // 3. Crear direccion de envio
+    var direcciones = await __supabase.post('st_direcciones', {
+      cliente_id: clienteId,
+      tipo: 'envio',
+      nombre_destinatario: data.nombre,
+      telefono: data.telefono || null,
+      direccion: data.direccion,
+      ciudad: data.ciudad,
+      departamento: data.departamento,
+      pais: 'Colombia'
+    });
+    if (!direcciones || !direcciones.length) throw new Error('Error al crear direccion');
+    var direccionId = direcciones[0].id;
+
+    // 4. Calcular totales
+    var totalItems = items.reduce(function(sum, item) { return sum + (item.cantidad || 1); }, 0);
+    var totalSubtotal = items.reduce(function(sum, item) { return sum + (item.precio || 0) * (item.cantidad || 1); }, 0);
+    var total = totalSubtotal + COSTO_ENVIO;
+
+    // 5. Generar numero de pedido
+    var ahora = new Date();
+    var y = ahora.getFullYear();
+    var m = String(ahora.getMonth() + 1).padStart(2, '0');
+    var r = String(Math.floor(Math.random() * 9999)).padStart(4, '0');
+    var numeroPedido = 'KBT-' + y + m + '-' + r;
+
+    // 6. Crear pedido
+    var pedidos = await __supabase.post('st_pedidos', {
+      numero_pedido: numeroPedido,
+      cliente_id: clienteId,
+      canal_id: canalId,
+      direccion_envio_id: direccionId,
+      direccion_facturacion_id: direccionId,
+      fecha_pedido: ahora.toISOString().split('T')[0],
+      estado: 'PENDIENTE',
+      subtotal: totalSubtotal,
+      descuento: 0,
+      costo_envio: COSTO_ENVIO,
+      total: total,
+      notas: 'Metodo de pago: ' + (metodoPago || 'No especificado')
+    });
+    if (!pedidos || !pedidos.length) throw new Error('Error al crear pedido');
+    var pedidoId = pedidos[0].id;
+
+    // 7. Resolver producto_detalle_id y crear detalle del pedido
+    var detalleData = [];
+    for (var i = 0; i < items.length; i++) {
+      var item = items[i];
+      var cant = item.cantidad || 1;
+      var precio = item.precio || 0;
+
+      var detallesProducto = await __supabase.get('pos_productos_detalle?producto_id=eq.' + item.productoId + '&deleted_at=is.null&limit=1');
+      if (!detallesProducto || !detallesProducto.length) throw new Error('Producto sin detalle disponible: ' + (item.nombre || 'ID ' + item.productoId));
+
+      detalleData.push({
+        pedido_id: pedidoId,
+        producto_detalle_id: detallesProducto[0].id,
+        cantidad: cant,
+        precio_unitario: precio,
+        subtotal: cant * precio,
+        total: cant * precio
+      });
+    }
+
+    await __supabase.post('st_pedidos_detalle', detalleData);
 
     localStorage.removeItem('kubit_carrito');
     if (typeof actualizarBadgeCarrito === 'function') actualizarBadgeCarrito();
@@ -193,9 +251,9 @@ async function confirmarPedido(items) {
           <svg class="w-14 h-14 mx-auto text-green-500 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">\
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>\
           </svg>\
-          <p class="text-sm text-slate-600 mb-1">¡Pedido <strong>#' + result.numero_pedido + '</strong> registrado!</p>\
-          <p class="text-sm text-slate-600 mb-1">Hemos recibido tu pedido de <strong>' + result.total_items + ' ' + (result.total_items === 1 ? 'producto' : 'productos') + '</strong>.</p>\
-          <p class="text-sm text-slate-500 mb-5">Te enviaremos la confirmación a <strong>' + result.email + '</strong>.</p>\
+          <p class="text-sm text-slate-600 mb-1">Pedido <strong>#' + numeroPedido + '</strong> registrado!</p>\
+          <p class="text-sm text-slate-600 mb-1">Hemos recibido tu pedido de <strong>' + totalItems + ' ' + (totalItems === 1 ? 'producto' : 'productos') + '</strong>.</p>\
+          <p class="text-sm text-slate-500 mb-5">Te enviaremos la confirmacion a <strong>' + data.email + '</strong>.</p>\
           <a href="index.html" class="block w-full text-center px-4 py-2 text-sm font-medium bg-slate-950 text-white rounded-lg hover:bg-slate-800 transition-colors">Volver a la tienda</a>\
         </div>\
       '
@@ -212,7 +270,7 @@ async function confirmarPedido(items) {
           <svg class="w-14 h-14 mx-auto text-red-400 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">\
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>\
           </svg>\
-          <p class="text-sm text-slate-600 mb-1">Ocurrió un error al registrar tu pedido.</p>\
+          <p class="text-sm text-slate-600 mb-1">Ocurrio un error al registrar tu pedido.</p>\
           <p class="text-xs text-slate-400 mb-5">Detalle: ' + err.message + '</p>\
           <button class="block w-full text-center px-4 py-2 text-sm font-medium bg-slate-950 text-white rounded-lg hover:bg-slate-800 transition-colors" onclick="this.closest(\'.fixed\').remove()">Intentar de nuevo</button>\
         </div>\

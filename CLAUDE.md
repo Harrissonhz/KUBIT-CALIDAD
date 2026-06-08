@@ -184,6 +184,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `producto.js` — Async detalle producto + relacionados
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
+- [x] `checkout.js` — Guest checkout: crea pedidos via REST API directa (`__supabase.post()`) con 7 operaciones secuenciales (canal Web, cliente, dirección, pedido, detalle). Sin Edge Functions
 
 #### Módulo POS (Punto de Venta) — Fase 1: Auth Real
 - [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
@@ -272,13 +273,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
 - [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
 - [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
-- [ ] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
-- [ ] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
-- [ ] Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal
-- [ ] Integración con MercadoLibre (Edge Function para sincronizar productos y pedidos)
+- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
+- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
+- [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
 
 ### 7.4 Próximo Paso Recomendado
-**Despues del deploy:** Crear Edge Function para `create-venta` que valide stock, descuente inventario y registre venta multi-canal.
+**Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
 ---
 
