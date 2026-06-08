@@ -21,6 +21,11 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 - Seguir estrictamente las clases Tailwind definidas en `05-ui-ux-system.md`.
 - No se aceptan diseños que no funcionen en pantallas táctiles.
 
+### 1.4 Sin Commits Automaticos a GitHub
+- La IA **NUNCA debe hacer `git commit` ni `git push`** a menos que el usuario lo solicite explícitamente con instrucciones como "commitea", "haz commit", "sincroniza", "pushea" o similar.
+- Todos los cambios se mantienen en el working directory hasta que el usuario decida sincronizar.
+- Esta regla aplica a cualquier repositorio, branch o entorno.
+
 ---
 
 ## 2. Stack Tecnológico (Confirmado)
@@ -185,6 +190,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
 - [x] `checkout.js` — Guest checkout: crea pedidos via REST API directa (`__supabase.post()`) con 7 operaciones secuenciales (canal Web, cliente, dirección, pedido, detalle). Sin Edge Functions
+- [x] **Favicon SVG**: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` agregado en las 8 páginas HTML
+- [x] **Navbar fixed**: `navbar-store.js` cambiado de `sticky` a `fixed top-0 left-0 right-0 z-50 w-full` para que el navbar (logo, búsqueda, redes, carrito) permanezca visible al scrollear en todas las páginas. `pt-14` agregado al `<main>` wrapper para compensar altura.
+- [x] **icon2.svg**: Nuevo archivo de icono minimalista (bolsa/tienda) para uso futuro
 
 #### Módulo POS (Punto de Venta) — Fase 1: Auth Real
 - [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
@@ -254,11 +262,44 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `ventas.js`, `ventas-historial.js` — URLs de factura con formato clean (`factura-print?id=`) para compatibilidad con `npx serve` (evita redireccion 301 que pierde query params).
 - [x] **Comportamiento:** Si `logo_url` tiene URL valida y accesible → se muestra en header, login y factura. Si es null/vacio → fallback visual (K). Si la URL falla al cargar → `onerror` restaura la K silenciosamente.
 
+#### Módulo POS (Punto de Venta) — Fase 6: UI de Clientes, Proveedores y Compras
+- [x] `clientes.html` + `clientes.js` — CRUD completo con `DB.clientes` (listar, crear, actualizar, eliminar, busqueda, paginacion)
+- [x] `proveedores.html` + `proveedores.js` — CRUD completo con `DB.proveedores` (listar, crear, actualizar, eliminar, busqueda, paginacion)
+- [x] `compras.html` + `compras.js` — CRUD completo con `DB.compras`, cards layout, IVA fix (tasa decimal 0.19), modal imagen producto, filtros combinados (texto+proveedor+estado), modal detalle de orden
+
+#### Módulo POS (Punto de Venta) — Fase 7: UI de Facturacion, Gastos, Configuracion y Reportes
+- [x] `facturacion.html` + `facturacion.js` — Listado de facturas con `DB.facturacion`, emitir/anular, filtro por periodo
+- [x] `gastos.html` + `gastos.js` — CRUD de gastos con `DB.gastos` y `DB.gastoCategorias`, filtro por periodo, calculo de totales
+- [x] `configuracion.html` + `configuracion.js` — Formulario de empresa con `DB.configuracionEmpresa` (logo_url, resolucion DIAN, NIT, etc.)
+- [x] `reportes.html` + `reportes.js` — Dashboard financiero con `DB.finanzasMensuales`, ventas recientes, productos con bajo stock
+
+#### Módulo POS (Punto de Venta) — Fase 9: Fix Stock Local Post-Venta
+- [x] `database.js` — `_cacheClear('productos')` agregado en `ajustarStock()` (consistencia con otras mutaciones)
+- [x] `ventas.js` — `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente
+- [x] `ventas.js` — `nuevaVenta()` ahora recarga productos via `await cargarProductos()`
+
+#### Módulo POS — Fase 10: Testing Infrastructure (vitest + jsdom)
+- [x] `tests/` — 99 tests, 0 failures: 5 test files + helpers + setup global
+- [x] `tests/compartido/database.test.js` (59 tests) — DB.clientes, DB.proveedores, DB.compras, DB.gastos, DB.gastoCategorias, DB.facturacion, DB.cajaApertura, DB.movimientosInventario, DB.configuracionEmpresa, DB.finanzasMensuales, DB.productos, DB.categorias
+- [x] `tests/compartido/auth.test.js` (8 tests) — tienePermiso admin bypass, wildcard matching, requierePermiso
+- [x] `tests/calculos/compras.test.js` (12 tests), `caja.test.js` (10 tests), `productos.test.js` (10 tests)
+- [x] `tests/helpers/calculos-pos.js` — Funciones puras: IVA, descuento, diferencia caja, formatCOP
+- [x] `tests/setup.js` — Setup global mocks via window.* (__supabase, KubitAuth, localStorage)
+- [x] `vitest.config.js` + `package.json` script `test` → `vitest run`
+- [x] `specs/13-testing-model.md` — Spec de testing automatico obligatorio para toda IA
+
+#### Módulo POS — Fase 11: Icon-only Buttons & Mobile UX
+- [x] `productos.js`, `compras.js`, `clientes.js`, `proveedores.js`, `categorias.js`, `gastos.js` — Todos los botones de accion (Ver/Editar/Eliminar) convertidos a icon-only (SVG + aria-label), sin texto visible
+- [x] `ventas-historial.js`, `facturacion.js` — Boton Ver ya era icon-only desde commits anteriores
+- [x] `productos.html` — Barra fija inferior con botones Limpiar/Guardar (`fixed bottom-0 z-30` + `pb-20` en contenedor + toast `bottom-20 z-40`)
+- [x] `productos.html` — `#campo-tipo-producto` cambiado de `<input>` texto libre a `<select>` con Fisico (default), Digital, Servicio
+- [x] `productos.html` — Seccion de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header (faltaba vs. las otras 13 paginas)
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
-- [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
-- [ ] Ejecutar DML `MigracionProductos.sql` en Supabase QA
+- [ ] Asignar tags en DB a productos existentes para poblar carrusel y badges (UI ya implementada en POS y Store)
+- [x] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
 - [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
@@ -273,10 +314,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
 - [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
 - [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
+- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
 - [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
 - [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
-
+- 
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -334,6 +376,21 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 ---
 
 ## 12. Registro de Cambios
+
+### 2026-06-08 — Navbar fixed en Store + Favicon SVG en 8 páginas
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/navbar-store.js` | `sticky top-0 z-50` → `fixed top-0 left-0 right-0 z-50 w-full`. `sticky` fallaba con Tailwind CDN + flexbox layout. `fixed` es universalmente soportado. |
+| `apps/store/index.html` | `pt-14` agregado a `<main id="app" class="flex-1">` para compensar altura del navbar fixed |
+| `apps/store/producto.html` | `pt-14` agregado a `<main id="app" class="flex-1">` |
+| `apps/store/carrito.html` | `pt-14` agregado a `<main class="flex-1 max-w-7xl ...">` |
+| `apps/store/checkout.html` | `pt-14` agregado a `<main class="flex-1 max-w-7xl ...">` |
+| `apps/store/sobre-nosotros.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` antes del footer |
+| `apps/store/terminos-condiciones.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/politica-privacidad.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/preguntas-frecuentes.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/*.html` (las 8) | `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` agregado en `<head>` después de apple-touch-icon |
 
 ### 2026-06-08 — Store Badges: fix mas_vendido, add nuevo/imperdible
 
@@ -404,6 +461,96 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/compartido/auth.js` | Nueva función `poblarUserHeader()` centralizada, llamada desde `cargarSesion()` y `login()` |
 | `specs/02-database-schema.sql` | Trigger de slug actualizado: sufijo numérico `-1`, `-2`... en colisiones |
 
+### 2026-06-05 — Fix Sidebar: Admin ve todas las paginas
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/auth.js` | `tienePermiso()`: agregado bypass `if (USUARIO_ACTUAL.rolNombre === 'Administrador') return true;` al inicio |
+| `apps/pos/caja.html` | Sidebar normalizado: agregados grupos Compras, Clientes, Administracion + links Historial, Gastos, Reportes |
+| `apps/pos/inventario.html` | Sidebar normalizado: agregados grupos Compras, Clientes + links Historial, Movimientos |
+| `specs/seed-permisos.sql` | Nuevo archivo con seed data para `pos_roles`, `pos_permisos`, `pos_rol_permisos` |
+
+### 2026-06-05 — IVA Fix, Cards Layout, Modal Imagen, Filtros en Compras
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/compras.js` | Fix IVA: `tasa = (d.tasa_impuesto \|\| 0)` sin `/ 100` en `renderizarDetalle()` y `onDetalleChange()` — DB almacena 0.19 (decimal), no 19 |
+| `apps/pos/js/paginas/compras.js` | Fix IVA display en modal detalle (line 715): `Math.round(parseFloat(d.tasa_impuesto) * 100) + '%'` muestra "19%" en vez de "0.19%" |
+| `apps/pos/compras.html` | Card 1 "Nueva Orden de Compra" partida en 3 cards independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden |
+| `apps/pos/compras.html` | Card 2 "Lista de Ordenes" renumerada a Card 4 |
+| `apps/pos/compras.html` | Nuevo modal `#modal-producto-imagen` (max-w-lg, responsive, loading/image/empty states) |
+| `apps/pos/js/paginas/compras.js` | `renderizarCatalogo()`: agregado `data-producto-id`, icono SVG imagen, `cursor-pointer select-none` en celda nombre |
+| `apps/pos/js/paginas/compras.js` | Nuevas funciones: `abrirModalImagenProducto(productoId, nombre)` y `cerrarModalImagenProducto()` |
+| `apps/pos/js/paginas/compras.js` | Eventos imagen: `dblclick` en nombre (desktop), `click` en icono `.btn-ver-img-catalogo` (mobile+desktop), Escape/overlay/X |
+| `apps/pos/compras.html` | Card 4: agregados dropdowns `#filtro-proveedor` y `#filtro-estado` en la barra de busqueda |
+| `apps/pos/js/paginas/compras.js` | `filtrarYRender()`: filtro combinado texto + proveedor_id + estado (AND) |
+| `apps/pos/js/paginas/compras.js` | `cargarProveedores()`: pobla tambien `#filtro-proveedor` con opciones |
+| `apps/pos/js/paginas/compras.js` | `bindearEventos()`: listeners `change` en `#filtro-proveedor` y `#filtro-estado` |
+
+### 2026-06-05 — Fix Stock Local Post-Venta
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | `_cacheClear('productos')` agregado en `ajustarStock()` (linea 255) para invalidar cache tras cada ajuste de stock |
+| `apps/pos/js/paginas/ventas.js` | `stock_nuevo` capturado de `ajustarStock()` y aplicado a `PRODUCTOS[k].stock` inmediatamente (lineas 568-582) |
+| `apps/pos/js/paginas/ventas.js` | `nuevaVenta()` ahora es `async` y recarga productos via `await cargarProductos()` (linea 668-673) |
+
+### 2026-06-06 — Botones Icon-only, Barra Fija Mobile, Tipo Producto Select, Seccion Usuario Productos
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/productos.js` | Botones Editar/Eliminar: spans de texto reemplazados por SVG icons + aria-label (variantes + multimedia) |
+| `apps/pos/js/paginas/compras.js` | Botones Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/clientes.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/proveedores.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/categorias.js` | Boton Editar/Eliminar: texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/js/paginas/gastos.js` | Botones Editar/Eliminar (gastos + categorias de gasto): texto plano reemplazado por SVG icons + aria-label |
+| `apps/pos/productos.html` | Barra fija inferior: botones "Limpiar" y "Guardar Producto" movidos a `fixed bottom-0 z-30` con `pb-20` + toast `bottom-20 z-40` |
+| `apps/pos/productos.html` | `#campo-tipo-producto`: `<input>` texto libre → `<select>` con Fisico (default), Digital, Servicio |
+| `apps/pos/productos.html` | Seccion de usuario (`#user-avatar`, `#user-name`, `#user-rol`) agregada al header |
+| `apps/pos/productos.html` | Header ahora identico a las otras 13 paginas (dark toggle + user section) |
+
+### 2026-06-06 — Fixed Bottom Bar Global (Arquitectura)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/css/estilo.css` | Nueva clase `.content-actions-pb` (`padding-bottom: 4rem`) para estandarizar el patron de barra fija |
+| `apps/pos/categorias.html` | pb-20, barra `fixed bottom-0 z-30` con Limpiar+Guardar, toast `bottom-20 z-40` |
+| `apps/pos/clientes.html` | pb-20, barra `fixed bottom-0 z-30` con Limpiar+Guardar, toast `bottom-20 z-40` |
+| `apps/pos/proveedores.html` | pb-20, barra `fixed bottom-0 z-30` con Limpiar+Guardar, toast `bottom-20 z-40` |
+| `apps/pos/compras.html` | pb-20, barra `fixed bottom-0 z-30` con Limpiar+Guardar, toast `bottom-20 z-40` |
+| `apps/pos/configuracion.html` | pb-20, barra `fixed bottom-0 z-30` con Guardar+Reiniciar, toast `bottom-20 z-40` |
+| **Total:** 6 paginas con CRUD | Ahora todas usan el mismo patron de barra fija inferior para mobile |
+
+### 2026-06-06 — Fixed Bottom Bars Removed (Static Flow como ventas.html)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | Fixed bar removida → flujo normal (`flex flex-col sm:flex-row gap-3 pt-2`), `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/categorias.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/clientes.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/proveedores.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/compras.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| `apps/pos/configuracion.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
+| **Total:** 6 paginas | Botones ahora accesibles via scroll natural, sin overlap jamas. Misma experiencia que `ventas.html` |
+
+### 2026-06-08 — Tags de Producto: texto libre reemplazado por toggle chips
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | `<input id="campo-tags">` reemplazado por 3 toggle chips (Nuevo, Destacado, Oferta) con `data-tag` en minúscula |
+| `apps/pos/js/paginas/productos.js` | Tags se leen de `.tag-chip.active` en vez de `input.value.split(',')`. Al cargar producto se marcan chips activos. `limpiarFormulario()` resetea chips. Nuevo event listener en `#tags-container` para toggle click |
+| `apps/pos/css/estilo.css` | Nuevas clases `.tag-chip.active` (fondo slate-950) y `.dark .tag-chip.active` (fondo blanco) con `!important` para override Tailwind |
+
+### 2026-06-08 — Checkout Store: Edge Function eliminada, REST API directa
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/paginas/checkout.js` | Reemplazada llamada a Edge Function `create-pedido` por 7 operaciones REST directas via `__supabase.get()/post()`: obtener canal Web, buscar/crear cliente, crear direccion, generar numero pedido, crear pedido con `canal_id`, resolver detalle de productos y crear detalle del pedido |
+| `supabase/functions/create-pedido/` | Directorio eliminado — Edge Function ya no se necesita |
+| `supabase/config.toml` | Seccion `[functions.create-pedido]` eliminada |
+| `specs/seed-anon-grants-store.sql` | Nuevo archivo SQL con grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos`, `st_pedidos_detalle` |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -425,6 +572,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
 - **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
 - **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
+- **Navbar fixed en Store vs sticky:** Se usa `position: fixed` en vez de `sticky` porque Tailwind CDN no siempre procesa correctamente clases CSS en contenido inyectado via JavaScript (`innerHTML`). `position: fixed` es universalmente soportado y no depende del MutationObserver del CDN. Se compensa con `pt-14` (56px = altura del navbar `h-14`) en el `<main>` de cada página.
+- **Favicon SVG en Store:** Las 8 páginas HTML del Store usan `<link rel="icon" type="image/svg+xml" href="img/icon.svg">`. SVG es soportado como favicon en navegadores modernos (Chrome, Firefox, Edge, Safari 14+). No se generan versiones PNG ni ICO.
 
 ---
 
@@ -463,3 +612,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Tags de producto (POS) | `productos.html` toggle chips, `productos.js::leerTagsDesdeChips()` |
 | Tags en DB | `pos_productos.tags text[]`, lowercase obligatorio |
 | Mapeo tag→badge | `card-producto.js::badgeMap`, `card-producto.js::ofertaTags` |
+| Navbar Store | `navbar-store.js` (se inyecta en `<div id="navbar">`) |
+| Navbar fixed | `navbar-store.js`: `fixed top-0 left-0 right-0 z-50 w-full` + `pt-14` en `<main>` |
+| Favicon Store | `apps/store/*.html`: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` |
+| Iconos Store | `apps/store/img/icon.svg` (complejo), `icon2.svg` (minimalista bolsa) |

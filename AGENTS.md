@@ -190,6 +190,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Todas las páginas migradas: `data.js` → `supabase-client.js`
 - [x] `MigracionProductos.sql` — DML generado automáticamente (100 productos, 1158 INSERTs total: 100 pos_productos + 100 detalle + 958 multimedia)
 - [x] `checkout.js` — Guest checkout: crea pedidos via REST API directa (`__supabase.post()`) con 7 operaciones secuenciales (canal Web, cliente, dirección, pedido, detalle). Sin Edge Functions
+- [x] **Favicon SVG**: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` agregado en las 8 páginas HTML
+- [x] **Navbar fixed**: `navbar-store.js` cambiado de `sticky` a `fixed top-0 left-0 right-0 z-50 w-full` para que el navbar (logo, búsqueda, redes, carrito) permanezca visible al scrollear en todas las páginas. `pt-14` agregado al `<main>` wrapper para compensar altura.
+- [x] **icon2.svg**: Nuevo archivo de icono minimalista (bolsa/tienda) para uso futuro
 
 #### Módulo POS (Punto de Venta) — Fase 1: Auth Real
 - [x] `config.js` — Configuración multi-entorno (QA/Prod) con credenciales Supabase
@@ -374,6 +377,21 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ## 12. Registro de Cambios
 
+### 2026-06-08 — Navbar fixed en Store + Favicon SVG en 8 páginas
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/navbar-store.js` | `sticky top-0 z-50` → `fixed top-0 left-0 right-0 z-50 w-full`. `sticky` fallaba con Tailwind CDN + flexbox layout. `fixed` es universalmente soportado. |
+| `apps/store/index.html` | `pt-14` agregado a `<main id="app" class="flex-1">` para compensar altura del navbar fixed |
+| `apps/store/producto.html` | `pt-14` agregado a `<main id="app" class="flex-1">` |
+| `apps/store/carrito.html` | `pt-14` agregado a `<main class="flex-1 max-w-7xl ...">` |
+| `apps/store/checkout.html` | `pt-14` agregado a `<main class="flex-1 max-w-7xl ...">` |
+| `apps/store/sobre-nosotros.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` antes del footer |
+| `apps/store/terminos-condiciones.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/politica-privacidad.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/preguntas-frecuentes.html` | Contenido envuelto en `<main class="flex-1 pt-14">` + `</main>` |
+| `apps/store/*.html` (las 8) | `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` agregado en `<head>` después de apple-touch-icon |
+
 ### 2026-06-08 — Store Badges: fix mas_vendido, add nuevo/imperdible
 
 | Archivo | Cambio |
@@ -554,6 +572,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
 - **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
 - **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
+- **Navbar fixed en Store vs sticky:** Se usa `position: fixed` en vez de `sticky` porque Tailwind CDN no siempre procesa correctamente clases CSS en contenido inyectado via JavaScript (`innerHTML`). `position: fixed` es universalmente soportado y no depende del MutationObserver del CDN. Se compensa con `pt-14` (56px = altura del navbar `h-14`) en el `<main>` de cada página.
+- **Favicon SVG en Store:** Las 8 páginas HTML del Store usan `<link rel="icon" type="image/svg+xml" href="img/icon.svg">`. SVG es soportado como favicon en navegadores modernos (Chrome, Firefox, Edge, Safari 14+). No se generan versiones PNG ni ICO.
 
 ---
 
@@ -592,3 +612,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Tags de producto (POS) | `productos.html` toggle chips, `productos.js::leerTagsDesdeChips()` |
 | Tags en DB | `pos_productos.tags text[]`, lowercase obligatorio |
 | Mapeo tag→badge | `card-producto.js::badgeMap`, `card-producto.js::ofertaTags` |
+| Navbar Store | `navbar-store.js` (se inyecta en `<div id="navbar">`) |
+| Navbar fixed | `navbar-store.js`: `fixed top-0 left-0 right-0 z-50 w-full` + `pt-14` en `<main>` |
+| Favicon Store | `apps/store/*.html`: `<link rel="icon" type="image/svg+xml" href="img/icon.svg">` |
+| Iconos Store | `apps/store/img/icon.svg` (complejo), `icon2.svg` (minimalista bolsa) |
