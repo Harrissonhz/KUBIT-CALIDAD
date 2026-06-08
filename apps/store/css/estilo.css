@@ -207,6 +207,16 @@ body {
   display: none;
 }
 
+@media (min-width: 640px) {
+  .categoria-menu {
+    scrollbar-width: thin;
+  }
+  .categoria-menu::-webkit-scrollbar {
+    display: block;
+    height: 6px;
+  }
+}
+
 @media (max-width: 639px) {
   .categoria-menu {
     padding: 10px 0;
