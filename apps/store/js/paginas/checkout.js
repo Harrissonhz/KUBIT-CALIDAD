@@ -7,11 +7,48 @@ document.addEventListener('DOMContentLoaded', function() {
     return;
   }
   renderizarResumen(items);
+  poblarDepartamentos();
   document.getElementById('btn-confirmar-pedido').addEventListener('click', function(e) {
     e.preventDefault();
     confirmarPedido(items);
   });
 });
+
+function poblarDepartamentos() {
+  var $select = document.getElementById('checkout-departamento');
+  if (!$select || !window.COLOMBIA) return;
+  var deptos = Object.keys(COLOMBIA).sort();
+  for (var i = 0; i < deptos.length; i++) {
+    var $opt = document.createElement('option');
+    $opt.value = deptos[i];
+    $opt.textContent = deptos[i];
+    $select.appendChild($opt);
+  }
+  $select.addEventListener('change', function() {
+    filtrarCiudades(this.value);
+  });
+}
+
+function filtrarCiudades(depto) {
+  var $input = document.getElementById('checkout-ciudad');
+  var $datalist = document.getElementById('lista-ciudades');
+  if (!$input || !$datalist) return;
+  if (!depto || !window.COLOMBIA || !COLOMBIA[depto]) {
+    $datalist.innerHTML = '';
+    $input.value = '';
+    $input.placeholder = 'Primero selecciona un departamento';
+    return;
+  }
+  $datalist.innerHTML = '';
+  var ciudades = COLOMBIA[depto];
+  for (var i = 0; i < ciudades.length; i++) {
+    var $opt = document.createElement('option');
+    $opt.value = ciudades[i];
+    $datalist.appendChild($opt);
+  }
+  $input.value = '';
+  $input.placeholder = 'Escribe tu ciudad...';
+}
 
 function obtenerCarritoCheckout() {
   try {
