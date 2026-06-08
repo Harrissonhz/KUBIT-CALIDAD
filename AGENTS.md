@@ -178,6 +178,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `03-pos-spec.md` — Especificación completa del módulo POS
 - [x] `04-store-spec.md` — Especificación completa del módulo Store
 - [x] `05-ui-ux-system.md` — Sistema de diseño UI/UX (Tailwind, colores, responsive, PWA)
+- [x] `06-servicio-correo.md` — Especificacion simplificada de correo transaccional con Resend (POST-MVP, no implementar en v1)
 - [x] `ARCHITECTURE.md` — Estructura de directorios
 - [x] `AGENTS.md` — Memoria persistente (este archivo)
 - [x] `CONTEXT.md` — Glosario de dominio del proyecto
@@ -345,6 +346,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
 - [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
 - [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
+- [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
@@ -696,3 +698,4 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Badge mas_vendido | `card-producto.js::badgeMap`, key `mas_vendido` con guion bajo |
 | Badge imperdible | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-imperdible` |
 | Badge nuevo | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-nuevo` |
+| Correo transaccional (post-MVP) | `specs/06-servicio-correo.md`, Resend, Edge Function send-mail, postergado |
