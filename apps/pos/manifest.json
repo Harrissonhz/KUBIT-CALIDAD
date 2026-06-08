@@ -2,14 +2,17 @@
   "name": "Kubit POS",
   "short_name": "Kubit POS",
   "description": "Sistema de punto de venta multi-canal",
-  "start_url": "/apps/pos/ventas.html",
+  "start_url": "ventas.html",
+  "scope": ".",
   "display": "standalone",
   "background_color": "#F8FAFC",
   "theme_color": "#020617",
   "orientation": "any",
   "categories": ["business", "finance", "shopping"],
   "icons": [
-    { "src": "img/icon.svg", "sizes": "192x192", "type": "image/svg+xml" },
-    { "src": "img/icon.svg", "sizes": "512x512", "type": "image/svg+xml" }
+    { "src": "img/icon-192x192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "img/icon-512x512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "img/icon.svg", "sizes": "192x192", "type": "image/svg+xml", "purpose": "any" },
+    { "src": "img/icon.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
   ]
 }

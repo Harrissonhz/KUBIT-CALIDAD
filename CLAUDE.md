@@ -312,6 +312,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] iOS meta tags (`apple-mobile-web-app-capable`, `apple-mobile-web-app-status-bar-style`, `apple-touch-icon`) en 17/17 paginas HTML
 - [x] SW registration (`navigator.serviceWorker.register`) en 17/17 paginas HTML
 - [x] `manifest.json` — Propiedad `categories` agregada: `["business","finance","shopping"]`
+- [x] `manifest.json` — `start_url` corregido de `/apps/pos/ventas.html` a `ventas.html` (ruta relativa) + `scope` agregado
+- [x] `img/icon-{192x192,512x512}.png` — Iconos PNG generados desde SVG para compatibilidad Android
+- [x] `manifest.json` — Iconos PNG referenciados como primary, SVG como fallback con `purpose: "any"`
+- [x] `apple-touch-icon` — Actualizado en 17/17 paginas: `href="img/icon.svg"` → `href="img/icon-192x192.png"`
 
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
@@ -598,6 +602,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/index.html` | PWA head tags completos (antes solo tenia manifest link) |
 | `apps/pos/factura-print.html` | PWA head tags completos + SW registration (antes no tenia ninguno) |
 | `tests/` | Verificacion: `npm test` → 99 tests, 0 failures (5 suites) |
+
+### 2026-06-08 — Fix PWA Android: start_url relativo + iconos PNG
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/manifest.json` | `start_url` corregido de `/apps/pos/ventas.html` a `ventas.html` (relativo). `scope` agregado. Iconos PNG 192x192 y 512x512 como primary, SVG como `purpose: "any"` fallback. |
+| `apps/pos/img/icon-192x192.png` | Nuevo archivo generado desde `icon.svg` via `sharp` |
+| `apps/pos/img/icon-512x512.png` | Nuevo archivo generado desde `icon.svg` via `sharp` |
+| `apps/pos/*.html` (17 paginas) | `<link rel="apple-touch-icon">` actualizado: `href="img/icon.svg"` → `href="img/icon-192x192.png"` |
 
 ### Decisiones de Diseno Tomadas
 
