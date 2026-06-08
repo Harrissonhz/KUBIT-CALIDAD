@@ -469,7 +469,40 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 5. Las categorías jerárquicas se navegan desde `pos_categorias.categoria_padre_id`
 6. La imagen principal del producto es el registro `pos_productos_multimedia` con `orden = 0`
 
-### 3.2 Carrito de Compras
+### 3.2 Sistema de Badges por Tags
+
+Los productos pueden tener uno o varios tags (campo `tags text[]` en `pos_productos`). En las cards del catálogo Store, estos tags se renderizan como badges visuales apilados verticalmente en la esquina superior izquierda.
+
+#### Tags Disponibles y su Mapeo Visual
+
+| Tag (DB, lowercase) | Badge en Store | Color | Icono |
+|---|---|---|---|
+| `nuevo` | "Nuevo" | Azul (`#dbeafe` / `#1e40af`) | 🆕 |
+| `destacado` | "Destacado" | Amarillo (`#fef9c3` / `#854d0e`) | ★ |
+| `oferta` | "Oferta" | Rojo (`#fee2e2` / `#991b1b`) | 🔥 |
+| `super-oferta` | "Oferta" | Rojo | 🔥 |
+| `remate` | "Oferta" | Rojo | 🔥 |
+| `mas_vendido` | "Más Vendido" | Naranja (`#fed7aa` / `#7c2d12`) | ⭐ |
+| `liquidacion` | "Liquidación" | Naranja | ⚡ |
+| `imperdible` | "Imperdible" | Púrpura (`#ede9fe` / `#5b21b6`) | 💎 |
+
+#### Reglas de Visualización
+
+1. **Multi-badge:** Un producto con múltiples tags muestra TODOS los badges que coincidan, apilados verticalmente con separación `gap-1.5`
+2. **Orden de apilamiento:** Sigue el orden del array `tags` en DB (como viene de la API)
+3. **Prioridad "Agotado":** Si `stockTotal === 0` o el tag `agotado` está presente, SOLO se muestra el badge "Agotado" (los demás se ocultan)
+4. **Oferta agrupa múltiples tags:** Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un único badge "Oferta" (no se duplican)
+5. **Tags sin mapeo:** Los tags que no están en el `badgeMap` ni en `ofertaTags` se ignoran silenciosamente (no generan badge)
+6. **Case-sensitive:** Los tags en DB deben estar en **minúsculas exactas** para que coincidan con el `badgeMap`. Ver `card-producto.js:5-13`
+
+#### Implementación
+
+- **Archivo:** `apps/store/js/compartido/card-producto.js`
+- **Función principal:** `obtenerBadges(producto)` — itera `producto.tags[]` y construye array de badges
+- **Render:** `renderBadge(badge)` — genera `<span class="badge badge-{tipo}">`
+- **Estilos CSS:** `apps/store/css/estilo.css` — clases `.badge-*` con fondos y colores específicos
+
+### 3.3 Carrito de Compras
 
 1. **Invitados:** El carrito se asocia a `session_id` (generado por el frontend) y se persiste en localStorage + DB
 2. **Registrados:** El carrito se asocia a `cliente_id` y se sincroniza entre dispositivos
@@ -478,7 +511,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 5. **Precio:** Se congela al agregar. Si el precio cambia después, se notifica al cliente antes de checkout
 6. **Abandono:** Carritos sin actividad por 7 días pasan a `ABANDONADO`. Se pueden enviar correos de recuperación
 
-### 3.3 Checkout
+### 3.4 Checkout
 
 1. Se requiere al menos: dirección de envío, método de pago y aceptación de términos
 2. El guest checkout captura email, nombre y dirección sin crear cuenta completa en `pos_clientes`
@@ -507,7 +540,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 6. `GET pos_productos_detalle?producto_id=eq.X` — Resolver `producto_detalle_id` por cada item
 7. `POST st_pedidos_detalle` — Crear detalle del pedido (bulk insert)
 
-### 3.4 Gestión de Pedidos (Admin)
+### 3.5 Gestión de Pedidos (Admin)
 
 1. El administrador puede cambiar el estado del pedido manualmente
 2. Al pasar a `ENVIADO`: se requiere `numero_guia` y `transportadora` en `st_envios`
@@ -519,7 +552,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
    - Se revierte el inventario
    - Se procesa reembolso parcial o total
 
-### 3.5 Cupones
+### 3.6 Cupones
 
 1. Se validan en orden: vigencia → usos → monto mínimo → aplicabilidad
 2. Cupón tipo `porcentaje`: descuento = subtotal * (valor / 100)
@@ -527,7 +560,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 4. Cupón tipo `envio_gratis`: costo_envio = 0
 5. Una vez aplicado a un pedido, se incrementa `usos_actuales`
 
-### 3.6 Reseñas
+### 3.7 Reseñas
 
 1. Solo se puede reseñar después de que el pedido está `ENTREGADO`
 2. La reseña aparece en el catálogo solo después de `aprobada = true`
@@ -535,7 +568,7 @@ PENDIENTE → PAGADO → CONFIRMADO → ENVIADO → ENTREGADO
 4. El cliente puede actualizar su reseña (se conserva la última versión con su `updated_at`)
 5. El administrador puede eliminar reseñas (soft delete)
 
-### 3.7 Integración con POS (Stock en Tiempo Real)
+### 3.8 Integración con POS (Stock en Tiempo Real)
 
 - El stock (`pos_productos_detalle.stock_actual`) es la fuente única de verdad
 - El Store consulta el stock directamente de la tabla compartida
@@ -696,6 +729,7 @@ create policy "anon crean detalle de pedidos"
 - **Selector de variante:** Según atributos JSONB (talla, color, etc.)
 - **Carrito lateral (slide-over):** Accesible desde cualquier página
 - **Checkout en 3 pasos:** Dirección → Pago → Confirmación
+- **Card de producto (`CardProducto` en `js/compartido/card-producto.js`):** Renderiza imagen, nombre, precio, botón "Agregar" y badges apilados de tags. Los badges se posicionan en esquina superior izquierda (`absolute top-2 left-2 flex flex-col gap-1.5 z-10`). Ver §3.2 para mapeo tag→badge.
 
 ### 7.3 SEO
 - URLs amigables con slugs generados del nombre del producto

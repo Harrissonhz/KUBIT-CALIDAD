@@ -295,7 +295,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
-- [ ] Asignar tags (`destacado`, `oferta`, etc.) a productos para carrusel y badges
+- [ ] Asignar tags en DB a productos existentes para poblar carrusel y badges (UI ya implementada en POS y Store)
 - [x] Ejecutar DML `MigracionProductos.sql` en Supabase QA
 - [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
 - [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
@@ -373,6 +373,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 ---
 
 ## 12. Registro de Cambios
+
+### 2026-06-08 — Store Badges: fix mas_vendido, add nuevo/imperdible
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/card-producto.js` | `badgeMap`: key `'mas-vendido'` corregido a `'mas_vendido'`, agregados `nuevo` e `imperdible` |
+| `apps/store/js/compartido/card-producto.js` | `ofertaTags`: removidos `imperdible` e `imperdibles` |
+| `apps/store/js/compartido/card-producto.js` | `renderBadge`: agregados iconos para `nuevo`, `mas-vendido`, `imperdible` |
+| `apps/store/css/estilo.css` | Clases `.badge-nuevo` (azul), `.badge-imperdible` (purpura) agregadas |
 
 ### 2026-06-03 — UI Fixes & Refinements POS
 
@@ -507,6 +516,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/configuracion.html` | Fixed bar removida → flujo normal, `pb-20` quitado, toast `bottom-6 z-50` |
 | **Total:** 6 paginas | Botones ahora accesibles via scroll natural, sin overlap jamas. Misma experiencia que `ventas.html` |
 
+### 2026-06-08 — Tags de Producto: texto libre reemplazado por toggle chips
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/productos.html` | `<input id="campo-tags">` reemplazado por 3 toggle chips (Nuevo, Destacado, Oferta) con `data-tag` en minúscula |
+| `apps/pos/js/paginas/productos.js` | Tags se leen de `.tag-chip.active` en vez de `input.value.split(',')`. Al cargar producto se marcan chips activos. `limpiarFormulario()` resetea chips. Nuevo event listener en `#tags-container` para toggle click |
+| `apps/pos/css/estilo.css` | Nuevas clases `.tag-chip.active` (fondo slate-950) y `.dark .tag-chip.active` (fondo blanco) con `!important` para override Tailwind |
+
 ### 2026-06-08 — Checkout Store: Edge Function eliminada, REST API directa
 
 | Archivo | Cambio |
@@ -534,6 +551,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
 - **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
 - **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
+- **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
+- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
+- **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
 
 ---
 
@@ -568,3 +588,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Test suite | `tests/`, `npm test`, `vitest`, `setup.js` |
 | Tests de calculo | `tests/calculos/`, `calculos-pos.js`, `compras.test.js`, `caja.test.js`, `productos.test.js` |
 | Testing spec | `specs/13-testing-model.md` |
+| Store badges | `card-producto.js::obtenerBadges()`, `apps/store/css/estilo.css` clases `.badge-*` |
+| Tags de producto (POS) | `productos.html` toggle chips, `productos.js::leerTagsDesdeChips()` |
+| Tags en DB | `pos_productos.tags text[]`, lowercase obligatorio |
+| Mapeo tag→badge | `card-producto.js::badgeMap`, `card-producto.js::ofertaTags` |

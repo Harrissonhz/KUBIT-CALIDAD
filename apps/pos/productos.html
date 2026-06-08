@@ -223,15 +223,24 @@
               <label class="label-campo">Descripcion</label>
               <textarea id="campo-descripcion" class="input-campo" rows="4" placeholder="Descripcion detallada del producto"></textarea>
             </div>
-            <div class="sm:col-span-2 lg:col-span-4 pt-1">
-              <label class="inline-flex items-center gap-2.5 cursor-pointer select-none px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                <input type="checkbox" id="campo-activo" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-950 dark:text-white">
-                <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Producto Activo</span>
-              </label>
-            </div>
-            <div class="sm:col-span-2 lg:col-span-4">
-              <label class="label-campo">Tags (separados por coma)</label>
-              <input type="text" id="campo-tags" class="input-campo" placeholder="Ej: nuevo, destacado, oferta">
+            <div class="sm:col-span-2 lg:col-span-4 flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6">
+              <div class="shrink-0">
+                <label class="inline-flex items-center gap-2.5 cursor-pointer select-none px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                  <input type="checkbox" id="campo-activo" checked class="w-4 h-4 rounded border-slate-300 dark:border-slate-600 text-slate-950 dark:text-white">
+                  <span class="text-sm font-medium text-slate-700 dark:text-slate-300">Producto Activo</span>
+                </label>
+              </div>
+              <div class="flex-1 min-w-0">
+                <label class="label-campo">Tags</label>
+                <div id="tags-container" class="flex flex-wrap gap-2">
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="nuevo">Nuevo</button>
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="destacado">Destacado</button>
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="oferta">Oferta</button>
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="mas_vendido">Mas Vendido</button>
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="liquidacion">Liquidacion</button>
+                  <button type="button" class="tag-chip px-3 py-1.5 text-xs font-medium rounded-full border transition-colors bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-500" data-tag="imperdible">Imperdible</button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

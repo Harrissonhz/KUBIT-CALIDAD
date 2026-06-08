@@ -455,8 +455,9 @@
     $('form-producto-id').textContent = '';
     ['campo-nombre', 'campo-codigo-interno', 'campo-codigo-barras', 'campo-marca', 'campo-modelo', 'campo-tipo-producto',
       'campo-descripcion', 'campo-precio-venta', 'campo-precio-compra', 'campo-precio-mayorista', 'campo-precio-original',
-      'campo-tags', 'campo-stock-min', 'campo-stock-max', 'campo-peso', 'campo-dimensiones'
+      'campo-stock-min', 'campo-stock-max', 'campo-peso', 'campo-dimensiones'
     ].forEach(function (id) { var el = $(id); if (el) el.value = ''; });
+    document.querySelectorAll('.tag-chip.active').forEach(function (el) { el.classList.remove('active'); });
     $('campo-stock').value = '';
     $('campo-descuento-max').value = '';
     $('campo-stock-min').value = '2';
@@ -490,7 +491,9 @@
     $('campo-tipo-producto').value = p.tipoProducto;
     $('campo-descripcion').value = p.descripcion;
     $('campo-categoria').value = p.categoriaId;
-    $('campo-tags').value = (p.tags || []).join(', ');
+    document.querySelectorAll('.tag-chip').forEach(function (el) {
+      if ((p.tags || []).indexOf(el.dataset.tag) !== -1) el.classList.add('active');
+    });
     $('campo-activo').checked = p.activo;
     var tasa = Math.round((p.tasaImpuesto || 0) * 100);
     $('campo-impuesto').value = tasa;
@@ -620,7 +623,7 @@
         descripcion: $('campo-descripcion').value.trim() || null,
         tasa_impuesto: parseFloat($('campo-impuesto').value) / 100 || 0.19,
         activo: $('campo-activo').checked,
-        tags: $('campo-tags').value.split(',').map(function (t) { return t.trim(); }).filter(Boolean),
+        tags: Array.from(document.querySelectorAll('.tag-chip.active')).map(function (el) { return el.dataset.tag; }),
         updated_by: userId
       };
 
@@ -979,6 +982,12 @@
     // Formulario
     $('btn-limpiar-form').addEventListener('click', limpiarFormulario);
     $('btn-guardar').addEventListener('click', guardarProducto);
+
+    // Tags
+    document.getElementById('tags-container').addEventListener('click', function (e) {
+      var chip = e.target.closest('.tag-chip');
+      if (chip) chip.classList.toggle('active');
+    });
 
     // Margen auto
     $('campo-precio-venta').addEventListener('input', calcularMargen);

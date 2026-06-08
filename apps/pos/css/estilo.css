@@ -230,6 +230,18 @@ select.input-campo {
   }
 }
 
+/* Tag chips para seleccion de tags en productos */
+.tag-chip.active {
+  background-color: #020617 !important;
+  border-color: #020617 !important;
+  color: #ffffff !important;
+}
+.dark .tag-chip.active {
+  background-color: #ffffff !important;
+  border-color: #ffffff !important;
+  color: #020617 !important;
+}
+
 /* Ocultar flechas arriba/abajo en inputs number (Chrome, Safari, Edge) */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {

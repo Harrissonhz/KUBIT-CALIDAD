@@ -150,6 +150,7 @@ Prefer: return=representation
   "nombre": "Producto Ejemplo",
   "categoria_id": "uuid-categoria",
   "tasa_impuesto": 0.19,
+  "tags": ["nuevo", "destacado"],
   "activo": true,
   "pos_productos_detalle": [
     {
@@ -173,8 +174,11 @@ Content-Type: application/json
 ```json
 {
   "nombre": "Nuevo Nombre",
-  "tasa_impuesto": 0.05
+  "tasa_impuesto": 0.05,
+  "tags": ["nuevo", "destacado", "oferta"]
 }
+
+> Los tags se almacenan como `text[]` (PostgreSQL array). Siempre en **minúsculas**. Valores validos: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`. Cualquier otro valor se ignora en el Store (no genera badge).
 ```
 
 #### 3.1.5 Eliminar producto (soft delete)
@@ -458,6 +462,8 @@ GET /rest/v1/pos_productos
   &order=nombre.asc
   &limit=50
 ```
+
+> El campo `tags` viene incluido en `pos_productos.*`. Es un `text[]` con valores en lowercase. Ver `04-store-spec.md §3.2` para el mapeo de tags a badges.
 
 ### 4.2 Carrito
 

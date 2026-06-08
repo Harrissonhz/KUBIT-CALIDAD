@@ -3,12 +3,14 @@ function obtenerBadges(producto) {
   const tags = producto.tags || [];
 
   const badgeMap = {
-    'destacado':     { tipo: 'destacado',   texto: 'Destacado' },
-    'mas-vendido':   { tipo: 'mas-vendido', texto: 'Más Vendido' },
-    'liquidacion':   { tipo: 'liquidacion', texto: 'Liquidación' },
+    'nuevo':         { tipo: 'nuevo',        texto: 'Nuevo' },
+    'destacado':     { tipo: 'destacado',    texto: 'Destacado' },
+    'mas_vendido':   { tipo: 'mas-vendido',  texto: 'Más Vendido' },
+    'liquidacion':   { tipo: 'liquidacion',  texto: 'Liquidación' },
+    'imperdible':    { tipo: 'imperdible',   texto: 'Imperdible' },
   };
 
-  const ofertaTags = ['oferta', 'super-oferta', 'remate', 'imperdibles', 'imperdible', 'producto-mes'];
+  const ofertaTags = ['oferta', 'super-oferta', 'remate'];
 
   const tieneVariantes = (producto.variantes || []).length > 0;
   const stockTotal = tieneVariantes
@@ -33,11 +35,13 @@ function obtenerBadges(producto) {
 
 function renderBadge(badge) {
   const map = {
-    'destacado':   { icon: '★',   cls: 'badge-destacado' },
-    'oferta':      { icon: '🔥',  cls: 'badge-oferta' },
-    'mas-vendido': { icon: '★',   cls: 'badge-mas-vendido' },
-    'liquidacion': { icon: '⚡',  cls: 'badge-liquidacion' },
-    'agotado':     { icon: '—',   cls: 'badge-agotado' },
+    'nuevo':       { icon: '🆕', cls: 'badge-nuevo' },
+    'destacado':   { icon: '★',  cls: 'badge-destacado' },
+    'oferta':      { icon: '🔥', cls: 'badge-oferta' },
+    'mas-vendido': { icon: '⭐', cls: 'badge-mas-vendido' },
+    'liquidacion': { icon: '⚡', cls: 'badge-liquidacion' },
+    'imperdible':  { icon: '💎', cls: 'badge-imperdible' },
+    'agotado':     { icon: '—',  cls: 'badge-agotado' },
   };
   const m = map[badge.tipo] || { icon: '', cls: 'badge' };
   return `<span class="badge ${m.cls}">${m.icon} ${badge.texto}</span>`;

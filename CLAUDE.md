@@ -335,6 +335,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ## 12. Registro de Cambios
 
+### 2026-06-08 — Store Badges: fix mas_vendido, add nuevo/imperdible
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/card-producto.js` | `badgeMap`: key `'mas-vendido'` corregido a `'mas_vendido'`, agregados `nuevo` e `imperdible` |
+| `apps/store/js/compartido/card-producto.js` | `ofertaTags`: removidos `imperdible` e `imperdibles` |
+| `apps/store/js/compartido/card-producto.js` | `renderBadge`: agregados iconos para `nuevo`, `mas-vendido`, `imperdible` |
+| `apps/store/css/estilo.css` | Clases `.badge-nuevo` (azul), `.badge-imperdible` (purpura) agregadas |
+
 ### 2026-06-03 — UI Fixes & Refinements POS
 
 | Archivo | Cambio |
@@ -404,6 +413,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Modo oscuro default:** Se implementa con `class="dark"` directo en `<html>` + anti-flash script que lo remueve si localStorage dice `'false'`. El JS existente en cada página sigue funcionando para el toggle, pero la inicialización la maneja el script inline en el `<head>`.
 - **Multi-variante con filas expandibles:** Los campos secundarios (precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones) se editan en filas expandibles (▼) en vez de columnas fijas, para mantener la tabla compacta.
 - **IA debe ejecutar `npx serve apps/pos` para pruebas:** No usar `file://` porque los fetch a Supabase y el manifest.json fallan por CORS.
+- **Admin bypass de permisos en `tienePermiso()`:** El rol 'Administrador' siempre retorna `true` en `tienePermiso()` sin consultar DB, para garantizar que vea todas las pantallas aunque fallen los datos semilla de `pos_rol_permisos`.
+- **Sidebar normalizado:** `caja.html` e `inventario.html` ahora tienen el sidebar completo con los 6 grupos (Ventas, Inventario, Compras, Clientes, Caja/Finanzas, Administracion) idéntico al de `ventas.html`.
+- **IVA embebido en compras:** `precio_unitario` en orden de compra YA incluye IVA. Calculo: `totalConIva = cantidad * precio_unitario * (1 - descuento%)`, luego `subtotal = totalConIva / (1 + tasa)`, `impuesto = totalConIva - subtotal`, `total = totalConIva`. `tasa_impuesto` en DB es decimal (0.19 para 19%) — NO dividir entre 100.
+- **Cards separadas en compras:** La pagina `compras.html` tiene 4 cards `<details>` independientes: Datos del Proveedor, Catalogo de Productos, Productos en la Orden, Lista de Ordenes. Cada una colapsable individualmente para mejor usabilidad.
+- **Modal imagen producto via dblclick + icono:** En desktop, doble clic en nombre del producto en catalogo abre modal con imagen. En mobile (dblclick no existe), icono SVG de imagen siempre visible al lado del nombre. Imagen via `DB.productosMultimedia.listar(productoId)` con filtro `tipo === 'imagen'`.
+- **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
+- **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
+- **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
+- **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
+- **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
+- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
+- **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
 
 ---
 
@@ -428,3 +449,17 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Skills de IA | `.opencode/skills/`, `.claude/skills/` |
 | Archivos informativos externos | `ArchivosInformativos/` |
 | Glosario de dominio | `CONTEXT.md` |
+| Codigo Compras | `apps/pos/js/paginas/compras.js` |
+| Filtros en Ordenes de Compra | `filtrarYRender()`, `#filtro-proveedor`, `#filtro-estado` |
+| Modal imagen producto | `abrirModalImagenProducto()`, `#modal-producto-imagen` |
+| IVA en compras (tasa decimal) | `tasa_impuesto` es decimal (0.19), NO dividir entre 100 |
+| Botones icon-only | `btn-editar`, `btn-eliminar`, `btn-ver`, SVG icons + aria-label |
+| Barra fija inferior (removida) | ver `estilo.css` `.content-actions-pb` (historial), ya no se usa |
+| Tipo Producto | `#campo-tipo-producto`, `<select>` Fisico/Digital/Servicio |
+| Test suite | `tests/`, `npm test`, `vitest`, `setup.js` |
+| Tests de calculo | `tests/calculos/`, `calculos-pos.js`, `compras.test.js`, `caja.test.js`, `productos.test.js` |
+| Testing spec | `specs/13-testing-model.md` |
+| Store badges | `card-producto.js::obtenerBadges()`, `apps/store/css/estilo.css` clases `.badge-*` |
+| Tags de producto (POS) | `productos.html` toggle chips, `productos.js::leerTagsDesdeChips()` |
+| Tags en DB | `pos_productos.tags text[]`, lowercase obligatorio |
+| Mapeo tag→badge | `card-producto.js::badgeMap`, `card-producto.js::ofertaTags` |
