@@ -480,11 +480,12 @@
               '<td>' + escaparHTML(prodName) + '</td>' +
               '<td>' + d.cantidad + '</td>' +
               '<td>' + formatearMoneda(d.precio_unitario) + '</td>' +
+              '<td>' + formatearMoneda(d.impuesto || 0) + '</td>' +
               '<td>' + formatearMoneda(d.total) + '</td>' +
               '</tr>';
           }).join('');
         } else {
-          itemsHtml = '<tr><td colspan="4" style="text-align:center;color:#94a3b8;padding:20px 0;">Sin detalle de productos</td></tr>';
+          itemsHtml = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px 0;">Sin detalle de productos</td></tr>';
         }
 
         $('invoice-content').innerHTML =
@@ -528,6 +529,7 @@
           '<th>Producto</th>' +
           '<th style="text-align:center;">Cant</th>' +
           '<th style="text-align:right;">Precio U.</th>' +
+          '<th style="text-align:right;">Impuesto</th>' +
           '<th style="text-align:right;">Total</th>' +
           '</tr>' +
           '</thead>' +
