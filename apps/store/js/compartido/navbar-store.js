@@ -3,7 +3,7 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!$navbar) return;
 
   $navbar.innerHTML = `
-    <nav class="bg-slate-950 border-b border-slate-800 sticky top-0 z-50">
+    <nav class="bg-slate-950 border-b border-slate-800 fixed top-0 left-0 right-0 z-50 w-full">
       <div class="max-w-7xl mx-auto px-4 sm:px-6">
         <div class="flex items-center justify-between h-14">
           <a href="index.html" class="flex items-center gap-2 shrink-0">
