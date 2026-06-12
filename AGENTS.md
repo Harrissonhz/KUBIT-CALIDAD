@@ -647,6 +647,23 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `specs/01-master-spec.md` | `06-servicio-correo.md` agregado al mapa de artefactos. |
 | **Decision** | No implementar en v1. Con ~1 venta/mes, el costo supera el beneficio. Alternativa: modal de exito en checkout + gestion manual del store owner. |
 
+### 2026-06-12 — KPI Bar "Ventas Hoy / Total Hoy / Promedio" en ventas.html
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/ventas.html` | Nueva barra compacta de 3 indicadores (Hoy, Total, Prom.) entre header y Card 1. Diseno: `flex flex-wrap` con iconos SVG + `text-xs`. 30px altura vs 180px de cards. Sin cache, actualizacion inmediata post-venta. |
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `ventas.estadisticasHoy()` usa agregados nativos PostgREST: `/pos_ventas?select=count,sum:total,avg:total&estado=eq.CONFIRMADA&fecha_venta=gte.{hoy}`. Devuelve 1 fila, peso minimo, sin cache. |
+| `apps/pos/js/paginas/ventas.js` | Nueva funcion `cargarEstadisticas()` con fallback silencioso a `—` en error. Llamada en `init()` via `Promise.all` y post-`procesarVenta()` para refresco inmediato. |
+| **Design** | Barra sutil coherente con stats bar de Totales. No rompe patron `<details>` cards. Mobile: cada indicador en su propia linea via `flex-wrap`. Valores iniciales `—` hasta que carga la API. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-12 — Columna `codigo_interno` en Modal Detalle de Historial
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/ventas-historial.js` | Agregado `<span class="text-xs text-slate-400 font-mono w-20 truncate">` con `d.detalle.codigo_interno` antes del nombre del producto. Solo se renderiza si existe el codigo. Sin cambios en HTML (`sm:max-w-4xl` ya tiene espacio). Sin cambios en DB (`codigo_interno` ya venia en el join existente). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -664,6 +681,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
 - **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
 - **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
+- **KPI Bar en ventas.html:** Los indicadores del dia (Ventas Hoy, Total Hoy, Promedio) se renderizan como barra compacta de 30px entre el header y el formulario, NO como cards. Esto evita romper el patron `<details>` colapsable y no compite visualmente con los botones de canal. La actualizacion es inmediata post-venta (sin cache, query agregado PostgREST que devuelve 1 fila). Fallback silencioso a `—` si la API falla.
+- **Codigo interno en modal de historial:** Se renderiza condicionalmente via `<span class="text-xs text-slate-400 font-mono w-20 truncate">` solo si `d.detalle.codigo_interno` existe. Sin cambios en HTML ni DB porque `sm:max-w-4xl` (896px) ya tiene espacio y los datos ya vienen en el join existente de `database.js`.
 - **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
 - **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
 - **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
@@ -729,3 +748,6 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Service worker redirect fix | `fetch(e.request, { redirect: 'follow' })`, `if (r && !r.redirected) return r` en cache |
 | Sidebar Stock label | Sidebar label "Stock" en vez de "Inventario" en 16 paginas POS |
 | Deploy Vercel QA | `https://pos-calidad.vercel.app/` |
+| KPI Bar ventas hoy | `ventas.html`, `cargarEstadisticas()`, `DB.ventas.estadisticasHoy()`, IDs `kpi-ventas-*` |
+| Codigo interno en historial | `ventas-historial.js::abrirDetalle()`, `d.detalle.codigo_interno`, modal `sm:max-w-4xl` |
+| Stats bar de Totales (carrito) | `actualizarStatsCarrito()`, IDs `stats-productos`, `stats-unidades`, `stats-ticket-prom` |

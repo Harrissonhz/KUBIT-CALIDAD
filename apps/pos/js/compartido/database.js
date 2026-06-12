@@ -412,6 +412,22 @@ window.DB = (function () {
         orderBy: 'fecha_venta',
         orderDir: 'desc'
       }, opts || {}));
+    },
+
+    estadisticasHoy: async function () {
+      var hoy = new Date().toISOString().split('T')[0];
+      try {
+        var data = await api.get(
+          'pos_ventas?select=count,sum:total,avg:total' +
+          '&estado=eq.CONFIRMADA' +
+          '&fecha_venta=gte.' + hoy +
+          '&fecha_venta=lt.' + hoy + 'T23:59:59'
+        );
+        var row = (data && data[0]) || {};
+        return { count: row.count || 0, total: row.sum || 0, promedio: row.avg || 0, error: null };
+      } catch (e) {
+        return { count: 0, total: 0, promedio: 0, error: e.message };
+      }
     }
   };
 

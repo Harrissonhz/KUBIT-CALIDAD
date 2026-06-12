@@ -24,7 +24,8 @@
       cargarClientes(),
       cargarCanales(),
       cargarMetodosPago(),
-      cargarVendedores()
+      cargarVendedores(),
+      cargarEstadisticas()
     ]);
     setClienteDefecto();
     setFechaDefecto();
@@ -73,6 +74,23 @@
     $('user-name').textContent = nombre;
     $('user-rol').textContent = rol;
     $('user-avatar').textContent = nombre.charAt(0).toUpperCase();
+  }
+
+  async function cargarEstadisticas() {
+    try {
+      var stats = await DB.ventas.estadisticasHoy();
+      if (stats.error) {
+        $('kpi-ventas-count').textContent = '\u2014';
+        $('kpi-ventas-total').textContent = '$\u2014';
+        $('kpi-ventas-prom').textContent = '$\u2014';
+        return;
+      }
+      $('kpi-ventas-count').textContent = stats.count;
+      $('kpi-ventas-total').textContent = formatearMoneda(stats.total);
+      $('kpi-ventas-prom').textContent = formatearMoneda(stats.promedio);
+    } catch (e) {
+      console.error('[Ventas] Error cargando estadisticas:', e);
+    }
   }
 
   async function cargarProductos() {
@@ -683,6 +701,7 @@
       var resumen = formatearMoneda(t.total) + ' · ' + metodoNombre + ' · ' + CARRITO.reduce(function (s, i) { return s + i.cantidad; }, 0) + ' items';
       $('exito-resumen').textContent = resumen;
       $('modal-exito').classList.remove('hidden');
+      cargarEstadisticas();
     } catch (e) {
       console.error('[Ventas] Error en procesarVenta:', e);
       mostrarToast('Error inesperado al procesar la venta');
