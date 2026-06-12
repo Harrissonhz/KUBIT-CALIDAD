@@ -82,6 +82,7 @@ function mapearProducto(row) {
     precio: primerDetalle.precio_venta || 0,
     precio_original: primerDetalle.precio_original || null,
     categoria: catSlug,
+    stock: primerDetalle.stock_actual || 0,
     tags: tags,
     imagen: imagenPrincipal,
     imagenes: imagenes,

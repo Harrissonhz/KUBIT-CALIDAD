@@ -113,11 +113,16 @@ async function renderizarProducto(producto) {
       seleccionada = btn.dataset.varianteId;
     });
 
-    document.getElementById('btn-agregar').addEventListener('click', () => {
+    document.getElementById('btn-agregar').addEventListener('click', function() {
+      var badges = obtenerBadges(producto);
+      var agotado = badges.some(function(b) { return b.tipo === 'agotado'; });
+      if (agotado) { agregarAlCarrito(producto); return; }
+      var selVariant = producto.variantes.find(function(v) { return v.id === seleccionada; });
+      if (selVariant && selVariant.stock <= 0) { agregarAlCarrito(producto); return; }
       agregarAlCarrito(producto);
     });
   } else {
-    document.getElementById('btn-agregar').addEventListener('click', () => {
+    document.getElementById('btn-agregar').addEventListener('click', function() {
       agregarAlCarrito(producto);
     });
   }

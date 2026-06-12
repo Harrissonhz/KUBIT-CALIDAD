@@ -664,6 +664,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/ventas-historial.js` | Agregado `<span class="text-xs text-slate-400 font-mono w-20 truncate">` con `d.detalle.codigo_interno` antes del nombre del producto. Solo se renderiza si existe el codigo. Sin cambios en HTML (`sm:max-w-4xl` ya tiene espacio). Sin cambios en DB (`codigo_interno` ya venia en el join existente). |
 | **Tests** | `npm test` → 99 passed, 0 failures |
 
+### 2026-06-12 — Store: Productos Agotados visibles con badge + bloqueo de carrito
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/api/productos.js` | Agregado `stock: primerDetalle.stock_actual \|\| 0` al mapper `mapearProducto()`. Antes el stock solo se mapeaba para productos multi-variante, los de variante unica no tenian campo `stock`. |
+| `apps/store/js/compartido/card-producto.js` | **Badge:** fallback de `-1` a `producto.stock \|\| 0` en `obtenerBadges()` — ahora detecta agotado en productos de variante unica. **Boton:** si agotado → `bg-slate-200 text-slate-400 cursor-not-allowed disabled` con texto "Agotado". **Cart block:** `agregarAlCarrito()` valida stock al inicio y muestra modal con SVG de bolsa tachada si stock ≤ 0. |
+| `apps/store/js/paginas/producto.js` | Detalle de producto: verifica `obtenerBadges()` + stock de variante seleccionada antes de agregar al carrito. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -685,7 +694,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Codigo interno en modal de historial:** Se renderiza condicionalmente via `<span class="text-xs text-slate-400 font-mono w-20 truncate">` solo si `d.detalle.codigo_interno` existe. Sin cambios en HTML ni DB porque `sm:max-w-4xl` (896px) ya tiene espacio y los datos ya vienen en el join existente de `database.js`.
 - **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
 - **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
-- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
+- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`. **Stock check:** `obtenerBadges()` calcula `stockTotal` sumando `variantes[].stock` (multi-variante) o usando `producto.stock` (variante unica). Si stock ≤ 0, badge "Agotado" es prioritario sobre cualquier otro.
 - **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
 - **Navbar fixed en Store vs sticky:** Se usa `position: fixed` en vez de `sticky` porque Tailwind CDN no siempre procesa correctamente clases CSS en contenido inyectado via JavaScript (`innerHTML`). `position: fixed` es universalmente soportado y no depende del MutationObserver del CDN. Se compensa con `pt-14` (56px = altura del navbar `h-14`) en el `<main>` de cada página.
 - **Favicon SVG en Store:** Las 8 páginas HTML del Store usan `<link rel="icon" type="image/svg+xml" href="img/icon.svg">`. SVG es soportado como favicon en navegadores modernos (Chrome, Firefox, Edge, Safari 14+). No se generan versiones PNG ni ICO.
@@ -751,3 +760,5 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | KPI Bar ventas hoy | `ventas.html`, `cargarEstadisticas()`, `DB.ventas.estadisticasHoy()`, IDs `kpi-ventas-*` |
 | Codigo interno en historial | `ventas-historial.js::abrirDetalle()`, `d.detalle.codigo_interno`, modal `sm:max-w-4xl` |
 | Stats bar de Totales (carrito) | `actualizarStatsCarrito()`, IDs `stats-productos`, `stats-unidades`, `stats-ticket-prom` |
+| Store producto agotado | `mapearProducto()` campo `stock`, `obtenerBadges()` fallback `producto.stock`, `agregarAlCarrito()` bloqueo stock ≤ 0 |
+| Modal agotado Store | `card-producto.js::agregarAlCarrito()`, SVG bolsa tachada, mensaje "Producto agotado" |
