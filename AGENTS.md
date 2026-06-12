@@ -151,6 +151,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Tags de producto (chips) | 6 chips toggle en vez de input texto libre. `data-tag` en minúsculas estrictas. Almacenados como `text[]` en `pos_productos.tags`. Los valores deben coincidir EXACTAMENTE con `badgeMap` del Store. |
 | Ciudad checkout Store | `<datalist>` filtrado por departamento desde `colombia.js` para reducir errores de escritura y garantizar consistencia con datos reales. |
 | Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
+| Service Worker fetch handler | Usar `fetch(e.request, { redirect: 'follow' })` + verificar `!r.redirected` en cache. Necesario porque `npx serve` puede responder con redirecciones que rompen `fetch(e.request)` en requests de navegacion. |
+| Sidebar label unificado | "Inventario" renombrado a "Stock" en las 16 paginas POS para coincidir con la terminologia del modulo. |
 
 ---
 
@@ -318,6 +320,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `img/icon-{192x192,512x512}.png` — Iconos PNG generados desde SVG para compatibilidad Android
 - [x] `manifest.json` — Iconos PNG referenciados como primary, SVG como fallback con `purpose: "any"`
 - [x] `apple-touch-icon` — Actualizado en 17/17 paginas: `href="img/icon.svg"` → `href="img/icon-192x192.png"`
+
+#### Módulo POS (Punto de Venta) — Fase 14: Canales Dinamicos desde DB + Fix SW Redirect + Sidebar Unificado
+- [x] Columna `tipo` (fisico/web_propio/marketplace) agregada a `pos_canales_venta` via DDL + seeds actualizados
+- [x] `ventas.js`: nuevas funciones `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`
+- [x] Costos de canal visibles solo si `tipo === 'marketplace'` (dinamico, no hardcodeado a mercadolibre)
+- [x] `service-worker.js`: fix handler `if (r && !r.redirected) return r; return fetch(e.request, { redirect: 'follow' })` para compatibilidad con `npx serve`
+- [x] Sidebar: "Inventario" renombrado a "Stock" en las 16 paginas HTML del POS
+- [x] `limpiar-sw.html`: pagina kill-switch creada y luego eliminada (depuracion local)
+- [x] Desplegado en Vercel QA: `https://pos-calidad.vercel.app/`
 
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
@@ -594,15 +605,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/checkout.js` | Ciudad ahora usa `<datalist>` con opciones filtradas por departamento seleccionado |
 | `apps/store/factura-print.html` | Columna "Impuesto" agregada con `d.impuesto \|\| 0` |
 
-### 2026-06-12 — Canales Dinamicos: columna `tipo` en pos_canales_venta
+### 2026-06-12 — Canales Dinamicos POS, Fix SW redirect, Sidebar Stock, Deploy Vercel QA
 
 | Archivo | Cambio |
 |---|---|
-| `specs/02-database-schema.sql` | ADD COLUMN `tipo text not null default 'propio'` en `pos_canales_venta`. Seed data actualizado con Exito.com, Falabella.com y sus tipos (fisico, web_propio, marketplace) |
+| `specs/02-database-schema.sql` | ADD COLUMN `tipo text not null default 'propio'` en `pos_canales_venta`. Seed data actualizado: Exito.com, Falabella.com como marketplaces |
 | `apps/pos/ventas.html` | Reemplazados 3 labels fijos de canal por contenedor dinamico + `<select id="select-marketplace">` para marketplaces |
-| `apps/pos/js/paginas/ventas.js` | Nuevas funciones: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`. Eliminada dependencia de `'mercadolibre'` hardcodeado. Logica de costos ahora usa `tipo === 'marketplace'` en vez de `canal === 'mercadolibre'`. |
+| `apps/pos/js/paginas/ventas.js` | Nuevas funciones: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`. Eliminada dependencia de `'mercadolibre'` hardcodeado. Logica de costos ahora usa `tipo === 'marketplace'` |
+| `apps/pos/service-worker.js` | Fix handler: `if (r && !r.redirected) return r; return fetch(e.request, { redirect: 'follow' })`. Cache bump v2→v3→v4 |
+| `apps/pos/*.html` (16 paginas) | Sidebar: "Inventario" renombrado a "Stock" |
+| `apps/pos/limpiar-sw.html` | Creada y eliminada post-commit (kill-switch page para depuracion local) |
 | `specs/03-pos-spec.md` | Documentacion de columna `tipo` en tabla `pos_canales_venta` |
-| `AGENTS.md` | Esta entrada |
+| **Deploy** | Sincronizado a GitHub + Vercel: `https://pos-calidad.vercel.app/` |
 
 ### 2026-06-08 — POS PWA Completa (Service Worker + iOS Meta Tags + SW Registration)
 
@@ -711,3 +725,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Badge nuevo | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-nuevo` |
 | Correo transaccional (post-MVP) | `specs/06-servicio-correo.md`, Resend, Edge Function send-mail, postergado |
 | Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
+| Canales dinamicos (renderizado) | `ventas.js`: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()` |
+| Service worker redirect fix | `fetch(e.request, { redirect: 'follow' })`, `if (r && !r.redirected) return r` en cache |
+| Sidebar Stock label | Sidebar label "Stock" en vez de "Inventario" en 16 paginas POS |
+| Deploy Vercel QA | `https://pos-calidad.vercel.app/` |
