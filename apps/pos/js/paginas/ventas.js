@@ -7,7 +7,7 @@
   var TASA_IMPUESTO = 0.19;
   var CANALES = [];
   var METODOS_PAGO = [];
-  var CANAL_ACTIVO = 'mercadolibre';
+  var CANAL_ACTIVO = null;
   var _loading = false;
   var ULTIMA_VENTA_ID = null;
 
@@ -33,6 +33,7 @@
     actualizarTotales();
     window.KubitAuth.aplicarRestriccionesUI();
     validarFormulario();
+    $('input-referencia').focus();
   }
 
   function aplicarDarkMode() {
@@ -114,6 +115,9 @@
     try {
       var data = await window.__supabase.get('pos_canales_venta?select=*&order=nombre.asc');
       CANALES = data || [];
+      renderizarCanales();
+      renderizarMarketplaces();
+      seleccionarTipo('marketplace');
     } catch (e) {
       console.error('[Ventas] Error cargando canales:', e);
     }
@@ -163,16 +167,88 @@
 
   function setearValoresDefecto() {
     $('select-metodo-pago').value = 'transferencia';
-    toggleCostosCanal('mercadolibre');
   }
 
-  function toggleCostosCanal(canal) {
+  function toggleCostosCanal(canalCodigo) {
+    var canal = CANALES.find(function(c) { return c.codigo === canalCodigo; });
     var costosSection = $('costos-canal-section');
-    if (canal === 'mercadolibre') {
+    if (canal && canal.tipo === 'marketplace') {
       costosSection.classList.remove('hidden');
     } else {
       costosSection.classList.add('hidden');
     }
+  }
+
+  function renderizarCanales() {
+    var container = $('canales-container');
+    var tipos = [];
+    CANALES.forEach(function(c) {
+      if (tipos.indexOf(c.tipo) === -1) tipos.push(c.tipo);
+    });
+    var orden = ['fisico', 'web_propio', 'marketplace'];
+    var labels = {
+      fisico: { texto: 'Fisico' },
+      web_propio: { texto: 'Web' },
+      marketplace: { texto: 'Ecommerce' }
+    };
+    container.innerHTML = '';
+    orden.forEach(function(t) {
+      if (tipos.indexOf(t) === -1) return;
+      var info = labels[t] || { texto: t };
+      container.innerHTML +=
+        '<button type="button" class="canal-tipo flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-600 transition-all" data-tipo="' + t + '">' +
+        obtenerIconoCanal(t) + '<span>' + info.texto + '</span>' +
+        (t === 'marketplace' ? '<span class="text-[10px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 px-1.5 py-0.5 rounded ml-1">Ecomm</span>' : '') +
+        '</button>';
+    });
+  }
+
+  function renderizarMarketplaces() {
+    var select = $('select-marketplace');
+    var marketplaces = CANALES.filter(function(c) { return c.tipo === 'marketplace'; });
+    select.innerHTML = '';
+    marketplaces.forEach(function(m) {
+      select.innerHTML += '<option value="' + m.codigo + '">' + m.nombre + '</option>';
+    });
+  }
+
+  function seleccionarTipo(tipo) {
+    document.querySelectorAll('.canal-tipo').forEach(function(btn) {
+      var active = btn.dataset.tipo === tipo;
+      btn.className = active
+        ? 'canal-tipo flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-950 dark:border-white bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-medium transition-all'
+        : 'canal-tipo flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-600 transition-all';
+    });
+    var esMarketplace = tipo === 'marketplace';
+    $('marketplace-selector').classList.toggle('hidden', !esMarketplace);
+    if (esMarketplace) {
+      var first = CANALES.find(function(c) { return c.codigo === 'mercadolibre'; }) || CANALES.find(function(c) { return c.tipo === 'marketplace'; });
+      if (first) {
+        $('select-marketplace').value = first.codigo;
+        CANAL_ACTIVO = first.codigo;
+      }
+    } else {
+      var canal = CANALES.find(function(c) { return c.tipo === tipo; });
+      if (canal) CANAL_ACTIVO = canal.codigo;
+    }
+    toggleCostosCanal(CANAL_ACTIVO);
+    actualizarTotales();
+  }
+
+  function seleccionarMarketplace(codigo) {
+    CANAL_ACTIVO = codigo;
+    toggleCostosCanal(codigo);
+    actualizarTotales();
+  }
+
+  function obtenerIconoCanal(tipo) {
+    if (tipo === 'fisico') {
+      return '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 21v-7.5a.75.75 0 01.75-.75h3a.75.75 0 01.75.75V21m-4.5 0H2.36m11.14 0H18m0 0h3.64m-1.39 0V9.349m-16.5 11.65V9.35m0 0a3.001 3.001 0 003.75-.615A2.993 2.993 0 009.75 9.75c.896 0 1.7-.393 2.25-1.016a2.993 2.993 0 002.25 1.016c.896 0 1.7-.393 2.25-1.016a3.001 3.001 0 003.75.614m-16.5 0a3.004 3.004 0 01-.621-4.72L4.318 3.44A1.5 1.5 0 015.378 3h13.243a1.5 1.5 0 011.06.44l1.19 1.189a3 3 0 01-.621 4.72m-13.5 8.65h3.75a.75.75 0 00.75-.75V13.5a.75.75 0 00-.75-.75H6.75a.75.75 0 00-.75.75v3.75c0 .415.336.75.75.75z"/></svg>';
+    }
+    if (tipo === 'web_propio') {
+      return '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 21a9.004 9.004 0 008.716-6.747M12 21a9.004 9.004 0 01-8.716-6.747M12 21c2.485 0 4.5-4.03 4.5-9S14.485 3 12 3m0 18c-2.485 0-4.5-4.03-4.5-9S9.515 3 12 3m0 0a8.997 8.997 0 017.843 4.582M12 3a8.997 8.997 0 00-7.843 4.582m15.686 0A11.953 11.953 0 0112 10.5c-2.998 0-5.74-1.1-7.843-2.918m15.686 0A8.959 8.959 0 0121 12c0 .778-.099 1.533-.284 2.253m0 0A17.919 17.919 0 0112 16.5c-3.162 0-6.133-.815-8.716-2.247m0 0A9.015 9.015 0 013 12c0-1.605.42-3.113 1.157-4.418"/></svg>';
+    }
+    return '<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z"/></svg>';
   }
 
   /* ─── CLIENTE AUTOCOMPLETE ─── */
@@ -450,8 +526,10 @@
     $('res-total-costos').textContent = formatearMoneda(totalCostos);
     $('res-total').textContent = formatearMoneda(total);
 
+    var canalActual = CANALES.find(function(c) { return c.codigo === CANAL_ACTIVO; });
+    var esMarketplace = canalActual && canalActual.tipo === 'marketplace';
     var netoSection = $('res-ingreso-neto-section');
-    if (CANAL_ACTIVO === 'mercadolibre') {
+    if (esMarketplace) {
       netoSection.classList.remove('hidden');
       $('res-ingreso-neto').textContent = formatearMoneda(ingresoNeto);
     } else {
@@ -475,8 +553,11 @@
     $('input-costo-envios').value = '';
     $('input-buscar-producto').value = '';
     $('producto-suggestions').classList.add('hidden');
+    seleccionarTipo('marketplace');
     setFechaDefecto();
     setearValoresDefecto();
+    setClienteDefecto();
+    $('input-referencia').focus();
     actualizarCarrito();
     actualizarTotales();
     mostrarToast('Formulario limpiado');
@@ -500,10 +581,10 @@
       }
 
       var user = window.KubitAuth.obtenerUsuario();
-      var canalSeleccionado = document.querySelector('input[name="canal"]:checked');
-      var canalCodigo = canalSeleccionado ? canalSeleccionado.value : 'mercadolibre';
+      var canalCodigo = CANAL_ACTIVO;
       var canal = CANALES.find(function (c) { return c.codigo === canalCodigo; });
       var canalId = canal ? canal.id : null;
+      var esMarketplace = canal && canal.tipo === 'marketplace';
 
       var vendedorId = $('select-vendedor').value || user.id;
       var clienteId = $('selected-cliente-id').value || null;
@@ -528,9 +609,9 @@
         descuento: t.descuento,
         impuesto: t.impuesto,
         total: t.total,
-        costo_cargo_venta: CANAL_ACTIVO === 'mercadolibre' ? t.cargoVenta : 0,
-        costo_impuestos: CANAL_ACTIVO === 'mercadolibre' ? t.cargoImpuestos : 0,
-        costo_envios: CANAL_ACTIVO === 'mercadolibre' ? t.cargoEnvios : 0
+        costo_cargo_venta: esMarketplace ? t.cargoVenta : 0,
+        costo_impuestos: esMarketplace ? t.cargoImpuestos : 0,
+        costo_envios: esMarketplace ? t.cargoEnvios : 0
       };
 
       var detalles = CARRITO.map(function (i) {
@@ -594,7 +675,7 @@
         mes,
         t.total,
         t.descuento,
-        CANAL_ACTIVO === 'mercadolibre' ? (t.cargoVenta + t.cargoImpuestos + t.cargoEnvios) : 0,
+        esMarketplace ? (t.cargoVenta + t.cargoImpuestos + t.cargoEnvios) : 0,
         CARRITO.reduce(function (s, i) { return s + (i.precioCompra || 0) * i.cantidad; }, 0)
       );
 
@@ -690,23 +771,14 @@
     $('btn-cerrar-menu').addEventListener('click', cerrarSidebar);
     $('sidebar-overlay').addEventListener('click', cerrarSidebar);
 
-    document.querySelectorAll('input[name="canal"]').forEach(function (r) {
-      r.addEventListener('change', function () {
-        CANAL_ACTIVO = this.value;
-        document.querySelectorAll('.canal-option').forEach(function (l) {
-          var input = l.querySelector('input');
-          if (input && input.checked) {
-            l.className = 'canal-option active cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-950 dark:border-white bg-slate-950 dark:bg-white text-white dark:text-slate-950 text-sm font-medium transition-all';
-          } else {
-            l.className = 'canal-option cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 text-sm font-medium hover:border-slate-300 dark:hover:border-slate-600 transition-all';
-          }
-        });
-        toggleCostosCanal(CANAL_ACTIVO);
-        if (CANAL_ACTIVO === 'mercadolibre') {
-          $('select-metodo-pago').value = 'transferencia';
-        }
-        actualizarTotales();
-      });
+    document.querySelector('#canales-container').addEventListener('click', function (e) {
+      var btn = e.target.closest('.canal-tipo');
+      if (!btn) return;
+      seleccionarTipo(btn.dataset.tipo);
+    });
+
+    $('select-marketplace').addEventListener('change', function () {
+      seleccionarMarketplace(this.value);
     });
 
     $('input-cliente').addEventListener('input', onClienteInput);

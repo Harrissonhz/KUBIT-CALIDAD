@@ -150,6 +150,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local (`npx serve`) y Vercel. Precarga 38 assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
 | Tags de producto (chips) | 6 chips toggle en vez de input texto libre. `data-tag` en minúsculas estrictas. Almacenados como `text[]` en `pos_productos.tags`. Los valores deben coincidir EXACTAMENTE con `badgeMap` del Store. |
 | Ciudad checkout Store | `<datalist>` filtrado por departamento desde `colombia.js` para reducir errores de escritura y garantizar consistencia con datos reales. |
+| Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
 
 ---
 
@@ -593,6 +594,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/checkout.js` | Ciudad ahora usa `<datalist>` con opciones filtradas por departamento seleccionado |
 | `apps/store/factura-print.html` | Columna "Impuesto" agregada con `d.impuesto \|\| 0` |
 
+### 2026-06-12 — Canales Dinamicos: columna `tipo` en pos_canales_venta
+
+| Archivo | Cambio |
+|---|---|
+| `specs/02-database-schema.sql` | ADD COLUMN `tipo text not null default 'propio'` en `pos_canales_venta`. Seed data actualizado con Exito.com, Falabella.com y sus tipos (fisico, web_propio, marketplace) |
+| `apps/pos/ventas.html` | Reemplazados 3 labels fijos de canal por contenedor dinamico + `<select id="select-marketplace">` para marketplaces |
+| `apps/pos/js/paginas/ventas.js` | Nuevas funciones: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`. Eliminada dependencia de `'mercadolibre'` hardcodeado. Logica de costos ahora usa `tipo === 'marketplace'` en vez de `canal === 'mercadolibre'`. |
+| `specs/03-pos-spec.md` | Documentacion de columna `tipo` en tabla `pos_canales_venta` |
+| `AGENTS.md` | Esta entrada |
+
 ### 2026-06-08 — POS PWA Completa (Service Worker + iOS Meta Tags + SW Registration)
 
 | Archivo | Cambio |
@@ -699,3 +710,4 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Badge imperdible | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-imperdible` |
 | Badge nuevo | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-nuevo` |
 | Correo transaccional (post-MVP) | `specs/06-servicio-correo.md`, Resend, Edge Function send-mail, postergado |
+| Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |

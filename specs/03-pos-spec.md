@@ -520,7 +520,7 @@ erDiagram
 | `pos_sucursales` | Sucursales o puntos de venta | Maestro |
 | `pos_cajas` | Cajas registradoras físicas/lógicas | Maestro |
 | `pos_metodos_pago` | Catálogo de métodos de pago (Efectivo, Tarjeta, Transferencia, etc.) | Maestro |
-| `pos_canales_venta` | Catálogo de canales de venta (físico, web, MercadoLibre, etc.) | Maestro |
+| `pos_canales_venta` | Catálogo de canales de venta (físico, web, MercadoLibre, etc.) con columna `tipo` (fisico, web_propio, marketplace) | Maestro |
 | `pos_gasto_categorias` | Categorías para clasificación de gastos | Maestro |
 
 #### 2.3.2 Productos e Inventario

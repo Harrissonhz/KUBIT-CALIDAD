@@ -1,4 +1,4 @@
-var CACHE = 'kubit-pos-v2';
+var CACHE = 'kubit-pos-v4';
 
 var ASSETS = [
   'index.html',
@@ -65,7 +65,8 @@ self.addEventListener('activate', function (e) {
 self.addEventListener('fetch', function (e) {
   e.respondWith(
     caches.match(e.request).then(function (r) {
-      return r || fetch(e.request);
+      if (r && !r.redirected) return r;
+      return fetch(e.request, { redirect: 'follow' });
     })
   );
 });

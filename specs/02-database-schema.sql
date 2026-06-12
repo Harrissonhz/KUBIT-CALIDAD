@@ -215,6 +215,7 @@ create table public.pos_canales_venta (
   codigo text not null,
   descripcion text,
   comision_porcentaje numeric default 0,
+  tipo text not null default 'propio',
   activo boolean default true,
   created_at timestamptz default now(),
   updated_at timestamptz default now(),
@@ -1716,10 +1717,12 @@ create policy "clientes gestionan su wishlist"
 -- ============================================================
 -- DATOS SEMILLA: CANALES DE VENTA
 -- ============================================================
-insert into public.pos_canales_venta (nombre, codigo, descripcion, comision_porcentaje) values
-  ('Físico', 'fisico', 'Punto de venta presencial', 0),
-  ('Web', 'web', 'Tienda virtual propia', 0),
-  ('MercadoLibre', 'mercadolibre', 'Integración con MercadoLibre', 17)
+insert into public.pos_canales_venta (nombre, codigo, descripcion, comision_porcentaje, tipo) values
+  ('Fisico', 'fisico', 'Punto de venta presencial', 0, 'fisico'),
+  ('Web', 'web', 'Tienda virtual propia', 0, 'web_propio'),
+  ('MercadoLibre', 'mercadolibre', 'Integracion con MercadoLibre', 17, 'marketplace'),
+  ('Exito.com', 'exito', 'Integracion con Exito.com', 15, 'marketplace'),
+  ('Falabella.com', 'falabella', 'Integracion con Falabella.com', 15, 'marketplace')
 on conflict (codigo) do nothing;
 
 -- ============================================================
