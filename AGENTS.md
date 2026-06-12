@@ -359,6 +359,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
 - [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
 - [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
+- [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
@@ -664,6 +665,19 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/ventas-historial.js` | Agregado `<span class="text-xs text-slate-400 font-mono w-20 truncate">` con `d.detalle.codigo_interno` antes del nombre del producto. Solo se renderiza si existe el codigo. Sin cambios en HTML (`sm:max-w-4xl` ya tiene espacio). Sin cambios en DB (`codigo_interno` ya venia en el join existente). |
 | **Tests** | `npm test` → 99 passed, 0 failures |
 
+### 2026-06-12 — Store Lightbox Modal (galeria producto fullscreen)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/css/estilo.css` | 102 lineas nuevas: `.lightbox-overlay`, `.lightbox-toolbar`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-imagen.desvanecer` para crossfade CSS, responsive mobile-first 360px+, fullscreen overlay con z-index 60 |
+| `apps/store/js/paginas/producto.js` | Reestructuracion completa: todas las funciones movidas **dentro** del callback `DOMContentLoaded` para compartir la clausura con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`, `_autoplayActivo`, `_tiempoFuera` |
+| `apps/store/js/paginas/producto.js` | Nuevas funciones (216 lineas): `abrirLightbox()`, `cerrarLightbox()`, `renderizarDots()`, `actualizarImagen()` con crossfade, `navegarLightbox()`, `toggleAutoplay()`, `iniciarAutoplay()` (4s), `detenerAutoplay()`, `pausarAutoplayTemporal()` (reanuda 3s), `actualizarBotonAutoplay()`, `bindearEventosLightbox()` |
+| `apps/store/js/paginas/producto.js` | Eventos: click en X/overlay/Escape para cerrar, flechas ← → y teclado, swipe touch (>50px), dots navegables, boton autoplay con icono play/pause |
+| `apps/store/js/paginas/producto.js` | `cursor-pointer` agregado via JS condicionalmente solo si hay mas de 1 imagen (linea 70) |
+| `producto.html` | `cursor-pointer` removido del HTML estatico, ahora se asigna via JS solo cuando hay multiples imagenes |
+| **Scope fix** | `ReferenceError: _lightboxIndice is not defined` corregido moviendo todas las funciones dentro del mismo callback DOMContentLoaded. Causa raiz: las funciones declaradas fuera del callback no tenian acceso a las variables de clausura del arrow function `async () => { ... }` |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
 ### 2026-06-12 — Store: Productos Agotados visibles con badge + bloqueo de carrito
 
 | Archivo | Cambio |
@@ -698,6 +712,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
 - **Navbar fixed en Store vs sticky:** Se usa `position: fixed` en vez de `sticky` porque Tailwind CDN no siempre procesa correctamente clases CSS en contenido inyectado via JavaScript (`innerHTML`). `position: fixed` es universalmente soportado y no depende del MutationObserver del CDN. Se compensa con `pt-14` (56px = altura del navbar `h-14`) en el `<main>` de cada página.
 - **Favicon SVG en Store:** Las 8 páginas HTML del Store usan `<link rel="icon" type="image/svg+xml" href="img/icon.svg">`. SVG es soportado como favicon en navegadores modernos (Chrome, Firefox, Edge, Safari 14+). No se generan versiones PNG ni ICO.
+- **Store Lightbox 100% via JS:** El lightbox modal de galeria de producto se construye completamente via JavaScript (DOM creation, eventos, animaciones). No se modifica `producto.html`. La estructura sigue el mismo patron que `abrirVideoModal()` existente: crear overlay, toolbar, contenido, adjuntar al body, limpiar al cerrar.
+- **Scope de funciones en producto.js:** Todas las funciones de la pagina de producto (`renderizarProducto`, `abrirLightbox`, `abrirVideoModal`, `renderizarRelacionados`) estan declaradas **dentro** del callback `DOMContentLoaded`. Esto es obligatorio porque `renderizarProducto` y las funciones del lightbox comparten variables de clausura (`_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`, `_autoplayActivo`, `_tiempoFuera`). Cualquier funcion futura que acceda a estas variables debe estar en el mismo scope.
+- **Crossfade CSS vs slide:** La transicion entre imagenes del lightbox usa crossfade CSS (`.desvanecer` con `opacity 0.3s ease`) en vez de slide/translate. Es mas simple, ligero y evita problemas de layout con imagenes de distintas proporciones. La logica: agregar clase `.desvanecer` → wait 300ms (via `setTimeout`) → cambiar `img.src` → remover clase `.desvanecer`.
+- **Autoplay con pausa temporal:** El autoplay del lightbox usa `setInterval` de 4s. Al navegar (flechas, dots, swipe, teclado) se pausa temporalmente via `pausarAutoplayTemporal()`: limpia el intervalo actual y programa uno nuevo con `setTimeout` a 3s. Esto evita que la imagen cambie inmediatamente despues de que el usuario interactuo. El autoplay default es OFF.
+- **Eventos del lightbox con cleanup:** Los eventos de teclado (`keydown`) y touch (`touchstart`/`touchend`) se limpian via `MutationObserver` que detecta cuando el overlay ya no esta en el DOM. Esto evita memory leaks y listeners huerfanos.
+- **cursor-pointer condicional en imagen principal:** No se pone `cursor-pointer` en el HTML estatico de `producto.html`. Se agrega via JS (`classList.add('cursor-pointer')`) solo cuando `_lightboxImagenes.length > 1`, es decir, cuando hay mas de una imagen y el lightbox tiene sentido abrirse al hacer click. Si solo hay 1 imagen, el cursor queda como default (arrow) porque hacer click no hace nada.
 
 ---
 
@@ -762,3 +782,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Stats bar de Totales (carrito) | `actualizarStatsCarrito()`, IDs `stats-productos`, `stats-unidades`, `stats-ticket-prom` |
 | Store producto agotado | `mapearProducto()` campo `stock`, `obtenerBadges()` fallback `producto.stock`, `agregarAlCarrito()` bloqueo stock ≤ 0 |
 | Modal agotado Store | `card-producto.js::agregarAlCarrito()`, SVG bolsa tachada, mensaje "Producto agotado" |
+| Lightbox Store | `producto.js::abrirLightbox()`, `estilo.css` clases `.lightbox-*`, lightbox fullscreen con autoplay, crossfade CSS, navegacion por flechas/dots/teclado/swipe |
+| Lightbox scope fix | `producto.js`: todas las funciones dentro del callback DOMContentLoaded para compartir clausura con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer` |
+| Lightbox CSS | `estilo.css` lineas 744-835: `.lightbox-overlay`, `.lightbox-toolbar`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-imagen.desvanecer`, responsive |
+| Lightbox autoplay | `toggleAutoplay()`, `iniciarAutoplay()` (4s intervalo), `detenerAutoplay()`, `pausarAutoplayTemporal()` (reanuda 3s), indicador punto verde |
+| Lightbox touch swipe | `touchstart`/`touchend` delta >50px, `passive: true` |
+| Lightbox keyboard | `keydown` Escape/←/→, cleanup via MutationObserver |
+| Lightbox cursor | `cursor-pointer` agregado via JS solo si mas de 1 imagen |
