@@ -703,7 +703,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/producto.js` | DOMContentLoader envuelto en `try/catch` con mensaje fallback "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`. |
 | **Tests** | `npm test` → 99 passed, 0 failures |
 
-### 2026-06-13 — Lightbox: autoplay automatico al abrir (3s) + click-outside cierra modal
+### 2026-06-13 — Store Lightbox: autoplay automatico al abrir (3s) + click-outside cierra modal
 
 | Archivo | Cambio |
 |---|---|
@@ -723,6 +723,56 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/index.html` | 2 Instagram links normalizados: `https://instagram.com/outletshop_for_my` → `https://www.instagram.com/OutletShop_for_my/` (ya tenian `target="_blank"`). |
 | **Estandar** | Links externos (redes sociales) usan `target="_blank" rel="noopener noreferrer"` para preservar sesion de compra (carrito, busqueda) y prevenir tabnabbing. Estandar Amazon, MercadoLibre, Shopify. |
 | **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Footer Store: tagline cambiado a Alternativa 4
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | Texto del footer reemplazado por: "Productos fisicos y digitales con los mejores precios del mercado. Compras seguras, envios confiables y un equipo comprometido con tu satisfaccion." Aplicado en version mobile (linea 13) y desktop (linea 85). |
+
+### 2026-06-13 — Footer Store: diseno compacto, brand+social misma fila
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | Reescrito completo: brand y redes sociales en misma fila (`flex justify-between`), acordeon compacto (`py-2` en vez de `py-3`), grid desktop de 4 a 2 columnas, padding reducido (`py-6 sm:py-8`), descripcion unificada con copyright al final. Altura reducida ~50%. Sin contenido duplicado. Iconos redes sociales `w-7 h-7` mobile (antes `w-10 h-10`). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Sobre Nosotros: foto del equipo agregada
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/sobre-nosotros.html` | Seccion "Nuestro Equipo" redisenada: de card de texto plano a grid `lg:grid-cols-5` con foto `EquipoOutletShop.jpg` (col-span-3) + texto descriptivo (col-span-2). Altura maxima foto 420px. Responsive: apilado en mobile, lado a lado en desktop. |
+| `apps/store/img/EquipoOutletShop.jpg` | Nuevo archivo: foto del equipo de trabajo. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — FAQ expandido: 15 preguntas en 5 categorias + indice + fecha
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/preguntas-frecuentes.html` | Hero: agregada fecha de ultima actualizacion. Indice de categorias con navegacion por anclajes. Contenido reestructurado en 5 categorias (Pedidos, Envios, Pagos, Devoluciones, Soporte) con separadores visuales. Preguntas expandidas de 5 a 15 (incluye: modificar/cancelar pedido, comprar sin registro, tiempos de envio, costo/envio gratuito, rastreo, seguridad pagos, garantia, producto danado, horario atencion). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Politica de Privacidad reestructurada con indice + contenido faltante
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/politica-privacidad.html` | Hero: agregada fecha de ultima actualizacion. Indice de contenidos con 9 anclajes. Contenido migrado de `white-space: pre-line` a secciones HTML con `<section>` + `id` + `scroll-mt-20`. Contenido nuevo: base legal por tratamiento (ejecucion contractual, consentimiento, interes legitimo, obligacion legal), plazo de conservacion (5 anos + 12 meses anonimizados), tipos de cookies (esenciales, rendimiento, funcionalidad), procedimiento para ejercer derechos ARCO (15 dias habiles). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Terminos y Condiciones reestructurados + fix URL mitiendanube
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/terminos-condiciones.html` | **Fix critico:** URL `https://outletshop62.mitiendanube.com/` eliminada, reemplazada por texto generico ("opera a traves de su sitio web oficial y canales de venta digitales"). Hero: agregada fecha de ultima actualizacion. Indice de contenidos con 11 anclajes en grid 2 columnas. Contenido migrado de `white-space: pre-line` a secciones HTML con `<section>` + `id` + `scroll-mt-20`. Secciones agregadas: legislacion aplicable (tribunales de Medellin), contacto para notificaciones legales. Numeracion cambiada a listas `<ol>` y `<ul>` en Reversion del Pago y Cambios/Garantias. Lenguaje simplificado manteniendo valor legal. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Indices de navegacion unificados: grid 2 columnas en las 3 paginas legales
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/politica-privacidad.html` | Indice convertido de `<ul>` a `<div class="grid grid-cols-1 sm:grid-cols-2">` con links directos `text-sky-600`. Numeracion secuencial removida. |
+| `apps/store/preguntas-frecuentes.html` | Indice convertido de pills `flex flex-wrap` (rounded-full, bg-slate-100) al mismo grid 2 columnas `text-sky-600` consistente con terminos y privacidad. |
+| **Consistencia** | Las 3 paginas legales ahora comparten identico patron visual de indice. |
 
 ### Decisiones de Diseno Tomadas
 
@@ -763,6 +813,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **SW cache versioning YYYYMMDD-NN:** El nombre del cache usa formato `kubit-pos-YYYYMMDD-NN` (POS) y `outletshop-YYYYMMDD-NN` (Store). `YYYYMMDD` = fecha del deploy, `NN` = contador por dia que se incrementa manualmente en cada deploy del mismo dia (01, 02...). Esto garantiza que cada deploy use un cache nuevo. El SW elimina caches viejos en el evento `activate`.
 - **npx serve no funciona en Windows para el Store:** En Windows 10, `npx serve` hace un redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Este bug no tiene fix desde el codigo del proyecto. Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local.
 - **producto.js try/catch obligatorio:** El callback `DOMContentLoaded` en `apps/store/js/paginas/producto.js` debe estar envuelto en `try/catch` porque si el SW sirve una version corrupta o incompleta del JS, la pagina se rompe silenciosamente. El catch muestra "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`.
+- **Footer compacto:** El pie de pagina del Store se diseno con brand y redes sociales en la misma fila, grid de 2 columnas en desktop (Enlaces + Contacto), acordeon compacto (`py-2`), padding reducido (`py-6 sm:py-8`) y la descripcion unificada con el copyright al final. Los iconos sociales usan `w-7 h-7` en mobile (vs `w-10 h-10` anterior). Sin contenido duplicado. Esto reduce la altura del footer ~50%.
+- **Paginas legales con indice grid 2 columnas:** Las 3 paginas (terminos, privacidad, FAQ) usan el mismo patron de indice: tarjeta blanca con `<div class="grid grid-cols-1 sm:grid-cols-2">` y links `text-sky-600`. Sin listas `<ul>`, sin chips `rounded-full`. Consistencia visual garantizada.
+- **Contenido legal migrado de pre-line a HTML semantico:** Tanto `terminos-condiciones.html` como `politica-privacidad.html` migraron de `white-space: pre-line` (un solo div de texto plano) a secciones HTML con `<section>`, `id` para anclajes, `scroll-mt-20` para navegacion suave, y estructura `<h3>` + `<ul>`/`<ol>` + `<p>`. Esto es esencial para escalabilidad, SEO y accesibilidad.
 
 ---
 
@@ -845,3 +898,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | SW redirect fix | `!r.redirected`, `{ redirect: 'follow' }` para navegacion |
 | npx http-server alternativa | `npx http-server apps/store -p 3000` evita bug 301 de `npx serve` en Windows |
 | Store producto.js try/catch | `producto.js` DOMContentLoaded envuelto en try/catch, mensaje fallback si falla |
+| Footer tagline Store | `footer-store.js`, Alternativa 4: "Productos fisicos y digitales con los mejores precios del mercado. Compras seguras, envios confiables y un equipo comprometido con tu satisfaccion." |
+| Footer diseno compacto | `footer-store.js`: brand+social misma fila, grid 2 cols, padding reducido `py-6 sm:py-8`, altura ~50% menor |
+| Equipo foto | `apps/store/sobre-nosotros.html`, `EquipoOutletShop.jpg`, grid lg:grid-cols-5, foto col-span-3 |
+| FAQ categorizado | `preguntas-frecuentes.html`, 5 categorias (Pedidos, Envios, Pagos, Devoluciones, Soporte), 15 preguntas, indice, fecha actualizacion |
+| Privacidad reestructurada | `politica-privacidad.html`, indice 9 anclajes, secciones HTML, base legal, conservacion 5 anos, cookies detalladas |
+| Terminos reestructurados | `terminos-condiciones.html`, fix URL mitiendanube, indice 11 anclajes, legislacion Medellin, notificaciones legales |
+| Paginas legales indice grid | `grid grid-cols-1 sm:grid-cols-2` en TOC de terminos, privacidad y FAQ, estilo `text-sky-600` unificado |
