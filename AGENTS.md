@@ -147,12 +147,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
 | IVA siempre visible | `tasa_impuesto` está fuera del toggle single/multi-variante, visible siempre |
 | Multi-variante | Las variantes se guardan como N registros en `pos_productos_detalle` con `atributos jsonb`. Edición inline con filas expandibles (▼) |
-| POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local (`npx serve`) y Vercel. Precarga 38 assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
+| POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local y Vercel. Precarga assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
 | Tags de producto (chips) | 6 chips toggle en vez de input texto libre. `data-tag` en minúsculas estrictas. Almacenados como `text[]` en `pos_productos.tags`. Los valores deben coincidir EXACTAMENTE con `badgeMap` del Store. |
 | Ciudad checkout Store | `<datalist>` filtrado por departamento desde `colombia.js` para reducir errores de escritura y garantizar consistencia con datos reales. |
 | Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
-| Service Worker fetch handler | Usar `fetch(e.request, { redirect: 'follow' })` + verificar `!r.redirected` en cache. Necesario porque `npx serve` puede responder con redirecciones que rompen `fetch(e.request)` en requests de navegacion. |
+| Service Worker fetch handler | Usar `fetch(e.request, { redirect: 'follow' })` + verificar `!r.redirected` en cache. Necesario porque `npx serve` puede responder con redirecciones que rompen `e.respondWith()` en requests de navegacion. |
 | Sidebar label unificado | "Inventario" renombrado a "Stock" en las 16 paginas POS para coincidir con la terminologia del modulo. |
+| SW auto-reload via postMessage | Al activarse el SW (`activate`), envia `{accion:'recargar'}` a todos los clients via `clients.matchAll()` + `postMessage()`. Cada pagina HTML escucha `message` en `navigator.serviceWorker` y ejecuta `location.reload()`. El usuario siempre ve la version mas reciente del SW sin recarga manual. |
+| SW localhost bypass | Si `self.location.hostname === 'localhost'` o `'127.0.0.1'`, el SW hace `return;` sin `e.respondWith()` en fetch, y omite precache en install/activate. Asi `npx serve` funciona sin interferencia del SW. |
+| SW cache versioning YYYYMMDD-NN | El nombre del cache usa formato `kubit-pos-YYYYMMDD-NN` (POS) y `outletshop-YYYYMMDD-NN` (Store). `YYYYMMDD` = fecha del deploy, `NN` = contador por dia (01, 02...). Cada deploy produce un cache nuevo; el SW elimina caches viejos en `activate`. |
+| SW ignoreSearch:true | En `caches.match(e.request, {ignoreSearch:true})` para que `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Cache-first funciona correctamente en paginas de producto. |
+| SW .catch() en fetch handler | El fetch handler del SW envuelve la promesa en `.catch(() => fetch(e.request))` para evitar el error "A listener indicated an asynchronous response by returning true" cuando el cache falla o hay redirecciones. |
+| npx http-server para local en Windows | `npx serve` en Windows 10 hace redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local. Este bug no tiene fix desde el codigo del proyecto. |
 
 ---
 
@@ -687,6 +693,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/producto.js` | Detalle de producto: verifica `obtenerBadges()` + stock de variante seleccionada antes de agregar al carrito. |
 | **Tests** | `npm test` → 99 passed, 0 failures |
 
+### 2026-06-13 — Store & POS Service Worker Rewrite (localhost bypass, postMessage auto-reload, cache versioning, Vercel compat)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/service-worker.js` | **Reescrito completo.** `const ES_LOCAL` detecta `localhost`/`127.0.0.1` y bypass: `return;` sin `e.respondWith()` en fetch, omite precache en install/activate. Cache-first con `!r.redirected` check. `.catch(() => fetch(e.request))` en fetch handler para evitar "listener indicated asynchronous response". `ignoreSearch:true` en `caches.match()` para rutas con query params (`producto.html?slug=...`). `postMessage({accion:'recargar'})` en activate via `clients.matchAll()`. Cache version `outletshop-YYYYMMDD-NN`. Assets agregados: `carrito.html`, `checkout.html`, `footer-store.js`, `carrito.js`, `checkout.js`, `img/icon.svg`, `img/icon2.svg`, `sobre-nosotros.html`, `terminos-condiciones.html`, `politica-privacidad.html`, `preguntas-frecuentes.html`. |
+| `apps/pos/service-worker.js` | **Reescrito.** Misma arquitectura que Store: `ES_LOCAL`, `!r.redirected`, `.catch()`, `ignoreSearch:true`, `postMessage` auto-reload, cache version `kubit-pos-YYYYMMDD-NN`. Assets actualizados: 34 criticos (agregados `facturacion.html`, `gastos.html`, `reportes.html`, `movimientos.html`). |
+| `apps/store/*.html` (8 paginas) | Agregado listener `navigator.serviceWorker` `message` → `location.reload()` para recarga automatica post-SW-activate. |
+| `apps/store/js/paginas/producto.js` | DOMContentLoader envuelto en `try/catch` con mensaje fallback "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -718,6 +734,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Autoplay con pausa temporal:** El autoplay del lightbox usa `setInterval` de 4s. Al navegar (flechas, dots, swipe, teclado) se pausa temporalmente via `pausarAutoplayTemporal()`: limpia el intervalo actual y programa uno nuevo con `setTimeout` a 3s. Esto evita que la imagen cambie inmediatamente despues de que el usuario interactuo. El autoplay default es OFF.
 - **Eventos del lightbox con cleanup:** Los eventos de teclado (`keydown`) y touch (`touchstart`/`touchend`) se limpian via `MutationObserver` que detecta cuando el overlay ya no esta en el DOM. Esto evita memory leaks y listeners huerfanos.
 - **cursor-pointer condicional en imagen principal:** No se pone `cursor-pointer` en el HTML estatico de `producto.html`. Se agrega via JS (`classList.add('cursor-pointer')`) solo cuando `_lightboxImagenes.length > 1`, es decir, cuando hay mas de una imagen y el lightbox tiene sentido abrirse al hacer click. Si solo hay 1 imagen, el cursor queda como default (arrow) porque hacer click no hace nada.
+- **Store SW con ES_LOCAL bypass:** El service worker del Store detecta `self.location.hostname === 'localhost'` o `'127.0.0.1'` y hace `return;` sin `e.respondWith()` en fetch, y omite precache en install/activate. Esto permite que `npx serve` funcione sin interferencia del SW (los 301 redirects los maneja el navegador directamente).
+- **SW auto-reload via postMessage obligatorio:** Al activarse el SW, debe enviar `{accion:'recargar'}` a todos los clients via `clients.matchAll()` + `postMessage()`. Cada pagina HTML debe escuchar `navigator.serviceWorker.addEventListener('message', ...)` y ejecutar `location.reload()`. El usuario siempre ve la version mas reciente sin recarga manual. Esta decision aplica tanto a POS como a Store.
+- **SW ignoreSearch:true para producto.html:** `caches.match(e.request, {ignoreSearch:true})` permite que el cache de `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Sin esto, el cache-first fallaria en todas las paginas de producto porque la URL del cache no coincide con la URL solicitada (difieren en query string).
+- **SW .catch() obligatorio en fetch handler:** El fetch handler debe envolver la promesa en `.catch(() => fetch(e.request))`. Sin esto, si el cache falla o hay una redireccion, el SW lanza "A listener indicated an asynchronous response by returning true" y la pagina no carga.
+- **SW cache versioning YYYYMMDD-NN:** El nombre del cache usa formato `kubit-pos-YYYYMMDD-NN` (POS) y `outletshop-YYYYMMDD-NN` (Store). `YYYYMMDD` = fecha del deploy, `NN` = contador por dia que se incrementa manualmente en cada deploy del mismo dia (01, 02...). Esto garantiza que cada deploy use un cache nuevo. El SW elimina caches viejos en el evento `activate`.
+- **npx serve no funciona en Windows para el Store:** En Windows 10, `npx serve` hace un redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Este bug no tiene fix desde el codigo del proyecto. Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local.
+- **producto.js try/catch obligatorio:** El callback `DOMContentLoaded` en `apps/store/js/paginas/producto.js` debe estar envuelto en `try/catch` porque si el SW sirve una version corrupta o incompleta del JS, la pagina se rompe silenciosamente. El catch muestra "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`.
 
 ---
 
@@ -789,3 +812,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Lightbox touch swipe | `touchstart`/`touchend` delta >50px, `passive: true` |
 | Lightbox keyboard | `keydown` Escape/←/→, cleanup via MutationObserver |
 | Lightbox cursor | `cursor-pointer` agregado via JS solo si mas de 1 imagen |
+| Store SW service worker | `apps/store/service-worker.js`, ES_LOCAL bypass, cache outletshop-YYYYMMDD-NN, postMessage auto-reload |
+| Store SW registration | `navigator.serviceWorker.register`, 8 paginas Store |
+| SW localhost bypass | `self.location.hostname === 'localhost'`, `return;` sin `e.respondWith()` |
+| SW auto-reload | `postMessage({accion:'recargar'})`, `location.reload()` en listener |
+| SW cache versioning | `kubit-pos-YYYYMMDD-NN` (POS), `outletshop-YYYYMMDD-NN` (Store) |
+| SW ignoreSearch | `caches.match(e.request, {ignoreSearch:true})` para producto.html?slug=... |
+| SW .catch() fetch handler | `.catch(() => fetch(e.request))` evita "listener indicated asynchronous response" |
+| SW redirect fix | `!r.redirected`, `{ redirect: 'follow' }` para navegacion |
+| npx http-server alternativa | `npx http-server apps/store -p 3000` evita bug 301 de `npx serve` en Windows |
+| Store producto.js try/catch | `producto.js` DOMContentLoaded envuelto en try/catch, mensaje fallback si falla |
