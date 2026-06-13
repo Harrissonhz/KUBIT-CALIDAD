@@ -22,19 +22,19 @@ document.addEventListener('DOMContentLoaded', () => {
           </div>
 
           <div class="hidden md:flex items-center gap-2 mr-2">
-            <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Facebook">
+            <a href="https://www.facebook.com/outletshop.tiendavirtual/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Facebook">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.35 3.24 9.35 5.47v1.99H6.85v4.57h2.5V23h5.15v-10.5h3.47l.7-4.57z"/></svg>
             </a>
-            <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Instagram">
+            <a href="https://www.instagram.com/OutletShop_for_my/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Instagram">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke-width="1.5"/><circle cx="12" cy="12" r="5" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
             </a>
-            <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="TikTok">
+            <a href="https://www.tiktok.com/@outletshoptienda" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="TikTok">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.9 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.32 0 .62.06.92.14V9.43a6.35 6.35 0 00-.92-.07A6.34 6.34 0 004.3 15.7a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.17a8.27 8.27 0 004.02 1.36v-3.4c-.27.01-.54-.02-.81-.04z"/></svg>
             </a>
-            <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Threads">
+            <a href="https://www.threads.com/@outletshop_for_my" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Threads">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm5.5 11.5c-.08 1.2-.6 2.3-1.4 3.1-1.1 1.1-2.7 1.7-4.6 1.7-1.8 0-3.4-.5-4.6-1.5-1.1-.9-1.7-2.1-1.7-3.4 0-1.2.6-2.4 1.7-3.3 1.2-1 2.7-1.5 4.5-1.5 1.8 0 3.3.5 4.5 1.5.7.6 1.2 1.3 1.5 2.1.1.3.1.6 0 .9-.1.2-.3.4-.5.4-.1 0-.3-.1-.4-.2-.1-.2-.2-.5-.3-.7-.2-.7-.7-1.3-1.3-1.7-.8-.6-1.9-.9-3.2-.9-1.4 0-2.6.4-3.5 1.2-.9.8-1.3 1.8-1.3 3 0 1.2.4 2.2 1.3 3 .9.8 2 1.2 3.4 1.2 1.2 0 2.2-.3 3-.8.5-.3.9-.7 1.2-1.2h-2.3c-.2 0-.3-.1-.4-.3-.1-.3-.1-.6 0-.9 0-.2.2-.4.4-.4h3.1c.1 0 .2.1.2.2.1.6.1 1.2 0 1.8z"/></svg>
             </a>
-            <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="YouTube">
+            <a href="https://www.youtube.com/@OutletShopTiendaVirtual" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="YouTube">
               <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M23.5 6.2c-.3-1-1.1-1.8-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6c-1 .3-1.8 1.1-2.1 2.1C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1.1 1.8 2.1 2.1 1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6c1-.3 1.8-1.1 2.1-2.1.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.5V8.5l6.3 3.5z"/></svg>
             </a>
           </div>
@@ -66,19 +66,19 @@ document.addEventListener('DOMContentLoaded', () => {
                    class="w-full pl-9 pr-3 py-2 text-sm bg-slate-800 border border-slate-700 rounded-lg focus:outline-none focus:ring-2 focus:ring-white focus:border-white placeholder:text-slate-500 text-white mb-2"
                    placeholder="Buscar productos...">
             <div class="flex items-center gap-4 py-2">
-              <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Facebook">
+              <a href="https://www.facebook.com/outletshop.tiendavirtual/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Facebook">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M18.77 7.46H14.5v-1.9c0-.9.6-1.1 1-1.1h3V.5h-4.33C10.24.5 9.35 3.24 9.35 5.47v1.99H6.85v4.57h2.5V23h5.15v-10.5h3.47l.7-4.57z"/></svg>
               </a>
-              <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Instagram">
+              <a href="https://www.instagram.com/OutletShop_for_my/" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Instagram">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="5" ry="5" stroke-width="1.5"/><circle cx="12" cy="12" r="5" stroke-width="1.5"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor"/></svg>
               </a>
-              <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="TikTok">
+              <a href="https://www.tiktok.com/@outletshoptienda" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="TikTok">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M19.59 6.69a4.83 4.83 0 01-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 01-2.88 2.9 2.89 2.89 0 01-2.88-2.89 2.89 2.89 0 012.88-2.89c.32 0 .62.06.92.14V9.43a6.35 6.35 0 00-.92-.07A6.34 6.34 0 004.3 15.7a6.34 6.34 0 006.34 6.34 6.34 6.34 0 006.34-6.34V8.17a8.27 8.27 0 004.02 1.36v-3.4c-.27.01-.54-.02-.81-.04z"/></svg>
               </a>
-              <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="Threads">
+              <a href="https://www.threads.com/@outletshop_for_my" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="Threads">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm5.5 11.5c-.08 1.2-.6 2.3-1.4 3.1-1.1 1.1-2.7 1.7-4.6 1.7-1.8 0-3.4-.5-4.6-1.5-1.1-.9-1.7-2.1-1.7-3.4 0-1.2.6-2.4 1.7-3.3 1.2-1 2.7-1.5 4.5-1.5 1.8 0 3.3.5 4.5 1.5.7.6 1.2 1.3 1.5 2.1.1.3.1.6 0 .9-.1.2-.3.4-.5.4-.1 0-.3-.1-.4-.2-.1-.2-.2-.5-.3-.7-.2-.7-.7-1.3-1.3-1.7-.8-.6-1.9-.9-3.2-.9-1.4 0-2.6.4-3.5 1.2-.9.8-1.3 1.8-1.3 3 0 1.2.4 2.2 1.3 3 .9.8 2 1.2 3.4 1.2 1.2 0 2.2-.3 3-.8.5-.3.9-.7 1.2-1.2h-2.3c-.2 0-.3-.1-.4-.3-.1-.3-.1-.6 0-.9 0-.2.2-.4.4-.4h3.1c.1 0 .2.1.2.2.1.6.1 1.2 0 1.8z"/></svg>
               </a>
-              <a href="#" class="text-slate-400 hover:text-white transition-colors" aria-label="YouTube">
+              <a href="https://www.youtube.com/@OutletShopTiendaVirtual" target="_blank" rel="noopener noreferrer" class="text-slate-400 hover:text-white transition-colors" aria-label="YouTube">
                 <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M23.5 6.2c-.3-1-1.1-1.8-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6c-1 .3-1.8 1.1-2.1 2.1C0 8.1 0 12 0 12s0 3.9.5 5.8c.3 1 1.1 1.8 2.1 2.1 1.9.6 9.4.6 9.4.6s7.5 0 9.4-.6c1-.3 1.8-1.1 2.1-2.1.5-1.9.5-5.8.5-5.8s0-3.9-.5-5.8zM9.5 15.5V8.5l6.3 3.5z"/></svg>
               </a>
           </div>

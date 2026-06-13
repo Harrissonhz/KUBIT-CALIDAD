@@ -703,6 +703,27 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/producto.js` | DOMContentLoader envuelto en `try/catch` con mensaje fallback "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`. |
 | **Tests** | `npm test` → 99 passed, 0 failures |
 
+### 2026-06-13 — Lightbox: autoplay automatico al abrir (3s) + click-outside cierra modal
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/paginas/producto.js` | `abrirLightbox()`: `detenerAutoplay()` removido, `iniciarAutoplay()` agregado al final (despues de que el DOM del overlay existe). El autoavance arranca automaticamente al abrir el modal. |
+| `apps/store/js/paginas/producto.js` | `iniciarAutoplay()`: agregado guard `if (_lightboxImagenes.length <= 1) return;` — no inicia autoplay si hay 1 sola imagen. Intervalo cambiado de 4000ms a 3000ms. |
+| `apps/store/js/paginas/producto.js` | `pausarAutoplayTemporal()`: intervalo cambiado de 4000ms a 3000ms (consistencia). |
+| `apps/store/js/paginas/producto.js` | Overlay click handler: cambiado de `if (e.target === overlay)` (solo backdrop) a exclusion por clase: cierra al hacer clic en cualquier elemento que NO sea `.lightbox-imagen`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-btn` o `.lightbox-close`. Estandar de industria (Fancybox, GLightbox, Photoswipe). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+| **Verificado** | Modo incognito: autoplay arranca solo, click fuera de imagen cierra modal. |
+
+### 2026-06-13 — Redes Sociales Store: URLs reales + target blank en navbar y footer
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | 10 hrefs actualizados de `#` a URLs reales: Facebook, TikTok, Threads, YouTube, WhatsApp. Instagram ya estaba correcto. `target="_blank" rel="noopener noreferrer"` agregado a los 12 links (2 secciones × 6 redes). |
+| `apps/store/js/compartido/navbar-store.js` | 10 hrefs actualizados de `#` a URLs reales: Facebook, Instagram, TikTok, Threads, YouTube. `target="_blank" rel="noopener noreferrer"` agregado a los 10 links (2 secciones × 5 redes). |
+| `apps/store/index.html` | 2 Instagram links normalizados: `https://instagram.com/outletshop_for_my` → `https://www.instagram.com/OutletShop_for_my/` (ya tenian `target="_blank"`). |
+| **Estandar** | Links externos (redes sociales) usan `target="_blank" rel="noopener noreferrer"` para preservar sesion de compra (carrito, busqueda) y prevenir tabnabbing. Estandar Amazon, MercadoLibre, Shopify. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -731,9 +752,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Store Lightbox 100% via JS:** El lightbox modal de galeria de producto se construye completamente via JavaScript (DOM creation, eventos, animaciones). No se modifica `producto.html`. La estructura sigue el mismo patron que `abrirVideoModal()` existente: crear overlay, toolbar, contenido, adjuntar al body, limpiar al cerrar.
 - **Scope de funciones en producto.js:** Todas las funciones de la pagina de producto (`renderizarProducto`, `abrirLightbox`, `abrirVideoModal`, `renderizarRelacionados`) estan declaradas **dentro** del callback `DOMContentLoaded`. Esto es obligatorio porque `renderizarProducto` y las funciones del lightbox comparten variables de clausura (`_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`, `_autoplayActivo`, `_tiempoFuera`). Cualquier funcion futura que acceda a estas variables debe estar en el mismo scope.
 - **Crossfade CSS vs slide:** La transicion entre imagenes del lightbox usa crossfade CSS (`.desvanecer` con `opacity 0.3s ease`) en vez de slide/translate. Es mas simple, ligero y evita problemas de layout con imagenes de distintas proporciones. La logica: agregar clase `.desvanecer` → wait 300ms (via `setTimeout`) → cambiar `img.src` → remover clase `.desvanecer`.
-- **Autoplay con pausa temporal:** El autoplay del lightbox usa `setInterval` de 4s. Al navegar (flechas, dots, swipe, teclado) se pausa temporalmente via `pausarAutoplayTemporal()`: limpia el intervalo actual y programa uno nuevo con `setTimeout` a 3s. Esto evita que la imagen cambie inmediatamente despues de que el usuario interactuo. El autoplay default es OFF.
+- **Autoplay automatico al abrir el lightbox:** El autoplay arranca inmediatamente al abrir el modal (`abrirLightbox()` llama `iniciarAutoplay()` al final). Usa `setInterval` de 3s. Al navegar (flechas, dots, swipe, teclado) se pausa temporalmente via `pausarAutoplayTemporal()`: limpia el intervalo actual y programa uno nuevo con `setTimeout` a 3s. Esto evita que la imagen cambie inmediatamente despues de que el usuario interactuo. No inicia si hay 1 sola imagen (guard `if (_lightboxImagenes.length <= 1) return;`).
 - **Eventos del lightbox con cleanup:** Los eventos de teclado (`keydown`) y touch (`touchstart`/`touchend`) se limpian via `MutationObserver` que detecta cuando el overlay ya no esta en el DOM. Esto evita memory leaks y listeners huerfanos.
 - **cursor-pointer condicional en imagen principal:** No se pone `cursor-pointer` en el HTML estatico de `producto.html`. Se agrega via JS (`classList.add('cursor-pointer')`) solo cuando `_lightboxImagenes.length > 1`, es decir, cuando hay mas de una imagen y el lightbox tiene sentido abrirse al hacer click. Si solo hay 1 imagen, el cursor queda como default (arrow) porque hacer click no hace nada.
+- **Click-outside cierra lightbox:** El handler de clic del overlay cierra el modal cuando se hace clic en cualquier elemento que NO sea la imagen (`.lightbox-imagen`), flechas (`.lightbox-arrow`), dots (`.lightbox-dot`), boton autoplay (`.lightbox-btn`) o boton cerrar (`.lightbox-close`). Es el comportamiento estandar de Fancybox, GLightbox y Photoswipe. El usuario puede cerrar tocando el fondo negro, el padding alrededor de la imagen, el toolbar vacio o el area de dots.
 - **Store SW con ES_LOCAL bypass:** El service worker del Store detecta `self.location.hostname === 'localhost'` o `'127.0.0.1'` y hace `return;` sin `e.respondWith()` en fetch, y omite precache en install/activate. Esto permite que `npx serve` funcione sin interferencia del SW (los 301 redirects los maneja el navegador directamente).
 - **SW auto-reload via postMessage obligatorio:** Al activarse el SW, debe enviar `{accion:'recargar'}` a todos los clients via `clients.matchAll()` + `postMessage()`. Cada pagina HTML debe escuchar `navigator.serviceWorker.addEventListener('message', ...)` y ejecutar `location.reload()`. El usuario siempre ve la version mas reciente sin recarga manual. Esta decision aplica tanto a POS como a Store.
 - **SW ignoreSearch:true para producto.html:** `caches.match(e.request, {ignoreSearch:true})` permite que el cache de `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Sin esto, el cache-first fallaria en todas las paginas de producto porque la URL del cache no coincide con la URL solicitada (difieren en query string).
@@ -808,7 +830,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Lightbox Store | `producto.js::abrirLightbox()`, `estilo.css` clases `.lightbox-*`, lightbox fullscreen con autoplay, crossfade CSS, navegacion por flechas/dots/teclado/swipe |
 | Lightbox scope fix | `producto.js`: todas las funciones dentro del callback DOMContentLoaded para compartir clausura con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer` |
 | Lightbox CSS | `estilo.css` lineas 744-835: `.lightbox-overlay`, `.lightbox-toolbar`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-imagen.desvanecer`, responsive |
-| Lightbox autoplay | `toggleAutoplay()`, `iniciarAutoplay()` (4s intervalo), `detenerAutoplay()`, `pausarAutoplayTemporal()` (reanuda 3s), indicador punto verde |
+| Lightbox autoplay (3s) | `iniciarAutoplay()` (3000ms), `pausarAutoplayTemporal()` (reanuda 3s), arranque automatico al abrir, guard `_lightboxImagenes.length <= 1` |
+| Lightbox click-outside | `cerrarLightbox()` en overlay click, excluye `.lightbox-imagen`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-btn`, `.lightbox-close` |
 | Lightbox touch swipe | `touchstart`/`touchend` delta >50px, `passive: true` |
 | Lightbox keyboard | `keydown` Escape/←/→, cleanup via MutationObserver |
 | Lightbox cursor | `cursor-pointer` agregado via JS solo si mas de 1 imagen |
