@@ -172,7 +172,6 @@ document.addEventListener('DOMContentLoaded', async () => {
      ════════════════════════════════════════ */
   function abrirLightbox(indice) {
     _lightboxIndice = indice;
-    detenerAutoplay();
 
     var overlay = document.createElement('div');
     overlay.className = 'lightbox-overlay';
@@ -208,6 +207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderizarDots(indice);
     actualizarImagen(indice, true);
     bindearEventosLightbox(overlay);
+    iniciarAutoplay();
   }
 
   function cerrarLightbox() {
@@ -259,9 +259,10 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   function iniciarAutoplay() {
+    if (_lightboxImagenes.length <= 1) return;
     detenerAutoplay();
     _autoplayActivo = true;
-    _autoplayTimer = setInterval(function() { actualizarImagen(_lightboxIndice + 1, false); }, 4000);
+    _autoplayTimer = setInterval(function() { actualizarImagen(_lightboxIndice + 1, false); }, 3000);
     actualizarBotonAutoplay();
   }
 
@@ -278,7 +279,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (_tiempoFuera) { clearTimeout(_tiempoFuera); }
     _tiempoFuera = setTimeout(function() {
       if (_autoplayActivo) {
-        _autoplayTimer = setInterval(function() { actualizarImagen(_lightboxIndice + 1, false); }, 4000);
+        _autoplayTimer = setInterval(function() { actualizarImagen(_lightboxIndice + 1, false); }, 3000);
       }
       _tiempoFuera = null;
     }, 3000);
@@ -300,7 +301,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   function bindearEventosLightbox(overlay) {
     overlay.querySelector('#btn-cerrar-lightbox').addEventListener('click', cerrarLightbox);
     overlay.addEventListener('click', function(e) {
-      if (e.target === overlay) cerrarLightbox();
+      var target = e.target;
+      if (target.closest('.lightbox-imagen')) return;
+      if (target.closest('.lightbox-arrow')) return;
+      if (target.closest('.lightbox-dot')) return;
+      if (target.closest('.lightbox-btn')) return;
+      if (target.closest('.lightbox-close')) return;
+      cerrarLightbox();
     });
 
     overlay.querySelector('#btn-prev').addEventListener('click', function() { navegarLightbox(-1); });
