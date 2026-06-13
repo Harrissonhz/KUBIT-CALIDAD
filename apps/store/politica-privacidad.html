@@ -99,6 +99,9 @@ Esta política entra en vigencia a partir de la fecha de publicación y podrá s
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
+      navigator.serviceWorker.addEventListener('message', function(e) {
+        if (e.data && e.data.accion === 'recargar') window.location.reload();
+      });
     }
   </script>
   <script src="js/api/supabase-client.js" charset="UTF-8"></script>

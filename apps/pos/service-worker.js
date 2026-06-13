@@ -1,4 +1,5 @@
-var CACHE = 'kubit-pos-v4';
+var CACHE = 'kubit-pos-20260614-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
+var ES_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 var ASSETS = [
   'index.html',
@@ -57,15 +58,27 @@ self.addEventListener('activate', function (e) {
       return Promise.all(
         keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })
       );
+    }).then(function () {
+      return self.clients.claim();
+    }).then(function () {
+      return self.clients.matchAll().then(function (clientList) {
+        clientList.forEach(function (client) {
+          client.postMessage({ accion: 'recargar' });
+        });
+      });
     })
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', function (e) {
+  if (ES_LOCAL) {
+    return;
+  }
   e.respondWith(
-    caches.match(e.request).then(function (r) {
+    caches.match(e.request, { ignoreSearch: true }).then(function (r) {
       if (r && !r.redirected) return r;
+      return fetch(e.request, { redirect: 'follow' });
+    }).catch(function () {
       return fetch(e.request, { redirect: 'follow' });
     })
   );

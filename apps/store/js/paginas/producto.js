@@ -5,27 +5,28 @@ document.addEventListener('DOMContentLoaded', async () => {
   var _autoplayActivo = false;
   var _tiempoFuera = null;
 
-  var slug = obtenerParametroURL('slug');
-  if (!slug) {
-    document.getElementById('contenedor-producto').innerHTML = '\
-      <div class="col-span-full text-center py-16">\
-        <p class="text-slate-500 text-lg">Producto no encontrado</p>\
-        <a href="index.html" class="inline-block mt-4 text-sm text-slate-950 underline">Volver a la tienda</a>\
-      </div>\
-    ';
-    return;
-  }
+  try {
+    var slug = obtenerParametroURL('slug');
+    if (!slug) {
+      document.getElementById('contenedor-producto').innerHTML = '\
+        <div class="col-span-full text-center py-16">\
+          <p class="text-slate-500 text-lg">Producto no encontrado</p>\
+          <a href="index.html" class="inline-block mt-4 text-sm text-slate-950 underline">Volver a la tienda</a>\
+        </div>\
+      ';
+      return;
+    }
 
-  var producto = await StoreAPI.productos.obtenerPorSlug(slug);
-  if (!producto) {
-    document.getElementById('contenedor-producto').innerHTML = '\
-      <div class="col-span-full text-center py-16">\
-        <p class="text-slate-500 text-lg">Producto no encontrado</p>\
-        <a href="index.html" class="inline-block mt-4 text-sm text-slate-950 underline">Volver a la tienda</a>\
-      </div>\
-    ';
-    return;
-  }
+    var producto = await StoreAPI.productos.obtenerPorSlug(slug);
+    if (!producto) {
+      document.getElementById('contenedor-producto').innerHTML = '\
+        <div class="col-span-full text-center py-16">\
+          <p class="text-slate-500 text-lg">Producto no encontrado</p>\
+          <a href="index.html" class="inline-block mt-4 text-sm text-slate-950 underline">Volver a la tienda</a>\
+        </div>\
+      ';
+      return;
+    }
 
   async function renderizarProducto(producto) {
     var categoria = await StoreAPI.categorias.obtenerPorSlug(producto.categoria);
@@ -350,6 +351,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     relacionados.forEach(p => $grid.appendChild(CardProducto(p)));
   }
 
-  await renderizarProducto(producto);
-  await renderizarRelacionados(producto);
+    await renderizarProducto(producto);
+    await renderizarRelacionados(producto);
+  } catch (e) {
+    document.getElementById('contenedor-producto').innerHTML = '\
+      <div class="col-span-full text-center py-16">\
+        <p class="text-slate-500 text-lg">Error al cargar el producto</p>\
+        <p class="text-slate-400 text-sm mt-2">Intentalo de nuevo mas tarde</p>\
+        <a href="index.html" class="inline-block mt-4 text-sm text-slate-950 underline">Volver a la tienda</a>\
+      </div>\
+    ';
+  }
 });

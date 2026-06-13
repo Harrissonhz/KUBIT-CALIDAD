@@ -1,8 +1,14 @@
-const CACHE = 'outletshop-v1';
+var CACHE = 'outletshop-20260614-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
 
-const ASSETS = [
+var ASSETS = [
   'index.html',
   'producto.html',
+  'carrito.html',
+  'checkout.html',
+  'sobre-nosotros.html',
+  'terminos-condiciones.html',
+  'politica-privacidad.html',
+  'preguntas-frecuentes.html',
   'css/estilo.css',
   'js/api/supabase-client.js',
   'js/api/productos.js',
@@ -11,30 +17,58 @@ const ASSETS = [
   'js/compartido/modal.js',
   'js/compartido/card-producto.js',
   'js/compartido/navbar-store.js',
+  'js/compartido/footer-store.js',
   'js/paginas/inicio.js',
   'js/paginas/producto.js',
+  'js/paginas/carrito.js',
+  'js/paginas/checkout.js',
   'img/LogoTodasPublicaciones.jpg',
-  'manifest.json',
+  'img/icon.svg',
+  'img/icon2.svg',
+  'manifest.json'
 ];
 
-self.addEventListener('install', (e) => {
-  e.waitUntil(
-    caches.open(CACHE).then((cache) => cache.addAll(ASSETS))
-  );
+var ES_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
+
+self.addEventListener('install', function(e) {
+  if (!ES_LOCAL) {
+    e.waitUntil(
+      caches.open(CACHE).then(function(cache) {
+        return cache.addAll(ASSETS);
+      }).catch(function() {})
+    );
+  }
   self.skipWaiting();
 });
 
-self.addEventListener('activate', (e) => {
+self.addEventListener('activate', function(e) {
   e.waitUntil(
-    caches.keys().then((keys) =>
-      Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k)))
-    )
+    caches.keys().then(function(keys) {
+      return Promise.all(
+        keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); })
+      );
+    }).then(function() {
+      return self.clients.claim();
+    }).then(function() {
+      return self.clients.matchAll().then(function(clientList) {
+        clientList.forEach(function(client) {
+          client.postMessage({ accion: 'recargar' });
+        });
+      });
+    })
   );
-  self.clients.claim();
 });
 
-self.addEventListener('fetch', (e) => {
+self.addEventListener('fetch', function(e) {
+  if (ES_LOCAL) {
+    return;
+  }
   e.respondWith(
-    caches.match(e.request).then((r) => r || fetch(e.request))
+    caches.match(e.request, { ignoreSearch: true }).then(function(r) {
+      if (r && !r.redirected) return r;
+      return fetch(e.request, { redirect: 'follow' });
+    }).catch(function() {
+      return fetch(e.request, { redirect: 'follow' });
+    })
   );
 });

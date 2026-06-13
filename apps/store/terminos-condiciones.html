@@ -135,6 +135,9 @@ Ubicación: Itagüí, Carrera 47 #42-39. Horario: lunes a viernes 9:00am a 6:00p
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('service-worker.js');
+      navigator.serviceWorker.addEventListener('message', function(e) {
+        if (e.data && e.data.accion === 'recargar') window.location.reload();
+      });
     }
   </script>
   <script src="js/api/supabase-client.js" charset="UTF-8"></script>
