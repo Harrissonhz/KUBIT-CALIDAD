@@ -159,6 +159,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | SW ignoreSearch:true | En `caches.match(e.request, {ignoreSearch:true})` para que `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Cache-first funciona correctamente en paginas de producto. |
 | SW .catch() en fetch handler | El fetch handler del SW envuelve la promesa en `.catch(() => fetch(e.request))` para evitar el error "A listener indicated an asynchronous response by returning true" cuando el cache falla o hay redirecciones. |
 | npx http-server para local en Windows | `npx serve` en Windows 10 hace redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local. Este bug no tiene fix desde el codigo del proyecto. |
+| Herramientas module structure | `apps/pos/herramientas/` subdirectorio independiente con hub → sub-page navigation. El hub (`herramientas.html`) muestra card grid, cada card navega a `herramientas/<tool>.html`. Sin modals ni tabs. |
+| Action buttons outside cards | En herramientas y paginas CRUD, los botones de accion (Cancelar, Confirmar, etc.) van en natural flow fuera de los `<details>` cards, usando `flex flex-col sm:flex-row gap-3`. No usan `position: fixed`. Se muestran/ocultan contextualmente via JS (clase `hidden`). |
+| Sidebar toggle extraido | `js/compartido/sidebar.js` contiene la funcion `toggleSidebar()` compartida para paginas que no pertenecen a los 14 CRUD principales (herramientas.html, herramientas/renombrar-archivos.html). Las 14 paginas principales mantienen el toggle inline. |
+| Card visibility: `hidden` class vs inline `style` | Para elementos que JS oculta/muestra, usar SIEMPRE `class="hidden"` (Tailwind), NUNCA `style="display:none"`. `classList.remove('hidden')` no funciona con inline `style` por mayor especificidad CSS. |
+| No data-permiso en Herramientas | El grupo Herramientas en el sidebar no tiene `data-permiso` — es visible para todos los usuarios autenticados sin control de permisos. |
 
 ---
 
@@ -336,6 +341,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `limpiar-sw.html`: pagina kill-switch creada y luego eliminada (depuracion local)
 - [x] Desplegado en Vercel QA: `https://pos-calidad.vercel.app/`
 
+#### Módulo POS — Fase 15: Herramientas (file renamer tool)
+- [x] `herramientas.html` — Hub page con card grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) + header/sidebar POS completo
+- [x] `herramientas/renombrar-archivos.html` — Tool page con 3-card workflow (Seleccionar Carpeta, Vista Previa, Resultados) + action bar externa
+- [x] `js/herramientas/renombrar-archivos.js` — Lógica completa: File System Access API (`showDirectoryPicker`), renombrado masivo con estadísticas, preview editable, validaciones
+- [x] `js/compartido/sidebar.js` — Función `toggleSidebar()` compartida para páginas de herramientas y hub
+- [x] `css/estilo.css` — Clases `.herramienta-card` con hover/focus/active states slate-800
+- [x] Sidebar actualizado en 14 páginas POS con grupo Herramientas insertado entre Caja/Finanzas y Administración
+- [x] Fix: Cards 2 y 3 de renombrar-archivos.html cambiadas de `style="display:none"` a `class="hidden"` + `open`
+- [x] Fix: Botones de acción movidos fuera de cards a `#action-bar` en flujo natural con show/hide contextual
+- [x] Fix: Menú hamburguesa roto en herramientas.html (sidebar.js no existía) y renombrar-archivos.html (no incluía el script)
+- [x] Tests: `npm test` → 99 passed, 0 failures
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
@@ -367,6 +384,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
 - [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
+- [ ] Construir mas herramientas internas en `apps/pos/herramientas/` (ej: generador de codigos de barras, exportador de datos, editor de slugs)
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -905,3 +923,25 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Privacidad reestructurada | `politica-privacidad.html`, indice 9 anclajes, secciones HTML, base legal, conservacion 5 anos, cookies detalladas |
 | Terminos reestructurados | `terminos-condiciones.html`, fix URL mitiendanube, indice 11 anclajes, legislacion Medellin, notificaciones legales |
 | Paginas legales indice grid | `grid grid-cols-1 sm:grid-cols-2` en TOC de terminos, privacidad y FAQ, estilo `text-sky-600` unificado |
+| Herramientas module | `herramientas.html`, `herramientas/`, `js/herramientas/` |
+| Renombrar Archivos tool | `renombrar-archivos.html`, `renombrar-archivos.js`, File System Access API, `showDirectoryPicker` |
+| Sidebar compartido | `js/compartido/sidebar.js`, `toggleSidebar()`, paginas no-CRUD |
+| Action buttons patron | `#action-bar`, natural flow, `flex flex-col sm:flex-row gap-3`, show/hide contextual |
+| Card visibility patron | `class="hidden"` (NUNCA `style="display:none"`) para elementos controlados por JS |
+
+## 13. Registro de Cambios (continuacion)
+
+### 2026-06-15 — Modulo Herramientas POS (Fase 15)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/herramientas.html` | Nuevo: hub page con card grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`), header/sidebar POS completo, referencia a `sidebar.js` |
+| `apps/pos/herramientas/renombrar-archivos.html` | Nuevo: tool page con 3-card workflow (Seleccionar Carpeta, Vista Previa, Resultados) + action bar externa fuera de cards |
+| `apps/pos/js/herramientas/renombrar-archivos.js` | Nuevo: logica completa con File System Access API (`showDirectoryPicker`), renombrado masivo, preview editable, estadisticas, toast system |
+| `apps/pos/js/compartido/sidebar.js` | Nuevo: funcion `toggleSidebar()` compartida para paginas que no pertenecen a los 14 CRUD principales |
+| `apps/pos/css/estilo.css` | Nuevas clases `.herramienta-card` con hover/focus/active states slate-800 |
+| `apps/pos/ventas.html`...`apps/pos/configuracion.html` (14 paginas) | Grupo "Herramientas" insertado en sidebar entre "Caja y Finanzas" y "Administracion" |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Cards 2 y 3 cambiadas de `style="display:none"` a `class="hidden"` + `open` para compatibilidad con `classList.remove('hidden')` |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Botones de accion movidos fuera de cards a `#action-bar` en flujo natural (`flex flex-col sm:flex-row gap-3`), show/hide contextual |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Agregado `<script src="../js/compartido/sidebar.js">` para reparar menu hamburguesa |
+| `tests/` | Verificacion: `npm test` → 99 tests, 0 failures (5 suites) |

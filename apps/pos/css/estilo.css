@@ -253,3 +253,11 @@ input[type="number"]::-webkit-outer-spin-button {
 input[type="number"] {
   -moz-appearance: textfield;
 }
+
+/* Herramienta card hover */
+.herramienta-card:hover {
+  border-color: #64748b !important;
+}
+.dark .herramienta-card:hover {
+  border-color: #64748b !important;
+}
