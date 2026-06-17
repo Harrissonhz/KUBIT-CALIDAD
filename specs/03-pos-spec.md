@@ -866,7 +866,81 @@ El logo de la empresa se almacena en `pos_configuracion_empresa.logo_url` y se r
 
 ---
 
-## 9. Glosario
+## 9. Panel Dashboard (panel.html)
+
+### 9.1 Propósito
+Pagina principal del POS que muestra indicadores clave del negocio en tiempo real. Diseñada como landing page post-login, accesible desde el sidebar como primer item ("Dashboard").
+
+### 9.2 KPIs del Mes
+Fuente: `pos_finanzas_mensuales` (tabla mensual). Se obtienen via `DB.finanzasMensuales.obtenerPorPeriodo(anio, mes)`.
+
+| Indicador | Campo DB | Color | Descripción |
+|---|---|---|---|
+| Ventas | `venta_bruta` | slate-950 | Total ventas brutas del mes |
+| Gastos | `total_gastos` | red-500 | Total gastos operativos del mes |
+| Compras | `costo_mercaderia + costo_comision` | slate-950 | Suma de costo de mercadería + comisiones |
+| Utilidad | `utilidad_neta` | emerald-500 | Ganancia neta del mes |
+| Margen | `margen` (decimal) | emerald-500 | Margen de ganancia (se muestra como %) |
+
+### 9.3 KPIs Operativos
+Se cargan en paralelo via `Promise.all`:
+
+| Indicador | Fuente | Descripción |
+|---|---|---|
+| Ventas Hoy | `DB.ventas.estadisticasHoy().count` | Número de ventas CONFIRMADAS hoy |
+| Ticket Prom. | `DB.ventas.estadisticasHoy().promedio` | Venta promedio del día |
+| Productos | `DB.productos.listarConDetalle()` | Conteo de productos únicos (por `producto_id`) |
+| Stock Bajo | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= stock_min` (default 2) |
+
+### 9.4 Top 5 Productos del Mes
+Agrega `pos_ventas_detalle` del mes actual, agrupando por `producto_detalle_id` y ordenando por cantidad descendente. Implementado en `database.js::ventas.topProductos(limite)`. El ranking visual usa medallas de posicion:
+- 1ro: dorado (`bg-amber-100`)
+- 2do: plata (`bg-slate-100`)
+- 3ro: bronce (`bg-orange-100`)
+- 4to-5to: neutro (`bg-slate-50`)
+
+### 9.5 Accesos Rapidos
+Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
+- Nueva Venta, Mostrador, Caja, Productos, Compras, Reportes
+
+### 9.6 Arquitectura
+- `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration
+- `panel.js` — IIFE con `init()` → `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos()])`
+- Sin dependencias graficas externas (no Chart.js). Todo Tailwind + SVG icons + vanilla JS
+- El subtitulo del header muestra la fecha actual en formato local (`toLocaleDateString('es-CO')`)
+- Formato moneda: `formatCOP()` — redondea a entero, separador de miles con punto
+
+---
+
+## 10. Enlace a Tienda Virtual desde el POS
+
+### 10.1 Store URL
+La URL de la tienda virtual se configura en `pos_configuracion_empresa.store_url` y se edita desde `configuracion.html` (campo `#campo-store-url`).
+
+### 10.2 Carga Dinámica en Sidebar
+El bloque autoejecutable `cargarLinkTienda()` al final de `database.js` busca `#link-tienda-virtual` en todas las paginas POS y asigna `href` desde la DB. Si `store_url` es null/vacio, el link queda con `href="#"` (no navega).
+
+### 10.3 Comportamiento
+- El link abre en nueva pestaña (`target="_blank" rel="noopener noreferrer"`)
+- Visible para todos los usuarios autenticados (sin `data-permiso`)
+- Ubicado en el area inferior del sidebar, sobre "Cerrar sesion"
+- Estilo: icono tienda SVG + texto "Tienda Virtual", hover azul sky
+
+### 10.4 Sidebar POS — Orden de Grupos
+1. **Dashboard** (link directo, no colapsable) → `panel.html`
+2. **Ventas** (colapsable) → Registrar Venta, Mostrador, Historial, Facturacion
+3. **Stock** (colapsable) → Productos, Categorias, Stock
+4. **Compras** (colapsable) → Ordenes, Proveedores
+5. **Clientes** (colapsable) → Clientes
+6. **Caja y Finanzas** (colapsable) → Caja, Gastos, Reportes
+7. **Herramientas** (colapsable) → Herramientas hub
+8. **Administracion** (colapsable) → Configuracion
+9. **Tienda Virtual** (link directo, target=_blank)
+10. **Cerrar sesion** (link directo, rojo hover)
+
+---
+
+## 11. Glosario
 
 | Término | Definición |
 |---|---|

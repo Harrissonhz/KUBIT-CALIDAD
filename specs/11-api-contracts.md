@@ -446,7 +446,39 @@ GET /rest/v1/pos_finanzas_mensuales
   &limit=1
 ```
 
+### 3.11 Dashboard / Estadísticas
+
+#### 3.11.1 Ventas Hoy (KPI Bar + Dashboard)
+```
+GET /rest/v1/pos_ventas
+  ?select=total
+  &estado=eq.CONFIRMADA
+  &fecha_venta=gte.{YYYY-MM-DDT00:00:00}
+  &fecha_venta=lte.{YYYY-MM-DDT23:59:59}
+```
+**Implementación en database.js:** `ventas.estadisticasHoy()` calcula count y promedio client-side.
+
+#### 3.11.2 Top 5 Productos del Mes
+```
+GET /rest/v1/pos_ventas_detalle
+  ?select=producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug,codigo_interno))
+  &created_at=gte.{YYYY-MM-01T00:00:00}
+```
+**Implementación en database.js:** `ventas.topProductos(limite)` agrupa por `producto_detalle_id`, ordena por cantidad, limita a N.
+
+### 3.12 Configuración Empresa
+
+#### 3.12.1 Obtener configuración (incluye store_url)
+```
+GET /rest/v1/pos_configuracion_empresa
+  ?deleted_at=is.null
+  &limit=1
+```
+**Implementación en database.js:** `configuracionEmpresa.obtener()` retorna la fila completa incluyendo `store_url`, `logo_url`, `mensaje_legal`, etc.
+
 ---
+
+
 
 ## 4. Endpoints Store
 

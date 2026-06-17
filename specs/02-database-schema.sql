@@ -450,6 +450,7 @@ create table public.pos_configuracion_empresa (
   prefijo_facturacion text,
   logo_url text,
   mensaje_legal text,
+  store_url text,
   deleted_at timestamptz
 );
 

@@ -481,6 +481,34 @@ window.DB = (function () {
       var total = rows.reduce(function (s, r) { return s + (r.total || 0); }, 0);
       var promedio = count > 0 ? total / count : 0;
       return { count: count, total: total, promedio: promedio, error: null };
+    },
+
+    topProductos: async function (limite) {
+      limite = limite || 5;
+      var hoy = new Date();
+      var y = hoy.getFullYear();
+      var m = String(hoy.getMonth() + 1).padStart(2, '0');
+      var desde = y + '-' + m + '-01T00:00:00';
+      var res = await select('pos_ventas_detalle', {
+        select: 'producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug,codigo_interno))',
+        filters: [
+          { col: 'created_at', op: 'gte', val: desde }
+        ]
+      });
+      if (res.error) return { data: [], error: res.error };
+      var agrupado = {};
+      (res.data || []).forEach(function (d) {
+        var id = d.producto_detalle_id;
+        if (!agrupado[id]) {
+          agrupado[id] = { id: id, cantidad: 0, total: 0, nombre: (d.detalle && d.detalle.producto && d.detalle.producto.nombre) || '---' };
+        }
+        agrupado[id].cantidad += d.cantidad || 0;
+        agrupado[id].total += (d.cantidad || 0) * (d.precio_unitario || 0);
+      });
+      var ordenado = Object.keys(agrupado).map(function (k) { return agrupado[k]; })
+        .sort(function (a, b) { return b.cantidad - a.cantidad; })
+        .slice(0, limite);
+      return { data: ordenado, error: null };
     }
   };
 
@@ -1058,6 +1086,27 @@ window.DB = (function () {
     document.addEventListener('DOMContentLoaded', cargarLogoHeader);
   } else {
     cargarLogoHeader();
+  }
+})();
+
+/* ════════════════════════════════════════════════════════════
+    AUTO: Cargar link de tienda virtual en el sidebar
+    Busca #link-tienda-virtual y asigna href desde store_url
+    ════════════════════════════════════════════════════════════ */
+(function () {
+  function cargarLinkTienda() {
+    var link = document.getElementById('link-tienda-virtual');
+    if (!link) return;
+    DB.configuracionEmpresa.obtener().then(function (res) {
+      if (res.data && res.data.store_url) {
+        link.href = res.data.store_url;
+      }
+    }).catch(function () {});
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', cargarLinkTienda);
+  } else {
+    cargarLinkTienda();
   }
 })();
 

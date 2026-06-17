@@ -204,7 +204,7 @@ Funciones requeridas:
 
 ---
 
-## 8. Texto UI — ASCII Plano Obligatorio
+## 9. Texto UI — ASCII Plano Obligatorio
 Todo texto visible al usuario debe escribirse en **ASCII plano** (a-z, A-Z, 0-9) sin tildes, diéresis, eñes ni caracteres especiales. Esto elimina problemas de encoding (mojibake) entre navegadores, editores y servidores.
 
 | Incorrecto | Correcto |
@@ -252,5 +252,54 @@ Esta regla aplica a: títulos, labels, placeholders, menús, botones, toasts, me
 
 ---
 
-## 7. Excepciones
-- **ventas.html** — No sigue este patrón. Usa layout híbrido Opción C (split-panel desktop, bottom sheet mobile) con categorías como pastillas/pills. Definido en sección 4 de este documento.
+## 7. Patrones Adicionales
+
+### 7.1 Dashboard / Panel (panel.html)
+El dashboard POS usa un layout de cards informativas (no `<details>` colapsable):
+
+- **KPIs del Mes:** Grid `grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4` con 5 cards sin borde de hover (solo `border`, `rounded-xl`, `p-4`, `space-y-1`). Label en `text-xs font-medium uppercase tracking-wider text-slate-400`, valor en `text-lg font-bold`.
+- **KPIs Operativos:** Card blanca con titulo `uppercase tracking-wider`. Grid interno `grid-cols-2 sm:grid-cols-4 gap-4`. Label `text-xs text-slate-400`, valor `text-xl font-bold`.
+- **Top 5 Productos:** Lista vertical con ranking numerado (medallas: 1ro dorado, 2do plata, 3ro bronce, 4to-5to neutro). Cada item: `flex items-center gap-3 py-1.5` con circulo de posicion `w-6 h-6 rounded-full`.
+- **Accesos Rapidos:** Grid `grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3`. Cada card: `flex flex-col items-center gap-2 px-3 py-4 rounded-xl border hover:bg-slate-50`. Icono SVG `w-6 h-6 text-slate-400`, texto `text-xs text-center`.
+
+### 7.2 Toast / Notificaciones
+Sistema global de notificaciones definido en `database.js` al final del archivo:
+
+```
+window.mostrarToast(mensaje, tipo)
+// tipo: 'success', 'error', 'info' (opcional)
+```
+
+**Estructura HTML requerida en cada pagina:**
+```html
+<div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 px-4 py-3 rounded-xl bg-white dark:bg-slate-800 border shadow-lg transition-all duration-300 opacity-0 translate-y-4 pointer-events-none max-w-md">
+  <span id="toast-icon" class="hidden"></span>
+  <span id="toast-message" class="text-sm text-slate-700 dark:text-slate-300"></span>
+  <button id="toast-close" class="ml-auto w-6 h-6 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+  </button>
+</div>
+```
+
+**Comportamiento:**
+- Se muestra con animacion `opacity-0` a `show` (clase `.show` en `estilo.css`)
+- Auto-oculta a los 4 segundos via `setTimeout`
+- Cierre manual via boton X
+- Icono cambia segun tipo: check verde (success), alerta roja (error), info azul (info)
+
+### 7.3 Botones Icon-Only
+Todas las acciones de tabla (Ver, Editar, Eliminar) usan iconos SVG sin texto visible:
+
+| Accion | SVG Path | Color | aria-label |
+|---|---|---|---|
+| Editar | Pencil | `text-sky-500` | `aria-label="Editar"` |
+| Eliminar | Trash | `text-red-400` | `aria-label="Eliminar"` |
+| Ver | Eye | `text-slate-500` | `aria-label="Ver detalle"` |
+
+**Clases:** `w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors`
+
+### 7.4 KPI Bar Compacta (ventas.html)
+Barra de 3 indicadores entre el header y el formulario de ventas. Diseno: `flex flex-wrap gap-4` con iconos SVG + `text-xs`. Sin cache, refresco inmediato post-venta. Fallback silencioso a `—`.
+
+## 8. Excepciones
+- **ventas.html** — No sigue el patron de formularios CRUD. Usa layout hibrido Opcion C (split-panel desktop, bottom sheet mobile) con categorias como pastillas/pills. Definido en seccion 4 de este documento.

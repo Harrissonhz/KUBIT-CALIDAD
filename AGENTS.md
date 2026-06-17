@@ -391,8 +391,35 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `ventas.js` — `init()` detecta `?editar=ID`, carga datos desde sessionStorage. `cargarEdicion()` puebla: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta Void + Recreate: crea nueva venta PRIMERO, solo si exito anula la original con `anularConRevertir()`
 - [x] `ventas.html` — `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" segun contexto
 - [x] `npm test` → 99 passed, 0 failures
-- [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
-- [ ] Construir mas herramientas internas en `apps/pos/herramientas/` (ej: generador de codigos de barras, exportador de datos, editor de slugs)
+- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
+- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
+- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
+- [x] **Store checkout**: Edge Function eliminada, REST API directa con 7 operaciones + seed-anon-grants-store.sql
+- [x] **POS PWA**: Service worker reescrito, iOS meta tags + SW registration en 17 paginas, manifest categories
+- [x] **Tags chips**: Input texto libre reemplazado por 6 toggle chips en productos.html
+- [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
+- [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
+- [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
+- [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
+- [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
+
+#### Módulo POS — Fase 16: Void + Recreate (Edicion de Ventas)
+- [x] `database.js::ventas.anularConRevertir()` — Metodo que revierte stock (entrada_anulacion), revierte finanzas mensuales con valores negativos, y marca la venta como ANULADA
+- [x] `ventas-historial.html` — Boton "Editar" en modal footer, entre "Anular Venta" y "Imprimir"
+- [x] `ventas-historial.js::editarVenta()` — Guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE
+- [x] `ventas.js` — `init()` detecta `?editar=ID`, carga datos desde sessionStorage. `cargarEdicion()` puebla: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta Void + Recreate: crea nueva venta PRIMERO, solo si exito anula la original con `anularConRevertir()`
+- [x] `ventas.html` — `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" segun contexto
+- [x] `npm test` → 99 passed, 0 failures
+
+#### Módulo POS — Fase 17: Panel Dashboard + Tienda Virtual
+- [x] `database.js::cargarLinkTienda()` — Bloque autoejecutable que busca `#link-tienda-virtual` y asigna href desde `pos_configuracion_empresa.store_url`
+- [x] `database.js::ventas.topProductos(limite)` — Agregacion de ventas del mes por producto
+- [x] `configuracion.html` + `configuracion.js` — Campo `store_url` en formulario de empresa
+- [x] `panel.html` + `panel.js` — Dashboard con KPIs del Mes (finanzas), KPIs Operativos (ventas hoy, ticket, productos, stock bajo), Top 5, Accesos Rapidos
+- [x] Sidebar actualizado en 16 paginas POS: grupo "Dashboard" arriba, link "Tienda Virtual" al final (target=_blank, URL desde DB)
+- [x] `specs/02-database-schema.sql` — Columna `store_url` agregada
+- [x] `npm test` → 99 passed, 0 failures
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -936,6 +963,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Paginas legales indice grid | `grid grid-cols-1 sm:grid-cols-2` en TOC de terminos, privacidad y FAQ, estilo `text-sky-600` unificado |
 | Herramientas module | `herramientas.html`, `herramientas/`, `js/herramientas/` |
 | Renombrar Archivos tool | `renombrar-archivos.html`, `renombrar-archivos.js`, File System Access API, `showDirectoryPicker` |
+| Panel Dashboard | `panel.html`, `panel.js`, KPIs del Mes (finanzas mensuales), KPIs Operativos (ventas hoy/stock bajo) |
+| Store URL desde DB | `configuracion.html#campo-store-url`, `cargarLinkTienda()` en `database.js`, `#link-tienda-virtual` en sidebar |
+| Top 5 productos | `database.js::ventas.topProductos(limite)`, agregacion por `pos_ventas_detalle` del mes actual |
 | Sidebar compartido | `js/compartido/sidebar.js`, `toggleSidebar()`, paginas no-CRUD |
 | Action buttons patron | `#action-bar`, natural flow, `flex flex-col sm:flex-row gap-3`, show/hide contextual |
 | Card visibility patron | `class="hidden"` (NUNCA `style="display:none"`) para elementos controlados por JS |
@@ -968,4 +998,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/ventas.html` | `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" via JS segun contexto |
 | `apps/pos/AGENTS.md` | Documentacion actualizada: decision de diseno (seccion 5), completado (seccion 7.2), palabras clave (seccion 11), registro de cambios (seccion 13) |
 | `specs/03-pos-spec.md` | Politica de edicion actualizada: CREATE primero, solo VOID si exito (seccion 4.1.1) |
+| `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
+
+### 2026-06-17 — Panel Dashboard + Tienda Virtual + Store URL desde DB (Fase 17)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nueva funcion `cargarLinkTienda()` centralizada al final del IIFE: busca `#link-tienda-virtual`, asigna href desde `pos_configuracion_empresa.store_url`. Nuevo metodo `ventas.topProductos(limite)` que agrega ventas del mes agrupadas por producto. |
+| `apps/pos/panel.html` | Nueva pagina dashboard POS con KPIs del Mes (ventas/gastos/compras/utilidad/margen), KPIs Operativos (ventas hoy/ticket prom./productos/stock bajo), Top 5 productos del mes, Accesos Rapidos. Sidebar completo con link Dashboard activo + Tienda Virtual link. |
+| `apps/pos/js/paginas/panel.js` | Nueva logica: carga finanzas mensuales, estadisticas del dia, stock bajo, top 5 productos. Formato COP con puntos. Sin Chart.js — solo Tailwind + SVG icons. |
+| `apps/pos/configuracion.html` | Campo `#campo-store-url` agregado en Card 1 (Datos de la Empresa) despues de Logo URL. |
+| `apps/pos/js/paginas/configuracion.js` | `store_url` agregado en `cargarConfig()` y `obtenerDatosForm()`. |
+| `specs/02-database-schema.sql` | Columna `store_url text` agregada en tabla `pos_configuracion_empresa` despues de `mensaje_legal`. |
+| `apps/pos/*.html` (15 paginas) | Sidebar: grupo "Dashboard" agregado arriba de Ventas con link a `panel.html`. Tienda Virtual link (`#link-tienda-virtual`, `target="_blank"`) agregado en el area inferior del sidebar antes de Cerrar sesion. |
+| `apps/pos/herramientas/renombrar-archivos.html` | Sidebar actualizado con Dashboard link (`../panel.html`) y Tienda Virtual link. |
 | `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
