@@ -222,15 +222,25 @@
       $('det-ingreso-neto-section').classList.add('hidden');
     }
 
-    // Boton anular
+    // Botones
     var btnAnular = $('btn-anular-venta');
-    if (v.estado === 'CONFIRMADA' || v.estado === 'PENDIENTE') {
-      btnAnular.disabled = false;
-    } else {
-      btnAnular.disabled = true;
-    }
+    var btnEditar = $('btn-editar-venta');
+    var editable = v.estado === 'CONFIRMADA' || v.estado === 'PENDIENTE';
+    btnAnular.disabled = !editable;
+    btnEditar.disabled = !editable;
 
     $('modal-detalle').classList.remove('hidden');
+  }
+
+  /* ─── EDITAR ─── */
+  function editarVenta() {
+    if (!VENTA_ACTUAL) return;
+    if (VENTA_ACTUAL.estado !== 'CONFIRMADA' && VENTA_ACTUAL.estado !== 'PENDIENTE') {
+      mostrarToast('Solo se pueden editar ventas CONFIRMADAS o PENDIENTES');
+      return;
+    }
+    sessionStorage.setItem('kubit_editar_venta', JSON.stringify(VENTA_ACTUAL));
+    window.location.href = 'ventas.html?editar=' + VENTA_ACTUAL.id;
   }
 
   function cerrarDetalle() {
@@ -331,6 +341,7 @@
       if (btn) abrirDetalle(btn.dataset.id);
     });
 
+    $('btn-editar-venta').addEventListener('click', editarVenta);
     $('btn-anular-venta').addEventListener('click', anularVenta);
     $('btn-imprimir-venta').addEventListener('click', function () {
       if (!VENTA_ACTUAL) return;

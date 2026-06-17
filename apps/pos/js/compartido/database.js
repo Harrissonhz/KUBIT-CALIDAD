@@ -398,6 +398,50 @@ window.DB = (function () {
       return update('pos_ventas', id, { estado: 'ANULADA' });
     },
 
+    anularConRevertir: async function (id, opts) {
+      var user = opts && opts.usuarioId || null;
+      var res = await ventas.obtener(id);
+      if (res.error || !res.data) return { data: null, error: res.error || 'Venta no encontrada' };
+      var v = res.data;
+
+      // Revertir stock de cada detalle (sumar de vuelta)
+      if (v.detalles && v.detalles.length) {
+        for (var i = 0; i < v.detalles.length; i++) {
+          var d = v.detalles[i];
+          await productos.ajustarStock(
+            d.producto_detalle_id,
+            d.cantidad,
+            'entrada_anulacion',
+            'Anulacion venta #' + (v.numero_venta || id),
+            { usuarioId: user }
+          );
+        }
+      }
+
+      // Revertir finanzas mensuales
+      if (v.fecha_venta) {
+        var fd = new Date(v.fecha_venta);
+        var anio = fd.getFullYear();
+        var mes = fd.getMonth() + 1;
+        var costoComision = (v.costo_cargo_venta || 0) + (v.costo_impuestos || 0) + (v.costo_envios || 0);
+        var totalDetalles = (v.detalles || []).reduce(function (s, d) {
+          var pc = (d.detalle && d.detalle.precio_compra) || 0;
+          return s + (pc * d.cantidad);
+        }, 0);
+        await finanzasMensuales.actualizarPorVenta(
+          anio, mes,
+          -(v.total || 0),
+          -(v.descuento || 0),
+          -(costoComision),
+          -(totalDetalles)
+        );
+      }
+
+      // Marcar como ANULADA
+      var upd = await update('pos_ventas', id, { estado: 'ANULADA' });
+      return upd;
+    },
+
     obtenerPorPeriodo: async function (usuarioId, desde, hasta, opts) {
       var filters = [
         { col: 'estado', val: 'CONFIRMADA' }

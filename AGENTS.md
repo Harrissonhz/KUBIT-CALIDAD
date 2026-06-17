@@ -141,7 +141,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Diseño UI | Ultra-minimalista, monocromático Slate (Tailwind) |
 | Responsive | Mobile-first, mínimo 360px |
 | Navegación | Sin frameworks SPA. HTML vanilla con navegación tradicional o Alpine.js ligero si es necesario |
-| Editar ventas confirmadas | NO permitido. Usar Void + Recreate (Anular + Nueva Venta). Patrón estándar POS |
+| Editar ventas confirmadas | NO permitido edicion directa. Usar **Void + Recreate**: crear la nueva venta PRIMERO, solo si exito anular la original (orden invertido para mitigar perdida de datos). Metodo `DB.ventas.anularConRevertir()` revierte stock + finanzas. sessionStorage + query param `?editar=ID` para transferencia de datos. Boton "Editar" en modal de ventas-historial. |
 | Header POS | `fixed top-0 left-0 right-0 z-30` en todas las páginas. El contenido tiene `pt-16` para compensar |
 | Modo oscuro por defecto | Todas las páginas cargan con `class="dark"` en `<html>`. Anti-flash script: si localStorage dice `'false'` lo remueve |
 | Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
@@ -383,6 +383,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
 - [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
 - [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
+
+#### Módulo POS — Fase 16: Void + Recreate (Edicion de Ventas)
+- [x] `database.js::ventas.anularConRevertir()` — Metodo que revierte stock (entrada_anulacion), revierte finanzas mensuales con valores negativos, y marca la venta como ANULADA
+- [x] `ventas-historial.html` — Boton "Editar" en modal footer, entre "Anular Venta" y "Imprimir"
+- [x] `ventas-historial.js::editarVenta()` — Guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE
+- [x] `ventas.js` — `init()` detecta `?editar=ID`, carga datos desde sessionStorage. `cargarEdicion()` puebla: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta Void + Recreate: crea nueva venta PRIMERO, solo si exito anula la original con `anularConRevertir()`
+- [x] `ventas.html` — `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" segun contexto
+- [x] `npm test` → 99 passed, 0 failures
 - [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
 - [ ] Construir mas herramientas internas en `apps/pos/herramientas/` (ej: generador de codigos de barras, exportador de datos, editor de slugs)
 ### 7.4 Próximo Paso Recomendado
@@ -906,6 +914,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Lightbox touch swipe | `touchstart`/`touchend` delta >50px, `passive: true` |
 | Lightbox keyboard | `keydown` Escape/←/→, cleanup via MutationObserver |
 | Lightbox cursor | `cursor-pointer` agregado via JS solo si mas de 1 imagen |
+| Void + Recreate (Editar Venta) | `ventas.js::cargarEdicion()`, `ventas-historial.js::editarVenta()`, `database.js::anularConRevertir()`. Crear nueva venta PRIMERO, anular original solo si exito. sessionStorage `kubit_editar_venta` + query param `?editar=ID`. |
+| anularConRevertir | `database.js::ventas.anularConRevertir(id, opts)`. Revierte stock (entrada_anulacion), finanzas mensuales (valores negativos), marca ANULADA. |
+| cargarEdicion | `ventas.js::cargarEdicion(v)`. Puebla formulario ventas.html desde objeto venta completo: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito con items. |
 | Store SW service worker | `apps/store/service-worker.js`, ES_LOCAL bypass, cache outletshop-YYYYMMDD-NN, postMessage auto-reload |
 | Store SW registration | `navigator.serviceWorker.register`, 8 paginas Store |
 | SW localhost bypass | `self.location.hostname === 'localhost'`, `return;` sin `e.respondWith()` |
@@ -945,3 +956,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/herramientas/renombrar-archivos.html` | Fix: Botones de accion movidos fuera de cards a `#action-bar` en flujo natural (`flex flex-col sm:flex-row gap-3`), show/hide contextual |
 | `apps/pos/herramientas/renombrar-archivos.html` | Fix: Agregado `<script src="../js/compartido/sidebar.js">` para reparar menu hamburguesa |
 | `tests/` | Verificacion: `npm test` → 99 tests, 0 failures (5 suites) |
+
+### 2026-06-17 — Void + Recreate (Edicion de Ventas) — Fase 16
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `ventas.anularConRevertir()`: obtiene detalles, revierte stock por item (entrada_anulacion via ajustarStock), revierte finanzas mensuales con valores negativos, marca venta como ANULADA |
+| `apps/pos/ventas-historial.html` | Boton "Editar" agregado en modal footer entre "Anular Venta" e "Imprimir" |
+| `apps/pos/js/paginas/ventas-historial.js` | Nueva funcion `editarVenta()`: guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE. |
+| `apps/pos/js/paginas/ventas.js` | `init()` detecta query param `?editar=ID`, carga venta desde sessionStorage. `cargarEdicion()` puebla todo el formulario: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta CREATE primero (nueva venta + stock + finanzas), luego VOID (anularConRevertir) solo si la creacion fue exitosa. |
+| `apps/pos/ventas.html` | `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" via JS segun contexto |
+| `apps/pos/AGENTS.md` | Documentacion actualizada: decision de diseno (seccion 5), completado (seccion 7.2), palabras clave (seccion 11), registro de cambios (seccion 13) |
+| `specs/03-pos-spec.md` | Politica de edicion actualizada: CREATE primero, solo VOID si exito (seccion 4.1.1) |
+| `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |

@@ -10,6 +10,7 @@
   var CANAL_ACTIVO = null;
   var _loading = false;
   var ULTIMA_VENTA_ID = null;
+  var VENTA_EDITANDO_ID = null;
 
   var $ = function (id) { return document.getElementById(id); };
   var html = document.documentElement;
@@ -27,9 +28,27 @@
       cargarVendedores(),
       cargarEstadisticas()
     ]);
-    setClienteDefecto();
-    setFechaDefecto();
-    setearValoresDefecto();
+
+    // Detectar modo edicion
+    var params = new URLSearchParams(window.location.search);
+    var editId = params.get('editar');
+    if (editId) {
+      var editDataStr = sessionStorage.getItem('kubit_editar_venta');
+      if (editDataStr) {
+        try {
+          var editData = JSON.parse(editDataStr);
+          VENTA_EDITANDO_ID = editData.id;
+          sessionStorage.removeItem('kubit_editar_venta');
+          cargarEdicion(editData);
+        } catch (e) {
+          console.error('[Ventas] Error cargando datos de edicion:', e);
+        }
+      }
+    } else {
+      setClienteDefecto();
+      setFechaDefecto();
+      setearValoresDefecto();
+    }
     bindearEventos();
     actualizarTotales();
     window.KubitAuth.aplicarRestriccionesUI();
@@ -697,9 +716,21 @@
         CARRITO.reduce(function (s, i) { return s + (i.precioCompra || 0) * i.cantidad; }, 0)
       );
 
+      // Si estamos editando, anular la venta original (Void + Recreate)
+      var editando = !!VENTA_EDITANDO_ID;
+      if (editando) {
+        var anularRes = await DB.ventas.anularConRevertir(VENTA_EDITANDO_ID, { usuarioId: user.id });
+        if (anularRes.error) {
+          console.error('[Ventas] Error al anular venta original:', anularRes.error);
+          mostrarToast('Venta creada, pero error al anular la original: ' + anularRes.error);
+        }
+        VENTA_EDITANDO_ID = null;
+      }
+
       var metodoNombre = $('select-metodo-pago').options[$('select-metodo-pago').selectedIndex].text;
       var resumen = formatearMoneda(t.total) + ' · ' + metodoNombre + ' · ' + CARRITO.reduce(function (s, i) { return s + i.cantidad; }, 0) + ' items';
       $('exito-resumen').textContent = resumen;
+      $('exito-titulo').textContent = editando ? 'Venta Editada' : 'Venta Completada';
       $('modal-exito').classList.remove('hidden');
       cargarEstadisticas();
     } catch (e) {
@@ -769,10 +800,105 @@
   }
 
   async function nuevaVenta() {
+    VENTA_EDITANDO_ID = null;
     limpiarFormulario();
     cerrarExito();
     await cargarProductos();
     mostrarToast('Listo para nueva venta');
+  }
+
+  /* ─── CARGAR EDICION ─── */
+  function cargarEdicion(v) {
+    // Cliente
+    if (v.cliente) {
+      var c = v.cliente;
+      var nombreCliente = [c.primer_nombre, c.segundo_nombre, c.primer_apellido, c.segundo_apellido].filter(Boolean).join(' ');
+      $('input-cliente').value = nombreCliente;
+      $('selected-cliente-id').value = c.id;
+    } else if (v.cliente_id) {
+      var cLocal = CLIENTES.find(function(x) { return x.id === v.cliente_id; });
+      if (cLocal) {
+        var n = [cLocal.primer_nombre, cLocal.segundo_nombre, cLocal.primer_apellido, cLocal.segundo_apellido].filter(Boolean).join(' ');
+        $('input-cliente').value = n;
+        $('selected-cliente-id').value = cLocal.id;
+      }
+    }
+
+    // Fecha
+    if (v.fecha_venta) {
+      var d = new Date(v.fecha_venta);
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var dia = String(d.getDate()).padStart(2, '0');
+      var h = String(d.getHours()).padStart(2, '0');
+      var min = String(d.getMinutes()).padStart(2, '0');
+      $('input-fecha').value = y + '-' + m + '-' + dia + 'T' + h + ':' + min;
+    }
+
+    // Metodo de pago
+    if (v.metodo_pago) $('select-metodo-pago').value = v.metodo_pago;
+
+    // Referencia
+    if (v.referencia_externa) $('input-referencia').value = v.referencia_externa;
+
+    // Vendedor
+    if (v.usuario_id) {
+      var selVendedor = $('select-vendedor');
+      if (selVendedor.querySelector('option[value="' + v.usuario_id + '"]')) {
+        selVendedor.value = v.usuario_id;
+      }
+    }
+
+    // Canal — buscar por canal_id
+    if (v.canal || v.canal_id) {
+      var canal = v.canal || CANALES.find(function(c) { return c.id === v.canal_id; });
+      if (canal) {
+        var tipo = canal.tipo || 'marketplace';
+        var tipoBtn = document.querySelector('.canal-tipo[data-tipo="' + tipo + '"]');
+        if (tipoBtn) tipoBtn.click();
+        if (tipo === 'marketplace') {
+          var selMp = $('select-marketplace');
+          if (selMp.querySelector('option[value="' + canal.codigo + '"]')) {
+            selMp.value = canal.codigo;
+            seleccionarMarketplace(canal.codigo);
+          }
+        }
+      }
+    }
+
+    // Costos
+    if (v.costo_cargo_venta) $('input-costo-cargo').value = v.costo_cargo_venta;
+    if (v.costo_impuestos) $('input-costo-impuestos').value = v.costo_impuestos;
+    if (v.costo_envios) $('input-costo-envios').value = v.costo_envios;
+
+    // Descuento global (aproximado: calcular desde subtotal vs total)
+    if (v.subtotal > 0 && v.descuento) {
+      var pctDesc = Math.round((v.descuento / v.subtotal) * 100 * 100) / 100;
+      $('input-descuento-global').value = pctDesc;
+    }
+
+    // Carrito
+    CARRITO = [];
+    if (v.detalles && v.detalles.length) {
+      v.detalles.forEach(function(d) {
+        var p = PRODUCTOS.find(function(x) { return x.detalleId === d.producto_detalle_id; });
+        if (!p) return;
+        var tasa = d.tasa_impuesto !== null && d.tasa_impuesto !== undefined ? d.tasa_impuesto : (p.tasaImpuesto || 0);
+        CARRITO.push({
+          detalleId: p.detalleId,
+          productoId: p.productoId,
+          nombre: p.nombre,
+          precio: d.precio_unitario || p.precio,
+          cantidad: d.cantidad,
+          descuento: d.descuento ? Math.round((d.descuento / ((d.precio_unitario || 1) * d.cantidad)) * 100 * 100) / 100 : 0,
+          descuentoMax: p.descuentoMax,
+          precioCompra: p.precioCompra,
+          stock: p.stock,
+          tasaImpuesto: tasa
+        });
+      });
+    }
+    actualizarCarrito();
   }
 
   function bindearEventos() {

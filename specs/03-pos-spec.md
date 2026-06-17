@@ -725,9 +725,14 @@ Selecciona método de pago → Confirma venta →
 
 - **No se permite editar** ventas en estado CONFIRMADA, FACTURADA o ANULADA
 - Para corregir una venta confirmada debe seguirse el flujo **Void + Recreate**:
-  1. Anular la venta actual (revierte stock y resta de finanzas mensuales)
-  2. Crear una nueva venta con los datos corregidos
-- Ventas en estado **PENDIENTE** pueden editarse directamente (no han afectado stock ni contabilidad)
+  1. **Crear la nueva venta PRIMERO** con los datos corregidos (impacta stock y finanzas)
+  2. **Solo si la creacion es exitosa**, anular la venta original con `anularConRevertir()` (revierte stock + finanzas y marca ANULADA)
+  3. Este orden (CREATE primero, VOID despues) mitiga la perdida de datos: si falla la creacion, la venta original permanece intacta
+- El flujo se dispara desde el boton **Editar** en el modal de detalle de `ventas-historial.html`
+- Los datos se transfieren via `sessionStorage` (`kubit_editar_venta`) + query param `?editar=ID`
+- El metodo `DB.ventas.anularConRevertir()` maneja: revertir stock (movimiento `entrada_anulacion`), revertir finanzas mensuales (valores negativos), y cambiar estado a ANULADA
+- Ventas en estado **PENDIENTE** o **CONFIRMADA** son elegibles para edicion
+- Boton Editar deshabilitado para FACTURADA, ANULADA u otros estados
 - Esta politica aplica por integridad de inventario, contabilidad y compliance DIAN
 
 ### 4.2 Flujo de Apertura y Cierre de Caja
