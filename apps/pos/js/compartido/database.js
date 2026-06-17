@@ -415,19 +415,28 @@ window.DB = (function () {
     },
 
     estadisticasHoy: async function () {
-      var hoy = new Date().toISOString().split('T')[0];
-      try {
-        var data = await api.get(
-          'pos_ventas?select=count,sum:total,avg:total' +
-          '&estado=eq.CONFIRMADA' +
-          '&fecha_venta=gte.' + hoy +
-          '&fecha_venta=lt.' + hoy + 'T23:59:59'
-        );
-        var row = (data && data[0]) || {};
-        return { count: row.count || 0, total: row.sum || 0, promedio: row.avg || 0, error: null };
-      } catch (e) {
-        return { count: 0, total: 0, promedio: 0, error: e.message };
+      var hoy = new Date();
+      var y = hoy.getFullYear();
+      var m = String(hoy.getMonth() + 1).padStart(2, '0');
+      var d = String(hoy.getDate()).padStart(2, '0');
+      var desde = y + '-' + m + '-' + d + 'T00:00:00';
+      var hasta = y + '-' + m + '-' + d + 'T23:59:59';
+      var res = await select('pos_ventas', {
+        select: 'total',
+        filters: [
+          { col: 'estado', val: 'CONFIRMADA' },
+          { col: 'fecha_venta', op: 'gte', val: desde },
+          { col: 'fecha_venta', op: 'lte', val: hasta }
+        ]
+      });
+      if (res.error) {
+        return { count: 0, total: 0, promedio: 0, error: res.error };
       }
+      var rows = res.data || [];
+      var count = rows.length;
+      var total = rows.reduce(function (s, r) { return s + (r.total || 0); }, 0);
+      var promedio = count > 0 ? total / count : 0;
+      return { count: count, total: total, promedio: promedio, error: null };
     }
   };
 
