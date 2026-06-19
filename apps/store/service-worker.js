@@ -1,4 +1,4 @@
-var CACHE = 'outletshop-20260614-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
+var CACHE = 'outletshop-20260619-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
 
 var ASSETS = [
   'index.html',
@@ -30,28 +30,28 @@ var ASSETS = [
 
 var ES_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
-self.addEventListener('install', function(e) {
+self.addEventListener('install', function (e) {
   if (!ES_LOCAL) {
     e.waitUntil(
-      caches.open(CACHE).then(function(cache) {
+      caches.open(CACHE).then(function (cache) {
         return cache.addAll(ASSETS);
-      }).catch(function() {})
+      }).catch(function () { })
     );
   }
   self.skipWaiting();
 });
 
-self.addEventListener('activate', function(e) {
+self.addEventListener('activate', function (e) {
   e.waitUntil(
-    caches.keys().then(function(keys) {
+    caches.keys().then(function (keys) {
       return Promise.all(
-        keys.filter(function(k) { return k !== CACHE; }).map(function(k) { return caches.delete(k); })
+        keys.filter(function (k) { return k !== CACHE; }).map(function (k) { return caches.delete(k); })
       );
-    }).then(function() {
+    }).then(function () {
       return self.clients.claim();
-    }).then(function() {
-      return self.clients.matchAll().then(function(clientList) {
-        clientList.forEach(function(client) {
+    }).then(function () {
+      return self.clients.matchAll().then(function (clientList) {
+        clientList.forEach(function (client) {
           client.postMessage({ accion: 'recargar' });
         });
       });
@@ -59,15 +59,15 @@ self.addEventListener('activate', function(e) {
   );
 });
 
-self.addEventListener('fetch', function(e) {
+self.addEventListener('fetch', function (e) {
   if (ES_LOCAL) {
     return;
   }
   e.respondWith(
-    caches.match(e.request, { ignoreSearch: true }).then(function(r) {
+    caches.match(e.request, { ignoreSearch: true }).then(function (r) {
       if (r && !r.redirected) return r;
       return fetch(e.request, { redirect: 'follow' });
-    }).catch(function() {
+    }).catch(function () {
       return fetch(e.request, { redirect: 'follow' });
     })
   );

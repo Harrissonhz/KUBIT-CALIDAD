@@ -1,6 +1,5 @@
 -- ============================================================
--- 02-database-schema.sql
--- Esquema completo de base de datos - Kubit SaaS
+-- 01-schema.sql — Esquema completo de base de datos - Kubit SaaS
 -- Motor: PostgreSQL 15+ (Supabase)
 -- Convenciones:
 --   - UUID v4 como PK (gen_random_uuid())
@@ -11,6 +10,9 @@
 --   - CHECK constraints para campos de estado (sin ENUMs)
 --   - RLS + Grants obligatorios (post May 30, 2026)
 -- ============================================================
+
+-- Extension requerida por la funcion slugify() en pos_productos
+create extension if not exists unaccent;
 
 -- ============================================================
 -- 0. FUNCION TRIGGER PARA UPDATED_AT AUTOMATICO

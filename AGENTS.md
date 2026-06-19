@@ -63,6 +63,9 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 │   ├── 12-roadmap.md       ← Pendiente
 │   └── ARCHITECTURE.md
 ├── ArchivosInformativos/ ← Información externa (no parte del proyecto)
+│   ├── Basedatos/               ← CSVs de origen V1 (14 tablas)
+│   ├── DespliegueProduccion/    ← Credenciales produccion, guias de despliegue
+│   │   └── ScriptMigracionDB/   ← Scripts INSERT ordenados para migracion V1→V2
 ├── apps/
 │   ├── pos/               ← Código del módulo POS
 │   ├── store/             ← Código del módulo Tienda Virtual
@@ -164,6 +167,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Sidebar toggle extraido | `js/compartido/sidebar.js` contiene la funcion `toggleSidebar()` compartida para paginas que no pertenecen a los 14 CRUD principales (herramientas.html, herramientas/renombrar-archivos.html). Las 14 paginas principales mantienen el toggle inline. |
 | Card visibility: `hidden` class vs inline `style` | Para elementos que JS oculta/muestra, usar SIEMPRE `class="hidden"` (Tailwind), NUNCA `style="display:none"`. `classList.remove('hidden')` no funciona con inline `style` por mayor especificidad CSS. |
 | No data-permiso en Herramientas | El grupo Herramientas en el sidebar no tiene `data-permiso` — es visible para todos los usuarios autenticados sin control de permisos. |
+| Migracion V1→V2: ScriptMigracionDB | Los scripts INSERT de migracion residen en `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/` con nomenclatura `NN-migrate-<tabla>.sql` donde NN = orden de ejecucion por FK. NO estan en `specs/` por ser material externo de migracion. |
+| Migracion: Preservar UUIDs V1 | Todos los scripts de migracion preservan los UUIDs originales de V1 para mantener trazabilidad con registros relacionados (ventas, pedidos, movimientos de inventario). |
+| Migracion: Datos corruptos V1 | La fila `21760f85` en `pos_clientes` tiene `primer_apellido = 'Medellin'` (es ciudad, no apellido). Se migra tal cual de V1 por decision del usuario. No corregir. |
+| Migracion: impuesto_default /100 | `configuracion_empresa.impuesto_default = 19.00` en V1 debe dividirse entre 100 para V2 (decimal 0.19). La transformacion se documenta en el script. |
+| Migracion: Orden por FK | El orden de migracion sigue las dependencias de FK: primero `pos_usuarios` (preserva UUID admin `497a2c95-...`), luego tablas sin dependencias, y finalmente tablas que referencian al admin. |
 
 ---
 
@@ -355,61 +363,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
+- [ ] Migrar datos Fase 1: ejecutar scripts `01-migrate-usuarios.sql` → `08-migrate-gastos-mensuales-detalle.sql` en orden FK
+- [ ] Migrar datos Fase 2 (posterior): productos, variantes, ventas, compras, movimientos inventario
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags en DB a productos existentes para poblar carrusel y badges (UI ya implementada en POS y Store)
-- [x] Ejecutar DML `MigracionProductos.sql` en Supabase QA
-- [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
-- [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
-- [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
-- [x] **Refactor UI (Jun 2026):** Canal de Venta movido a header, Tarjeta Totales rediseñada a formato recibo full-width con barra de stats
-- [x] **Fix bugs (Jun 2026):** Menú hamburguesa, subtotal en tiempo real, fondo modal post-venta
-- [x] **Historial mejorado:** Modal más ancho (4xl), nombre producto vs UUID, canal visible
-- [x] **Decisión CRUD:** No implementar "Editar Venta". Usar Void + Recreate
-- [x] **Completado (Jun 2026):** Multi-variante — formulario con toggle single/multi, atributos dinámicos (color/talla/diseño), tabla editable inline, filas expandibles (▼) con precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones
-- [x] **Completado (Jun 2026):** IVA siempre visible fuera del toggle variantes, default 0% (Exento)
-- [x] **Completado (Jun 2026):** Stock Min por defecto = 2 (single y multi-variante)
-- [x] **Completado (Jun 2026):** Modo oscuro como default en todas las páginas con anti-flash script inline
-- [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
-- [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
-- [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
-- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
-- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
-- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
-- [x] **Store checkout**: Edge Function eliminada, REST API directa con 7 operaciones + seed-anon-grants-store.sql
-- [x] **POS PWA**: Service worker reescrito, iOS meta tags + SW registration en 17 paginas, manifest categories
-- [x] **Tags chips**: Input texto libre reemplazado por 6 toggle chips en productos.html
-- [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
-- [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
-- [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
-- [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
-- [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
 
-#### Módulo POS — Fase 16: Void + Recreate (Edicion de Ventas)
-- [x] `database.js::ventas.anularConRevertir()` — Metodo que revierte stock (entrada_anulacion), revierte finanzas mensuales con valores negativos, y marca la venta como ANULADA
-- [x] `ventas-historial.html` — Boton "Editar" en modal footer, entre "Anular Venta" y "Imprimir"
-- [x] `ventas-historial.js::editarVenta()` — Guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE
-- [x] `ventas.js` — `init()` detecta `?editar=ID`, carga datos desde sessionStorage. `cargarEdicion()` puebla: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta Void + Recreate: crea nueva venta PRIMERO, solo si exito anula la original con `anularConRevertir()`
-- [x] `ventas.html` — `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" segun contexto
-- [x] `npm test` → 99 passed, 0 failures
-- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
-- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
-- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
-- [x] **Store checkout**: Edge Function eliminada, REST API directa con 7 operaciones + seed-anon-grants-store.sql
-- [x] **POS PWA**: Service worker reescrito, iOS meta tags + SW registration en 17 paginas, manifest categories
-- [x] **Tags chips**: Input texto libre reemplazado por 6 toggle chips en productos.html
-- [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
-- [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
-- [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
-- [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
-- [x] **Store Lightbox Modal**: Galeria de producto con lightbox fullscreen, navegacion por flechas/dots/teclado/swipe, autoplay con pausa temporal, crossfade CSS entre imagenes. 100% via JS (sin modificar HTML). Construido dentro del callback DOMContentLoaded para compartir closure con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`.
-
-#### Módulo POS — Fase 16: Void + Recreate (Edicion de Ventas)
-- [x] `database.js::ventas.anularConRevertir()` — Metodo que revierte stock (entrada_anulacion), revierte finanzas mensuales con valores negativos, y marca la venta como ANULADA
-- [x] `ventas-historial.html` — Boton "Editar" en modal footer, entre "Anular Venta" y "Imprimir"
-- [x] `ventas-historial.js::editarVenta()` — Guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE
-- [x] `ventas.js` — `init()` detecta `?editar=ID`, carga datos desde sessionStorage. `cargarEdicion()` puebla: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta Void + Recreate: crea nueva venta PRIMERO, solo si exito anula la original con `anularConRevertir()`
-- [x] `ventas.html` — `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" segun contexto
-- [x] `npm test` → 99 passed, 0 failures
+### 7.5 Completado (Documentacion de Migracion)
+- [x] `specs/14-migracion-datos.md` — Spec completo de migracion V1→V2 con analisis campo a campo de 8 tablas
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` — Script INSERT para pos_clientes (5 registros)
+- [x] Convencion: scripts en `ScriptMigracionDB/` con nomenclatura `NN-migrate-<tabla>.sql`
+- [x] Orden de migracion definido: 01 usuarios → 02 gasto_categorias → 03 categorias → 04 proveedores → 05 configuracion → 06 finanzas → 07 clientes → 08 gastos_detalle
 
 #### Módulo POS — Fase 17: Panel Dashboard + Tienda Virtual
 - [x] `database.js::cargarLinkTienda()` — Bloque autoejecutable que busca `#link-tienda-virtual` y asigna href desde `pos_configuracion_empresa.store_url`
@@ -446,6 +409,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - Está excluida de Git/GitHub vía `.gitignore`.
 - Los agentes de IA solo deben leer archivos de esta carpeta cuando el usuario lo indique explícitamente.
 - No usar ningún archivo de esta carpeta como fuente de verdad para decisiones de diseño o implementación a menos que el usuario lo ordene.
+
+### 9.2 Subcarpeta `ScriptMigracionDB/`
+- Contiene los scripts INSERT para migrar datos desde V1 (CSVs en `Basedatos/`) hacia V2 (Supabase).
+- Nomenclatura: `NN-migrate-<tabla>.sql` donde NN = orden de ejecucion por dependencias FK.
+- Los UUIDs originales de V1 se preservan en todos los scripts.
+- Las transformaciones necesarias (ej: `impuesto_default /100`) se documentan dentro de cada script.
+- El orden de ejecucion esta definido en `specs/14-migracion-datos.md` §3.
+- **NO** confundir con los archivos de `specs/` — estos scripts son material operativo de migracion, no especificaciones de diseno.
 
 ---
 
@@ -969,6 +940,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Sidebar compartido | `js/compartido/sidebar.js`, `toggleSidebar()`, paginas no-CRUD |
 | Action buttons patron | `#action-bar`, natural flow, `flex flex-col sm:flex-row gap-3`, show/hide contextual |
 | Card visibility patron | `class="hidden"` (NUNCA `style="display:none"`) para elementos controlados por JS |
+| Migracion V1→V2 | `ScriptMigracionDB/`, `14-migracion-datos.md` |
+| Scripts INSERT migracion | `NN-migrate-<tabla>.sql` |
+| Orden de migracion | `14-migracion-datos.md` §3, `AGENTS.md` §5 |
+| Datos corruptos V1 | `cliente 21760f85`, `primer_apellido = Medellin` |
+| Transformacion impuesto | `impuesto_default /100`, `19.00 → 0.19` |
+| UUID admin V1 | `497a2c95-d707-4d5b-8b01-34257f3b0224` |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1013,3 +990,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/*.html` (15 paginas) | Sidebar: grupo "Dashboard" agregado arriba de Ventas con link a `panel.html`. Tienda Virtual link (`#link-tienda-virtual`, `target="_blank"`) agregado en el area inferior del sidebar antes de Cerrar sesion. |
 | `apps/pos/herramientas/renombrar-archivos.html` | Sidebar actualizado con Dashboard link (`../panel.html`) y Tienda Virtual link. |
 | `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
+
+### 2026-06-19 — Migracion V1→V2: Spec, Scripts y Convenciones
+
+| Archivo | Cambio |
+|---|---|
+| `specs/14-migracion-datos.md` | Nuevo: especificacion completa de migracion V1→V2 con analisis campo a campo de 8 tablas, orden de ejecucion por FK, transformaciones, datos problematicos y checklist |
+| `specs/01-master-spec.md` | Mapa de artefactos actualizado: incluye los 4 scripts SQL (00-03), specs 13-14, ArchivosInformativos y ScriptMigracionDB |
+| `AGENTS.md` | Seccion 3.1: directorio `ScriptMigracionDB/` agregado bajo ArchivosInformativos. Seccion 5: 5 nuevas decisiones de migracion (UUIDs preservados, datos corruptos, impuesto_default /100, orden FK). Seccion 7.3: pendientes de migracion separados en Fase 1 y Fase 2. Seccion 7.5: nuevo estado de documentacion de migracion. Seccion 9.2: nueva subseccion detallando ScriptMigracionDB. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` | Nuevo: script INSERT para pos_clientes (5 registros con UUIDs preservados) |

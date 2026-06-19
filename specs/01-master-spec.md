@@ -29,20 +29,35 @@ Para mantener la integridad del proyecto, se establecen las siguientes reglas:
 3. **Modularidad:** Todo desarrollo debe ser autónomo dentro de su carpeta en `/apps`.
 
 ## 6. Mapa de Artefactos
-- `/specs/01-master-spec.md` (Este documento)
-- `/specs/02-database-schema.sql`
-- `/specs/03-pos-spec.md`
-- `/specs/04-store-spec.md`
-- `/specs/05-ui-ux-system.md`
-- `/specs/06-servicio-correo.md`
-- `/specs/10-codex.md`
-- `/specs/11-api-contracts.md` (Pendiente)
-- `/specs/12-roadmap.md`
-- `/specs/06-academy-spec.md` (Pendiente)
-- `/specs/ARCHITECTURE.md`
-- `/AGENTS.md`
 
-### 6.1 Apps
-- `/apps/pos/` (Pendiente)
-- `/apps/store/` (Pendiente)
-- `/apps/academy/` (Futuro)
+### 6.1 Specs
+- `/specs/01-master-spec.md` (Este documento)
+- `/specs/00-bootstrap.sql` — Extension unaccent
+- `/specs/01-schema.sql` — DDL completo (35 tablas con grants, RLS, indices, triggers)
+- `/specs/02-seed-permisos.sql` — Seed de roles y permisos por rol
+- `/specs/03-seed-store-grants.sql` — Grants anon para modulo Store
+- `/specs/03-pos-spec.md` — Especificacion del modulo POS
+- `/specs/04-store-spec.md` — Especificacion del modulo Store
+- `/specs/05-ui-ux-system.md` — Sistema de diseno UI/UX
+- `/specs/06-servicio-correo.md` — Correo transaccional (POST-MVP)
+- `/specs/10-codex.md` — Convenciones de codigo (Pendiente)
+- `/specs/11-api-contracts.md` — Contratos de API (Pendiente)
+- `/specs/12-roadmap.md` — Roadmap (Pendiente)
+- `/specs/13-testing-model.md` — Modelo de testing automatico
+- `/specs/14-migracion-datos.md` — Migracion de datos V1 → V2
+- `/specs/ARCHITECTURE.md` — Estructura de directorios
+
+### 6.2 Memoria de IA
+- `/AGENTS.md` — Memoria persistente del proyecto
+- `/CLAUDE.md` — Copia de AGENTS.md (compatibilidad Claude Code)
+- `/CONTEXT.md` — Glosario de dominio del proyecto
+
+### 6.3 Apps
+- `/apps/pos/` — Modulo POS (Punto de Venta)
+- `/apps/store/` — Modulo Tienda Virtual
+- `/apps/academy/` — Modulo Academy (Futuro, post-MVP)
+
+### 6.4 Archivos Informativos (externos, no versionados)
+- `ArchivosInformativos/Basedatos/` — CSVs de origen V1 (14 tablas)
+- `ArchivosInformativos/DespliegueProduccion/` — Credenciales de produccion, guias
+- `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/` — Scripts INSERT ordenados para migracion V1→V2

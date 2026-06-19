@@ -1,11 +1,7 @@
 -- ============================================================
--- seed-permisos.sql
--- Datos semilla para el sistema de roles y permisos del POS Kubit
--- Ejecutar en el SQL Editor de Supabase (QA / Produccion)
---
--- NOTA: Las tablas pos_roles y pos_permisos NO tienen
---       constraint UNIQUE en nombre/clave, por eso se usa
---       WHERE NOT EXISTS en vez de ON CONFLICT.
+-- 02-seed-permisos.sql — Seeds de roles, permisos y relacion
+-- Ejecutar DESPUES de 01-schema.sql (tablas pos_roles, pos_permisos, pos_rol_permisos deben existir)
+-- Idempotente: usa WHERE NOT EXISTS
 -- ============================================================
 
 -- 1. Roles base
