@@ -44,12 +44,12 @@
     var ventasBrutas = f.ventas_brutas || 0;
     var devoluciones = f.devoluciones || 0;
     var descuentos = f.descuentos || 0;
-    var ventasNetas = ventasBrutas - devoluciones - descuentos;
-    var compras = await DB.compras.totalDelMes(f.anio, f.mes);
     var comisiones = f.costos_comision_total || 0;
+    var ventasNetas = ventasBrutas - comisiones - devoluciones - descuentos;
+    var compras = await DB.compras.totalDelMes(f.anio, f.mes);
     var gastos = f.gastos_operativos_total || 0;
     var utilidadNeta = f.utilidad_neta || 0;
-    var flujoOperativo = ventasNetas - gastos - comisiones;
+    var flujoOperativo = ventasNetas - gastos;
     var margen = ventasBrutas > 0 ? Math.round((utilidadNeta / ventasBrutas) * 100) : 0;
 
     $('kpi-mes-ventas').textContent = formatCOP(ventasBrutas);
