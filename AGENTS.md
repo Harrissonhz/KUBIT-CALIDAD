@@ -172,6 +172,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Migracion: Datos corruptos V1 | La fila `21760f85` en `pos_clientes` tiene `primer_apellido = 'Medellin'` (es ciudad, no apellido). Se migra tal cual de V1 por decision del usuario. No corregir. |
 | Migracion: impuesto_default /100 | `configuracion_empresa.impuesto_default = 19.00` en V1 debe dividirse entre 100 para V2 (decimal 0.19). La transformacion se documenta en el script. |
 | Migracion: Orden por FK | El orden de migracion sigue las dependencias de FK: primero `pos_usuarios` (preserva UUID admin `497a2c95-...`), luego tablas sin dependencias, y finalmente tablas que referencian al admin. |
+| Migracion Fase 3: canal_id hardcodeado | Todas las ventas de V1 usaban canal fisico pero el usuario decidio migrarlas como canal MercadoLibre con UUID `b9acdc2e-323a-4687-81be-5e0a8f579103`. |
+| Migracion Fase 3: metodo_pago hardcodeado | V1 usaba `efectivo` pero el usuario decidio migrar como `Transferencia` para todas las ventas. |
+| Migracion Fase 3: producto_detalle_id via subquery | Scripts 09 y 09c preservan UUIDs V1 como `pos_productos.id`. `pos_productos_detalle.producto_id` es FK directa. El mapping se resuelve con subquery `(SELECT pd.id FROM pos_productos_detalle pd WHERE pd.producto_id = d.producto_id::uuid LIMIT 1)`. |
+| Migracion Fase 3: INSERT...SELECT con casts | Los scripts 10, 11, 12 usan `INSERT INTO ... SELECT ... FROM (VALUES ...)`. Todas las columnas UUID y timestamptz requieren cast explicito (`::uuid`, `::timestamptz`) porque Postgres no hace coercion implicita de texto a estos tipos en una proyeccion SELECT. |
+| Migracion Fase 3: 08b sin temp table | `08b-relink-ventas-gastos.sql` se regenero con CTE `WITH gasto_venta_map (gasto_id, venta_id) AS (VALUES ...)` usando los 298 pares hardcodeados. Ya no depende de la tabla temporal `_v1_gasto_venta_map` (que era session-scoped y se perdia). |
 
 ---
 
@@ -363,16 +368,24 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
-- [ ] Migrar datos Fase 1: ejecutar scripts `01-migrate-usuarios.sql` → `08-migrate-gastos-mensuales-detalle.sql` en orden FK
-- [ ] Migrar datos Fase 2 (posterior): productos, variantes, ventas, compras, movimientos inventario
+- [x] Migrar datos Fase 1: ejecutar scripts `01-migrate-usuarios.sql` → `08-migrate-gastos-mensuales-detalle.sql` en orden FK
+- [x] Migrar datos Fase 2 — Productos: `09-migrate-productos-pos.sql` + `09b-update-store-data.sql` + `09c-migrate-productos-digitales.sql`
+- [x] Migrar datos Fase 3 — Ventas, Compras, Movimientos: `10-migrate-ventas.sql` + `11-migrate-compras.sql` + `12-migrate-movimientos.sql` + `08b-relink-ventas-gastos.sql`
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags en DB a productos existentes para poblar carrusel y badges (UI ya implementada en POS y Store)
 
 ### 7.5 Completado (Documentacion de Migracion)
-- [x] `specs/14-migracion-datos.md` — Spec completo de migracion V1→V2 con analisis campo a campo de 8 tablas
+- [x] `specs/14-migracion-datos.md` — Spec completo de migracion V1→V2 con analisis campo a campo de 8 tablas (actualizado con Fase 2 y Fase 3)
 - [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` — Script INSERT para pos_clientes (5 registros)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09-migrate-productos-pos.sql` — 128 productos fisicos (POS)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09b-update-store-data.sql` — 110 actualizaciones Store + 1178 multimedia
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` — 196 productos digitales (deduplicados) + 1756 imagenes + 196 videos
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/10-migrate-ventas.sql` — 300 ventas + 318 detalle (canal MercadoLibre, metodo Transferencia)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/11-migrate-compras.sql` — 42 compras + 96 detalle
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/12-migrate-movimientos.sql` — 446 movimientos de inventario
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/08b-relink-ventas-gastos.sql` — 298 pares gasto-venta religados (regenerado sin temp table)
 - [x] Convencion: scripts en `ScriptMigracionDB/` con nomenclatura `NN-migrate-<tabla>.sql`
-- [x] Orden de migracion definido: 01 usuarios → 02 gasto_categorias → 03 categorias → 04 proveedores → 05 configuracion → 06 finanzas → 07 clientes → 08 gastos_detalle
+- [x] Orden de migracion completo: 01→08 (Fase 1), 09→09c (Fase 2), 10→12+08b (Fase 3)
 
 #### Módulo POS — Fase 17: Panel Dashboard + Tienda Virtual
 - [x] `database.js::cargarLinkTienda()` — Bloque autoejecutable que busca `#link-tienda-virtual` y asigna href desde `pos_configuracion_empresa.store_url`
@@ -991,6 +1004,24 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/herramientas/renombrar-archivos.html` | Sidebar actualizado con Dashboard link (`../panel.html`) y Tienda Virtual link. |
 | `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
 
+### 2026-06-22 — Migracion Fase 3: Ventas, Compras, Movimientos y Relink Gastos
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/10-migrate-ventas.sql` | Nuevo: migra 300 ventas + 318 detalle desde CSV V1. Canal hardcodeado MercadoLibre, metodo pago Transferencia. `producto_detalle_id` resuelto via subquery. Estados: `completada`→`CONFIRMADA` (298), `deleted_at`→`ANULADA` (2). |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/11-migrate-compras.sql` | Nuevo: migra 42 compras + 96 detalle desde CSV V1. Estados mapeados. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/12-migrate-movimientos.sql` | Nuevo: migra 446 movimientos de inventario desde CSV V1. Tipos mapeados `entrada`→`entrada_compra`, `salida`→`salida_venta`. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/08b-relink-ventas-gastos.sql` | **Regenerado.** Ya no usa temp table. Usa CTE con 298 pares `gasto_id ↔ venta_uuid` hardcodeados. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/_generar_fase3.py` | Nuevo: generador Python que lee CSVs y produce los 4 scripts con casts explicitos (`::uuid`, `::timestamptz`). |
+| `AGENTS.md` | Seccion 5: 5 nuevas decisiones Fase 3. Seccion 7.3: Fase 3 completada. Seccion 7.5: scripts Fase 3 agregados. |
+| `specs/14-migracion-datos.md` | Orden de migracion actualizado con Fase 2 y Fase 3. Checklist completo. |
+
+### 2026-06-22 — 09c regenerado con deduplicacion y UUIDs deterministicos
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` | **Regenerado.** Ahora usa UUIDs deterministicos v5 en las 3 tablas (pos_productos, pos_productos_detalle, pos_productos_multimedia). Se eliminaron los CTE y las tablas temporales — los UUIDs se generan en Python y se hardcodean en el SQL. **Deduplicacion:** 7 duplicados exactos omitidos (insercion unica), 4 duplicados cercanos renombrados con "(v2)". **Totales:** 196 productos (de 203 originales), 1756 imagenes, 196 videos. |
+
 ### 2026-06-19 — Migracion V1→V2: Spec, Scripts y Convenciones
 
 | Archivo | Cambio |
@@ -999,3 +1030,11 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `specs/01-master-spec.md` | Mapa de artefactos actualizado: incluye los 4 scripts SQL (00-03), specs 13-14, ArchivosInformativos y ScriptMigracionDB |
 | `AGENTS.md` | Seccion 3.1: directorio `ScriptMigracionDB/` agregado bajo ArchivosInformativos. Seccion 5: 5 nuevas decisiones de migracion (UUIDs preservados, datos corruptos, impuesto_default /100, orden FK). Seccion 7.3: pendientes de migracion separados en Fase 1 y Fase 2. Seccion 7.5: nuevo estado de documentacion de migracion. Seccion 9.2: nueva subseccion detallando ScriptMigracionDB. |
 | `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` | Nuevo: script INSERT para pos_clientes (5 registros con UUIDs preservados) |
+
+### 2026-06-21 — Migration Scripts Productos (Fase 2): 09, 09b, 09c
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09-migrate-productos-pos.sql` | Nuevo: migra 128 productos desde CSV V1 (productos_rows.csv) a pos_productos + pos_productos_detalle. UUIDs V1 preservados. tipo_producto='Fisico' (excepto CV001='Digital'). tasa_impuesto/100. precio_compra=0 si vacio. margen_ganancia=NULL si vacio (no recalcular). Sin multimedia en esta fase. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09b-update-store-data.sql` | Nuevo: para 110 productos comunes (CSV+JSON): UPDATE descripcion desde JSON + INSERT multimedia (1068 imagenes + 110 videos) desde JSON.imagenes[] y JSON.video. Tipo 'imagen' con orden secuencial, tipo 'video' con orden=999. Requisito: 09 ejecutado primero. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` | Nuevo: migra 203 productos digitales (cursos CV-prefix + PooBasico + ProductoDigitalPremium) 100% desde JSON. CTE para INSERT pos_productos + pos_productos_detalle con UUID consistente. Categoria fija: Cursos Virtuales. Tipo Digital, tasa_impuesto=0, stock=999 simbolico. Multimedia: 1819 imagenes + 203 videos. Tabla temporal _v1_prod_digital_map para mapeo nombre→UUID. precio_venta pendiente de actualizar manualmente. |

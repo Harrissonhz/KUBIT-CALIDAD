@@ -63,7 +63,22 @@ Dependencias de FK entre tablas:
 08. pos_gastos_mensuales_detalle ← FK a pos_gasto_categorias, pos_usuarios, pos_ventas (diferido)
 ```
 
-**Nota:** Las tablas de Fase 3 (pos_productos, pos_productos_detalle, pos_ventas, pos_ventas_detalle, movimientos_inventario, compras) se migraran en una etapa posterior una vez definido el modelo de variantes.
+**Nota:** Las tablas de Fase 2 (pos_productos, pos_productos_detalle, pos_productos_multimedia) se migraron en una etapa separada usando CSV + JSON como fuente dual. Las tablas de Fase 3 (pos_ventas, pos_ventas_detalle, pos_compras, pos_compras_detalle, pos_movimientos_inventario) migran despues.
+
+### Fase 2 — Productos (09-09c)
+```
+09.  pos_productos + pos_productos_detalle    ← 128 productos fisicos desde CSV
+09b. pos_productos_multimedia                 ← 110 descripciones + 1178 multimedia desde JSON
+09c. pos_productos + detalle + multimedia     ← 196 productos digitales desde JSON (UUIDs deterministicos)
+```
+
+### Fase 3 — Ventas, Compras, Movimientos (10-12, 08b)
+```
+10.  pos_ventas + pos_ventas_detalle          ← 300 ventas + 318 detalle desde CSV
+11.  pos_compras + pos_compras_detalle        ← 42 compras + 96 detalle desde CSV
+12.  pos_movimientos_inventario               ← 446 movimientos desde CSV
+08b. UPDATE pos_gastos_mensuales_detalle       ← Religar venta_id (298 pares)
+```
 
 ---
 
@@ -233,17 +248,32 @@ Dependencias de FK entre tablas:
 
 ## 7. Checklist de Ejecucion
 
-- [ ] 01. Ejecutar `01-migrate-usuarios.sql` (2 registros, preserva UUID admin)
-- [ ] 02. Ejecutar `02-migrate-gasto-categorias.sql` (23 registros)
-- [ ] 03. Ejecutar `03-migrate-categorias.sql` (11 registros)
-- [ ] 04. Ejecutar `04-migrate-proveedores.sql` (5 registros)
-- [ ] 05. Ejecutar `05-migrate-configuracion-empresa.sql` (1 registro, transformacion /100)
-- [ ] 06. Ejecutar `06-migrate-finanzas-mensuales.sql` (34 registros)
-- [ ] 07. Ejecutar `07-migrate-clientes.sql` (5 registros)
-- [ ] 08. Ejecutar `08-migrate-gastos-mensuales-detalle.sql` (413 registros, venta_id = NULL)
+### Fase 1 — Core
+- [x] 01. Ejecutar `01-migrate-usuarios.sql` (2 registros, preserva UUID admin)
+- [x] 02. Ejecutar `02-migrate-gasto-categorias.sql` (23 registros)
+- [x] 03. Ejecutar `03-migrate-categorias.sql` (11 registros)
+- [x] 04. Ejecutar `04-migrate-proveedores.sql` (5 registros)
+- [x] 05. Ejecutar `05-migrate-configuracion-empresa.sql` (1 registro, transformacion /100)
+- [x] 06. Ejecutar `06-migrate-finanzas-mensuales.sql` (34 registros)
+- [x] 07. Ejecutar `07-migrate-clientes.sql` (5 registros)
+- [x] 08. Ejecutar `08-migrate-gastos-mensuales-detalle.sql` (413 registros, venta_id = NULL)
+
+### Fase 2 — Productos
+- [x] 09. Ejecutar `09-migrate-productos-pos.sql` (128 productos fisicos, preserve UUIDs V1)
+- [x] 09b. Ejecutar `09b-update-store-data.sql` (110 descripciones + 1178 multimedia)
+- [x] 09c. Ejecutar `09c-migrate-productos-digitales.sql` (196 productos digitales, UUIDs deterministicos v5)
+- [x] Actualizar precio_venta de productos digitales: `UPDATE pos_productos_detalle SET precio_venta = 5000 WHERE precio_venta = 0 AND producto_id IN (SELECT id FROM pos_productos WHERE tipo_producto = 'Digital')`
+
+### Fase 3 — Ventas, Compras, Movimientos
+- [x] 10. Ejecutar `10-migrate-ventas.sql` (300 ventas + 318 detalle, canal MercadoLibre, metodo Transferencia)
+- [x] 11. Ejecutar `11-migrate-compras.sql` (42 compras + 96 detalle)
+- [x] 12. Ejecutar `12-migrate-movimientos.sql` (446 movimientos de inventario)
+- [x] 08b. Ejecutar `08b-relink-ventas-gastos.sql` (religar 298 pares gasto-venta)
 - [ ] Verificar integridad referencial en Supabase: `select * from information_schema.table_constraints where constraint_type = 'FOREIGN KEY'`
 - [ ] Verificar conteo de filas en cada tabla destino vs CSV origen
 - [ ] Probar login en produccion con admin@kubit.com
+- [ ] Verificar que 10 productos de 09 tienen `activo=false` (confirmar si es correcto)
+- [ ] Asignar tags a productos en DB para poblar carrusel y badges del Store
 
 ---
 
