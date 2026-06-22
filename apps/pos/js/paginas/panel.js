@@ -31,19 +31,35 @@
     var res = await DB.finanzasMensuales.obtenerPorPeriodo(anio, mes);
     if (res.error || !res.data) {
       $('kpi-mes-ventas').textContent = '$0';
-      $('kpi-mes-gastos').textContent = '$0';
+      $('kpi-mes-ventas-netas').textContent = '$0';
       $('kpi-mes-compras').textContent = '$0';
+      $('kpi-mes-comisiones').textContent = '$0';
+      $('kpi-mes-gastos').textContent = '$0';
       $('kpi-mes-utilidad').textContent = '$0';
+      $('kpi-mes-flujo').textContent = '$0';
       $('kpi-mes-margen').textContent = '0%';
       return;
     }
     var f = res.data;
-    $('kpi-mes-ventas').textContent = formatCOP(f.venta_bruta || 0);
-    $('kpi-mes-gastos').textContent = formatCOP(f.total_gastos || 0);
-    var compras = (f.costo_mercaderia || 0) + (f.costo_comision || 0);
+    var ventasBrutas = f.ventas_brutas || 0;
+    var devoluciones = f.devoluciones || 0;
+    var descuentos = f.descuentos || 0;
+    var ventasNetas = ventasBrutas - devoluciones - descuentos;
+    var compras = f.compras_total || 0;
+    var comisiones = f.costos_comision_total || 0;
+    var gastos = f.gastos_operativos_total || 0;
+    var utilidadNeta = f.utilidad_neta || 0;
+    var flujoOperativo = ventasNetas - gastos - comisiones;
+    var margen = ventasBrutas > 0 ? Math.round((utilidadNeta / ventasBrutas) * 100) : 0;
+
+    $('kpi-mes-ventas').textContent = formatCOP(ventasBrutas);
+    $('kpi-mes-ventas-netas').textContent = formatCOP(ventasNetas);
     $('kpi-mes-compras').textContent = formatCOP(compras);
-    $('kpi-mes-utilidad').textContent = formatCOP(f.utilidad_neta || 0);
-    $('kpi-mes-margen').textContent = (f.margen != null ? Math.round(f.margen * 100) : 0) + '%';
+    $('kpi-mes-comisiones').textContent = formatCOP(comisiones);
+    $('kpi-mes-gastos').textContent = formatCOP(gastos);
+    $('kpi-mes-utilidad').textContent = formatCOP(utilidadNeta);
+    $('kpi-mes-flujo').textContent = formatCOP(flujoOperativo);
+    $('kpi-mes-margen').textContent = margen + '%';
   }
 
   async function cargarKpisOperativos() {
