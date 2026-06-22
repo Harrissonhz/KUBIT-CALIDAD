@@ -31,6 +31,13 @@ async function _fetchCategoriasDB() {
         orden: 5 + i
       };
     });
+    var idxCurso = -1;
+    for (var i = 0; i < cats.length; i++) {
+      if (cats[i].slug === 'cursos-virtuales') { idxCurso = i; break; }
+    }
+    if (idxCurso !== -1) {
+      cats.push(cats.splice(idxCurso, 1)[0]);
+    }
     _catCache.datos = cats;
     _catCache.timestamp = Date.now();
     return cats;
