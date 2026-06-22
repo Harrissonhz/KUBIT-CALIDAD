@@ -9,13 +9,6 @@ function _slugify(texto) {
     .replace(/^-+|-+$/g, '');
 }
 
-var promosFijas = [
-  { id: 'promo-imperdibles', nombre: 'Imperdibles', slug: 'imperdibles', icono: '', tipo: 'promo', orden: 1 },
-  { id: 'promo-super-oferta', nombre: 'Super Oferta', slug: 'super-oferta', icono: '', tipo: 'promo', orden: 2 },
-  { id: 'promo-remate', nombre: 'Remate Saldos', slug: 'remate-saldos', icono: '', tipo: 'promo', orden: 3 },
-  { id: 'promo-producto-mes', nombre: 'Producto del Mes', slug: 'producto-mes', icono: '', tipo: 'promo', orden: 4 }
-];
-
 var _catCache = { datos: null, timestamp: 0 };
 var CAT_CACHE_TTL = 60000;
 
@@ -52,7 +45,6 @@ window.StoreAPI.categorias = {
     var dbCats = await _fetchCategoriasDB();
     return [
       { id: 'cat-todos', nombre: 'Todos Los Productos', slug: 'todos', icono: '', tipo: 'view_all', orden: 0 },
-      ...promosFijas,
       ...dbCats
     ];
   },
@@ -75,7 +67,4 @@ window.StoreAPI.categorias = {
     return todas.filter(function(c) { return c.tipo === 'categoria'; });
   },
 
-  async obtenerPromos() {
-    return promosFijas;
-  }
 };
