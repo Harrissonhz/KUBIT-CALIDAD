@@ -45,7 +45,7 @@
     var devoluciones = f.devoluciones || 0;
     var descuentos = f.descuentos || 0;
     var ventasNetas = ventasBrutas - devoluciones - descuentos;
-    var compras = f.compras_total || 0;
+    var compras = await DB.compras.totalDelMes(f.anio, f.mes);
     var comisiones = f.costos_comision_total || 0;
     var gastos = f.gastos_operativos_total || 0;
     var utilidadNeta = f.utilidad_neta || 0;

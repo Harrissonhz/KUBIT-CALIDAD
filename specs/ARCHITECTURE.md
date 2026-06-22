@@ -184,7 +184,7 @@
 
 ### 2.6 Testing
 - vitest + jsdom para tests unitarios y de integración
-- 99 tests en 5 suites (database, auth, compras, caja, productos)
+- 102 tests en 5 suites (database, auth, compras, caja, productos)
 - Mocks de `window.__supabase`, `window.KubitAuth`, `localStorage` en `tests/setup.js`
 
 ## 3. Stack Tecnológico

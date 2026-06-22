@@ -63,6 +63,9 @@ Este archivo es la **memoria oficial del proyecto** para cualquier IA que trabaj
 │   ├── 12-roadmap.md       ← Pendiente
 │   └── ARCHITECTURE.md
 ├── ArchivosInformativos/ ← Información externa (no parte del proyecto)
+│   ├── Basedatos/               ← CSVs de origen V1 (14 tablas)
+│   ├── DespliegueProduccion/    ← Credenciales produccion, guias de despliegue
+│   │   └── ScriptMigracionDB/   ← Scripts INSERT ordenados para migracion V1→V2
 ├── apps/
 │   ├── pos/               ← Código del módulo POS
 │   ├── store/             ← Código del módulo Tienda Virtual
@@ -141,15 +144,39 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Diseño UI | Ultra-minimalista, monocromático Slate (Tailwind) |
 | Responsive | Mobile-first, mínimo 360px |
 | Navegación | Sin frameworks SPA. HTML vanilla con navegación tradicional o Alpine.js ligero si es necesario |
-| Editar ventas confirmadas | NO permitido. Usar Void + Recreate (Anular + Nueva Venta). Patrón estándar POS |
+| Editar ventas confirmadas | NO permitido edicion directa. Usar **Void + Recreate**: crear la nueva venta PRIMERO, solo si exito anular la original (orden invertido para mitigar perdida de datos). Metodo `DB.ventas.anularConRevertir()` revierte stock + finanzas. sessionStorage + query param `?editar=ID` para transferencia de datos. Boton "Editar" en modal de ventas-historial. |
 | Header POS | `fixed top-0 left-0 right-0 z-30` en todas las páginas. El contenido tiene `pt-16` para compensar |
 | Modo oscuro por defecto | Todas las páginas cargan con `class="dark"` en `<html>`. Anti-flash script: si localStorage dice `'false'` lo remueve |
 | Sección de usuario en header | Centralizada en `auth.js::poblarUserHeader()`. Solo requiere los IDs `user-avatar`, `user-name`, `user-rol` en el HTML |
 | IVA siempre visible | `tasa_impuesto` está fuera del toggle single/multi-variante, visible siempre |
 | Multi-variante | Las variantes se guardan como N registros en `pos_productos_detalle` con `atributos jsonb`. Edición inline con filas expandibles (▼) |
-| POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local (`npx serve`) y Vercel. Precarga 38 assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
+| POS PWA service worker | Rutas relativas (`service-worker.js`) para compatibilidad local y Vercel. Precarga assets (HTML, JS, CSS, imágenes). Cache-first con fallback network. |
 | Tags de producto (chips) | 6 chips toggle en vez de input texto libre. `data-tag` en minúsculas estrictas. Almacenados como `text[]` en `pos_productos.tags`. Los valores deben coincidir EXACTAMENTE con `badgeMap` del Store. |
 | Ciudad checkout Store | `<datalist>` filtrado por departamento desde `colombia.js` para reducir errores de escritura y garantizar consistencia con datos reales. |
+| Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
+| Service Worker fetch handler | Usar `fetch(e.request, { redirect: 'follow' })` + verificar `!r.redirected` en cache. Necesario porque `npx serve` puede responder con redirecciones que rompen `e.respondWith()` en requests de navegacion. |
+| Sidebar label unificado | "Inventario" renombrado a "Stock" en las 16 paginas POS para coincidir con la terminologia del modulo. |
+| SW auto-reload via postMessage | Al activarse el SW (`activate`), envia `{accion:'recargar'}` a todos los clients via `clients.matchAll()` + `postMessage()`. Cada pagina HTML escucha `message` en `navigator.serviceWorker` y ejecuta `location.reload()`. El usuario siempre ve la version mas reciente del SW sin recarga manual. |
+| SW localhost bypass | Si `self.location.hostname === 'localhost'` o `'127.0.0.1'`, el SW hace `return;` sin `e.respondWith()` en fetch, y omite precache en install/activate. Asi `npx serve` funciona sin interferencia del SW. |
+| SW cache versioning YYYYMMDD-NN | El nombre del cache usa formato `kubit-pos-YYYYMMDD-NN` (POS) y `outletshop-YYYYMMDD-NN` (Store). `YYYYMMDD` = fecha del deploy, `NN` = contador por dia (01, 02...). Cada deploy produce un cache nuevo; el SW elimina caches viejos en `activate`. |
+| SW ignoreSearch:true | En `caches.match(e.request, {ignoreSearch:true})` para que `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Cache-first funciona correctamente en paginas de producto. |
+| SW .catch() en fetch handler | El fetch handler del SW envuelve la promesa en `.catch(() => fetch(e.request))` para evitar el error "A listener indicated an asynchronous response by returning true" cuando el cache falla o hay redirecciones. |
+| npx http-server para local en Windows | `npx serve` en Windows 10 hace redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local. Este bug no tiene fix desde el codigo del proyecto. |
+| Herramientas module structure | `apps/pos/herramientas/` subdirectorio independiente con hub → sub-page navigation. El hub (`herramientas.html`) muestra card grid, cada card navega a `herramientas/<tool>.html`. Sin modals ni tabs. |
+| Action buttons outside cards | En herramientas y paginas CRUD, los botones de accion (Cancelar, Confirmar, etc.) van en natural flow fuera de los `<details>` cards, usando `flex flex-col sm:flex-row gap-3`. No usan `position: fixed`. Se muestran/ocultan contextualmente via JS (clase `hidden`). |
+| Sidebar toggle extraido | `js/compartido/sidebar.js` contiene la funcion `toggleSidebar()` compartida para paginas que no pertenecen a los 14 CRUD principales (herramientas.html, herramientas/renombrar-archivos.html). Las 14 paginas principales mantienen el toggle inline. |
+| Card visibility: `hidden` class vs inline `style` | Para elementos que JS oculta/muestra, usar SIEMPRE `class="hidden"` (Tailwind), NUNCA `style="display:none"`. `classList.remove('hidden')` no funciona con inline `style` por mayor especificidad CSS. |
+| No data-permiso en Herramientas | El grupo Herramientas en el sidebar no tiene `data-permiso` — es visible para todos los usuarios autenticados sin control de permisos. |
+| Migracion V1→V2: ScriptMigracionDB | Los scripts INSERT de migracion residen en `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/` con nomenclatura `NN-migrate-<tabla>.sql` donde NN = orden de ejecucion por FK. NO estan en `specs/` por ser material externo de migracion. |
+| Migracion: Preservar UUIDs V1 | Todos los scripts de migracion preservan los UUIDs originales de V1 para mantener trazabilidad con registros relacionados (ventas, pedidos, movimientos de inventario). |
+| Migracion: Datos corruptos V1 | La fila `21760f85` en `pos_clientes` tiene `primer_apellido = 'Medellin'` (es ciudad, no apellido). Se migra tal cual de V1 por decision del usuario. No corregir. |
+| Migracion: impuesto_default /100 | `configuracion_empresa.impuesto_default = 19.00` en V1 debe dividirse entre 100 para V2 (decimal 0.19). La transformacion se documenta en el script. |
+| Migracion: Orden por FK | El orden de migracion sigue las dependencias de FK: primero `pos_usuarios` (preserva UUID admin `497a2c95-...`), luego tablas sin dependencias, y finalmente tablas que referencian al admin. |
+| Migracion Fase 3: canal_id hardcodeado | Todas las ventas de V1 usaban canal fisico pero el usuario decidio migrarlas como canal MercadoLibre con UUID `b9acdc2e-323a-4687-81be-5e0a8f579103`. |
+| Migracion Fase 3: metodo_pago hardcodeado | V1 usaba `efectivo` pero el usuario decidio migrar como `Transferencia` para todas las ventas. |
+| Migracion Fase 3: producto_detalle_id via subquery | Scripts 09 y 09c preservan UUIDs V1 como `pos_productos.id`. `pos_productos_detalle.producto_id` es FK directa. El mapping se resuelve con subquery `(SELECT pd.id FROM pos_productos_detalle pd WHERE pd.producto_id = d.producto_id::uuid LIMIT 1)`. |
+| Migracion Fase 3: INSERT...SELECT con casts | Los scripts 10, 11, 12 usan `INSERT INTO ... SELECT ... FROM (VALUES ...)`. Todas las columnas UUID y timestamptz requieren cast explicito (`::uuid`, `::timestamptz`) porque Postgres no hace coercion implicita de texto a estos tipos en una proyeccion SELECT. |
+| Migracion Fase 3: 08b sin temp table | `08b-relink-ventas-gastos.sql` se regenero con CTE `WITH gasto_venta_map (gasto_id, venta_id) AS (VALUES ...)` usando los 298 pares hardcodeados. Ya no depende de la tabla temporal `_v1_gasto_venta_map` (que era session-scoped y se perdia). |
 
 ---
 
@@ -318,36 +345,63 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `manifest.json` — Iconos PNG referenciados como primary, SVG como fallback con `purpose: "any"`
 - [x] `apple-touch-icon` — Actualizado en 17/17 paginas: `href="img/icon.svg"` → `href="img/icon-192x192.png"`
 
+#### Módulo POS (Punto de Venta) — Fase 14: Canales Dinamicos desde DB + Fix SW Redirect + Sidebar Unificado
+- [x] Columna `tipo` (fisico/web_propio/marketplace) agregada a `pos_canales_venta` via DDL + seeds actualizados
+- [x] `ventas.js`: nuevas funciones `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`
+- [x] Costos de canal visibles solo si `tipo === 'marketplace'` (dinamico, no hardcodeado a mercadolibre)
+- [x] `service-worker.js`: fix handler `if (r && !r.redirected) return r; return fetch(e.request, { redirect: 'follow' })` para compatibilidad con `npx serve`
+- [x] Sidebar: "Inventario" renombrado a "Stock" en las 16 paginas HTML del POS
+- [x] `limpiar-sw.html`: pagina kill-switch creada y luego eliminada (depuracion local)
+- [x] Desplegado en Vercel QA: `https://pos-calidad.vercel.app/`
+
+#### Módulo POS — Fase 15: Herramientas (file renamer tool)
+- [x] `herramientas.html` — Hub page con card grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`) + header/sidebar POS completo
+- [x] `herramientas/renombrar-archivos.html` — Tool page con 3-card workflow (Seleccionar Carpeta, Vista Previa, Resultados) + action bar externa
+- [x] `js/herramientas/renombrar-archivos.js` — Lógica completa: File System Access API (`showDirectoryPicker`), renombrado masivo con estadísticas, preview editable, validaciones
+- [x] `js/compartido/sidebar.js` — Función `toggleSidebar()` compartida para páginas de herramientas y hub
+- [x] `css/estilo.css` — Clases `.herramienta-card` con hover/focus/active states slate-800
+- [x] Sidebar actualizado en 14 páginas POS con grupo Herramientas insertado entre Caja/Finanzas y Administración
+- [x] Fix: Cards 2 y 3 de renombrar-archivos.html cambiadas de `style="display:none"` a `class="hidden"` + `open`
+- [x] Fix: Botones de acción movidos fuera de cards a `#action-bar` en flujo natural con show/hide contextual
+- [x] Fix: Menú hamburguesa roto en herramientas.html (sidebar.js no existía) y renombrar-archivos.html (no incluía el script)
+- [x] Tests: `npm test` → 99 passed, 0 failures
+
 ### 7.3 Pendiente
 - [ ] `06-academy-spec.md` — Especificación del módulo Academy (post-MVP)
+- [x] Migrar datos Fase 1: ejecutar scripts `01-migrate-usuarios.sql` → `08-migrate-gastos-mensuales-detalle.sql` en orden FK
+- [x] Migrar datos Fase 2 — Productos: `09-migrate-productos-pos.sql` + `09b-update-store-data.sql` + `09c-migrate-productos-digitales.sql`
+- [x] Migrar datos Fase 3 — Ventas, Compras, Movimientos: `10-migrate-ventas.sql` + `11-migrate-compras.sql` + `12-migrate-movimientos.sql` + `08b-relink-ventas-gastos.sql`
 - [ ] Agregar más categorías a la DB para poblar el menú del navbar
 - [ ] Asignar tags en DB a productos existentes para poblar carrusel y badges (UI ya implementada en POS y Store)
-- [x] Ejecutar DML `MigracionProductos.sql` en Supabase QA
-- [x] **Fase 3:** Reemplazar datos mock de ventas con DatabaseService real (productos, clientes, ventas)
-- [x] **Fase 4:** Reemplazar CAJAS_MOCK en caja.js con DatabaseService real
-- [x] **Fase 5:** UI de Productos, Categorías e Inventario conectada a DB
-- [x] **Refactor UI (Jun 2026):** Canal de Venta movido a header, Tarjeta Totales rediseñada a formato recibo full-width con barra de stats
-- [x] **Fix bugs (Jun 2026):** Menú hamburguesa, subtotal en tiempo real, fondo modal post-venta
-- [x] **Historial mejorado:** Modal más ancho (4xl), nombre producto vs UUID, canal visible
-- [x] **Decisión CRUD:** No implementar "Editar Venta". Usar Void + Recreate
-- [x] **Completado (Jun 2026):** Multi-variante — formulario con toggle single/multi, atributos dinámicos (color/talla/diseño), tabla editable inline, filas expandibles (▼) con precio_original, precio_mayorista, descuento_max, stock_min/max, peso, dimensiones
-- [x] **Completado (Jun 2026):** IVA siempre visible fuera del toggle variantes, default 0% (Exento)
-- [x] **Completado (Jun 2026):** Stock Min por defecto = 2 (single y multi-variante)
-- [x] **Completado (Jun 2026):** Modo oscuro como default en todas las páginas con anti-flash script inline
-- [x] **Completado (Jun 2026):** Header fixed (flotante) en todas las páginas + pt-16 en scroll container
-- [x] **Completado (Jun 2026):** Sección de usuario (avatar/nombre/rol) visible en header de todas las páginas, centralizada via `auth.js::poblarUserHeader()`
-- [x] **Completado (Jun 2026):** Slug collisions manejadas vía trigger DB (sufijo numérico -1, -2...)
-- [x] Ejecutar `specs/seed-permisos.sql` en Supabase QA (roles, permisos, rol_permisos)
-- [x] **Fase 6:** UI de Clientes, Proveedores y Compras conectada a DB
-- [x] **Fase 7:** UI de Facturación, Gastos, Configuración y Reportes conectada a DB
-- [x] **Store checkout**: Edge Function eliminada, REST API directa con 7 operaciones + seed-anon-grants-store.sql
-- [x] **POS PWA**: Service worker reescrito, iOS meta tags + SW registration en 17 paginas, manifest categories
-- [x] **Tags chips**: Input texto libre reemplazado por 6 toggle chips en productos.html
-- [x] **Store badges**: Corregidos mas_vendido, nuevo, imperdible, oferta group
-- [x] **Checkout fixes**: Departamento/Ciudad intercambiados, ciudad datalist, scrollbar, factura-print impuesto
-- [x] **Tests**: 99 tests, 0 failures (verificado post-cambios)
-- [x] **Correo transaccional**: Spec `06-servicio-correo.md` creado con Resend + Edge Function, pero POSTERGADO a post-MVP. Alternativa: modal de exito en checkout + gestion manual del store owner (~1 venta/mes no justifica el desarrollo).
-- [ ] Integración con MercadoLibre (sincronizar productos y pedidos)
+
+### 7.5 Completado (Documentacion de Migracion)
+- [x] `specs/14-migracion-datos.md` — Spec completo de migracion V1→V2 con analisis campo a campo de 8 tablas (actualizado con Fase 2 y Fase 3)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` — Script INSERT para pos_clientes (5 registros)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09-migrate-productos-pos.sql` — 128 productos fisicos (POS)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09b-update-store-data.sql` — 110 actualizaciones Store + 1178 multimedia
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` — 196 productos digitales (deduplicados) + 1756 imagenes + 196 videos
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/10-migrate-ventas.sql` — 300 ventas + 318 detalle (canal MercadoLibre, metodo Transferencia)
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/11-migrate-compras.sql` — 42 compras + 96 detalle
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/12-migrate-movimientos.sql` — 446 movimientos de inventario
+- [x] `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/08b-relink-ventas-gastos.sql` — 298 pares gasto-venta religados (regenerado sin temp table)
+- [x] Convencion: scripts en `ScriptMigracionDB/` con nomenclatura `NN-migrate-<tabla>.sql`
+- [x] Orden de migracion completo: 01→08 (Fase 1), 09→09c (Fase 2), 10→12+08b (Fase 3)
+
+#### Módulo POS — Fase 17: Panel Dashboard + Tienda Virtual
+- [x] `database.js::cargarLinkTienda()` — Bloque autoejecutable que busca `#link-tienda-virtual` y asigna href desde `pos_configuracion_empresa.store_url`
+- [x] `database.js::ventas.topProductos(limite)` — Agregacion de ventas del mes por producto
+- [x] `configuracion.html` + `configuracion.js` — Campo `store_url` en formulario de empresa
+- [x] `panel.html` + `panel.js` — Dashboard con KPIs del Mes (finanzas), KPIs Operativos (ventas hoy, ticket, productos, stock bajo), Top 5, Accesos Rapidos
+- [x] Sidebar actualizado en 16 paginas POS: grupo "Dashboard" arriba, link "Tienda Virtual" al final (target=_blank, URL desde DB)
+- [x] `specs/02-database-schema.sql` — Columna `store_url` agregada
+- [x] `npm test` → 99 passed, 0 failures
+
+#### Módulo POS — Fase 18: Panel Compras en Tiempo Real
+- [x] `database.js::DB.compras.totalDelMes()` — Nuevo metodo que suma `pos_compras.total` del mes en tiempo real via PostgREST, sin cache. Filtra `estado IN (RECIBIDA,PENDIENTE)`, excluye soft-delete, rango por fecha. Usa `api.get()` directo (operadores `in.()` e `is.null` no compatibles con `select()` helper).
+- [x] `panel.js::cargarKpisMes()` — `f.compras_total || 0` reemplazado por `await DB.compras.totalDelMes(f.anio, f.mes)`. Query en vivo, refleja compras nuevas inmediatamente.
+- [x] `database.test.js` — 3 nuevos tests: suma correcta (100000+129572=229572), array vacio retorna 0, error de red retorna 0.
+- [x] `npm test` → 102 passed, 0 failures (99→102, +3 tests totalDelMes)
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -374,6 +428,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - Está excluida de Git/GitHub vía `.gitignore`.
 - Los agentes de IA solo deben leer archivos de esta carpeta cuando el usuario lo indique explícitamente.
 - No usar ningún archivo de esta carpeta como fuente de verdad para decisiones de diseño o implementación a menos que el usuario lo ordene.
+
+### 9.2 Subcarpeta `ScriptMigracionDB/`
+- Contiene los scripts INSERT para migrar datos desde V1 (CSVs en `Basedatos/`) hacia V2 (Supabase).
+- Nomenclatura: `NN-migrate-<tabla>.sql` donde NN = orden de ejecucion por dependencias FK.
+- Los UUIDs originales de V1 se preservan en todos los scripts.
+- Las transformaciones necesarias (ej: `impuesto_default /100`) se documentan dentro de cada script.
+- El orden de ejecucion esta definido en `specs/14-migracion-datos.md` §3.
+- **NO** confundir con los archivos de `specs/` — estos scripts son material operativo de migracion, no especificaciones de diseno.
 
 ---
 
@@ -593,6 +655,19 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/store/js/paginas/checkout.js` | Ciudad ahora usa `<datalist>` con opciones filtradas por departamento seleccionado |
 | `apps/store/factura-print.html` | Columna "Impuesto" agregada con `d.impuesto \|\| 0` |
 
+### 2026-06-12 — Canales Dinamicos POS, Fix SW redirect, Sidebar Stock, Deploy Vercel QA
+
+| Archivo | Cambio |
+|---|---|
+| `specs/02-database-schema.sql` | ADD COLUMN `tipo text not null default 'propio'` en `pos_canales_venta`. Seed data actualizado: Exito.com, Falabella.com como marketplaces |
+| `apps/pos/ventas.html` | Reemplazados 3 labels fijos de canal por contenedor dinamico + `<select id="select-marketplace">` para marketplaces |
+| `apps/pos/js/paginas/ventas.js` | Nuevas funciones: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()`, `obtenerIconoCanal()`. Eliminada dependencia de `'mercadolibre'` hardcodeado. Logica de costos ahora usa `tipo === 'marketplace'` |
+| `apps/pos/service-worker.js` | Fix handler: `if (r && !r.redirected) return r; return fetch(e.request, { redirect: 'follow' })`. Cache bump v2→v3→v4 |
+| `apps/pos/*.html` (16 paginas) | Sidebar: "Inventario" renombrado a "Stock" |
+| `apps/pos/limpiar-sw.html` | Creada y eliminada post-commit (kill-switch page para depuracion local) |
+| `specs/03-pos-spec.md` | Documentacion de columna `tipo` en tabla `pos_canales_venta` |
+| **Deploy** | Sincronizado a GitHub + Vercel: `https://pos-calidad.vercel.app/` |
+
 ### 2026-06-08 — POS PWA Completa (Service Worker + iOS Meta Tags + SW Registration)
 
 | Archivo | Cambio |
@@ -622,6 +697,126 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `specs/01-master-spec.md` | `06-servicio-correo.md` agregado al mapa de artefactos. |
 | **Decision** | No implementar en v1. Con ~1 venta/mes, el costo supera el beneficio. Alternativa: modal de exito en checkout + gestion manual del store owner. |
 
+### 2026-06-12 — KPI Bar "Ventas Hoy / Total Hoy / Promedio" en ventas.html
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/ventas.html` | Nueva barra compacta de 3 indicadores (Hoy, Total, Prom.) entre header y Card 1. Diseno: `flex flex-wrap` con iconos SVG + `text-xs`. 30px altura vs 180px de cards. Sin cache, actualizacion inmediata post-venta. |
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `ventas.estadisticasHoy()` usa agregados nativos PostgREST: `/pos_ventas?select=count,sum:total,avg:total&estado=eq.CONFIRMADA&fecha_venta=gte.{hoy}`. Devuelve 1 fila, peso minimo, sin cache. |
+| `apps/pos/js/paginas/ventas.js` | Nueva funcion `cargarEstadisticas()` con fallback silencioso a `—` en error. Llamada en `init()` via `Promise.all` y post-`procesarVenta()` para refresco inmediato. |
+| **Design** | Barra sutil coherente con stats bar de Totales. No rompe patron `<details>` cards. Mobile: cada indicador en su propia linea via `flex-wrap`. Valores iniciales `—` hasta que carga la API. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-12 — Columna `codigo_interno` en Modal Detalle de Historial
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/ventas-historial.js` | Agregado `<span class="text-xs text-slate-400 font-mono w-20 truncate">` con `d.detalle.codigo_interno` antes del nombre del producto. Solo se renderiza si existe el codigo. Sin cambios en HTML (`sm:max-w-4xl` ya tiene espacio). Sin cambios en DB (`codigo_interno` ya venia en el join existente). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-12 — Store Lightbox Modal (galeria producto fullscreen)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/css/estilo.css` | 102 lineas nuevas: `.lightbox-overlay`, `.lightbox-toolbar`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-imagen.desvanecer` para crossfade CSS, responsive mobile-first 360px+, fullscreen overlay con z-index 60 |
+| `apps/store/js/paginas/producto.js` | Reestructuracion completa: todas las funciones movidas **dentro** del callback `DOMContentLoaded` para compartir la clausura con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`, `_autoplayActivo`, `_tiempoFuera` |
+| `apps/store/js/paginas/producto.js` | Nuevas funciones (216 lineas): `abrirLightbox()`, `cerrarLightbox()`, `renderizarDots()`, `actualizarImagen()` con crossfade, `navegarLightbox()`, `toggleAutoplay()`, `iniciarAutoplay()` (4s), `detenerAutoplay()`, `pausarAutoplayTemporal()` (reanuda 3s), `actualizarBotonAutoplay()`, `bindearEventosLightbox()` |
+| `apps/store/js/paginas/producto.js` | Eventos: click en X/overlay/Escape para cerrar, flechas ← → y teclado, swipe touch (>50px), dots navegables, boton autoplay con icono play/pause |
+| `apps/store/js/paginas/producto.js` | `cursor-pointer` agregado via JS condicionalmente solo si hay mas de 1 imagen (linea 70) |
+| `producto.html` | `cursor-pointer` removido del HTML estatico, ahora se asigna via JS solo cuando hay multiples imagenes |
+| **Scope fix** | `ReferenceError: _lightboxIndice is not defined` corregido moviendo todas las funciones dentro del mismo callback DOMContentLoaded. Causa raiz: las funciones declaradas fuera del callback no tenian acceso a las variables de clausura del arrow function `async () => { ... }` |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-12 — Store: Productos Agotados visibles con badge + bloqueo de carrito
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/api/productos.js` | Agregado `stock: primerDetalle.stock_actual \|\| 0` al mapper `mapearProducto()`. Antes el stock solo se mapeaba para productos multi-variante, los de variante unica no tenian campo `stock`. |
+| `apps/store/js/compartido/card-producto.js` | **Badge:** fallback de `-1` a `producto.stock \|\| 0` en `obtenerBadges()` — ahora detecta agotado en productos de variante unica. **Boton:** si agotado → `bg-slate-200 text-slate-400 cursor-not-allowed disabled` con texto "Agotado". **Cart block:** `agregarAlCarrito()` valida stock al inicio y muestra modal con SVG de bolsa tachada si stock ≤ 0. |
+| `apps/store/js/paginas/producto.js` | Detalle de producto: verifica `obtenerBadges()` + stock de variante seleccionada antes de agregar al carrito. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Store & POS Service Worker Rewrite (localhost bypass, postMessage auto-reload, cache versioning, Vercel compat)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/service-worker.js` | **Reescrito completo.** `const ES_LOCAL` detecta `localhost`/`127.0.0.1` y bypass: `return;` sin `e.respondWith()` en fetch, omite precache en install/activate. Cache-first con `!r.redirected` check. `.catch(() => fetch(e.request))` en fetch handler para evitar "listener indicated asynchronous response". `ignoreSearch:true` en `caches.match()` para rutas con query params (`producto.html?slug=...`). `postMessage({accion:'recargar'})` en activate via `clients.matchAll()`. Cache version `outletshop-YYYYMMDD-NN`. Assets agregados: `carrito.html`, `checkout.html`, `footer-store.js`, `carrito.js`, `checkout.js`, `img/icon.svg`, `img/icon2.svg`, `sobre-nosotros.html`, `terminos-condiciones.html`, `politica-privacidad.html`, `preguntas-frecuentes.html`. |
+| `apps/pos/service-worker.js` | **Reescrito.** Misma arquitectura que Store: `ES_LOCAL`, `!r.redirected`, `.catch()`, `ignoreSearch:true`, `postMessage` auto-reload, cache version `kubit-pos-YYYYMMDD-NN`. Assets actualizados: 34 criticos (agregados `facturacion.html`, `gastos.html`, `reportes.html`, `movimientos.html`). |
+| `apps/store/*.html` (8 paginas) | Agregado listener `navigator.serviceWorker` `message` → `location.reload()` para recarga automatica post-SW-activate. |
+| `apps/store/js/paginas/producto.js` | DOMContentLoader envuelto en `try/catch` con mensaje fallback "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Store Lightbox: autoplay automatico al abrir (3s) + click-outside cierra modal
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/paginas/producto.js` | `abrirLightbox()`: `detenerAutoplay()` removido, `iniciarAutoplay()` agregado al final (despues de que el DOM del overlay existe). El autoavance arranca automaticamente al abrir el modal. |
+| `apps/store/js/paginas/producto.js` | `iniciarAutoplay()`: agregado guard `if (_lightboxImagenes.length <= 1) return;` — no inicia autoplay si hay 1 sola imagen. Intervalo cambiado de 4000ms a 3000ms. |
+| `apps/store/js/paginas/producto.js` | `pausarAutoplayTemporal()`: intervalo cambiado de 4000ms a 3000ms (consistencia). |
+| `apps/store/js/paginas/producto.js` | Overlay click handler: cambiado de `if (e.target === overlay)` (solo backdrop) a exclusion por clase: cierra al hacer clic en cualquier elemento que NO sea `.lightbox-imagen`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-btn` o `.lightbox-close`. Estandar de industria (Fancybox, GLightbox, Photoswipe). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+| **Verificado** | Modo incognito: autoplay arranca solo, click fuera de imagen cierra modal. |
+
+### 2026-06-13 — Redes Sociales Store: URLs reales + target blank en navbar y footer
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | 10 hrefs actualizados de `#` a URLs reales: Facebook, TikTok, Threads, YouTube, WhatsApp. Instagram ya estaba correcto. `target="_blank" rel="noopener noreferrer"` agregado a los 12 links (2 secciones × 6 redes). |
+| `apps/store/js/compartido/navbar-store.js` | 10 hrefs actualizados de `#` a URLs reales: Facebook, Instagram, TikTok, Threads, YouTube. `target="_blank" rel="noopener noreferrer"` agregado a los 10 links (2 secciones × 5 redes). |
+| `apps/store/index.html` | 2 Instagram links normalizados: `https://instagram.com/outletshop_for_my` → `https://www.instagram.com/OutletShop_for_my/` (ya tenian `target="_blank"`). |
+| **Estandar** | Links externos (redes sociales) usan `target="_blank" rel="noopener noreferrer"` para preservar sesion de compra (carrito, busqueda) y prevenir tabnabbing. Estandar Amazon, MercadoLibre, Shopify. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Footer Store: tagline cambiado a Alternativa 4
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | Texto del footer reemplazado por: "Productos fisicos y digitales con los mejores precios del mercado. Compras seguras, envios confiables y un equipo comprometido con tu satisfaccion." Aplicado en version mobile (linea 13) y desktop (linea 85). |
+
+### 2026-06-13 — Footer Store: diseno compacto, brand+social misma fila
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/compartido/footer-store.js` | Reescrito completo: brand y redes sociales en misma fila (`flex justify-between`), acordeon compacto (`py-2` en vez de `py-3`), grid desktop de 4 a 2 columnas, padding reducido (`py-6 sm:py-8`), descripcion unificada con copyright al final. Altura reducida ~50%. Sin contenido duplicado. Iconos redes sociales `w-7 h-7` mobile (antes `w-10 h-10`). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Sobre Nosotros: foto del equipo agregada
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/sobre-nosotros.html` | Seccion "Nuestro Equipo" redisenada: de card de texto plano a grid `lg:grid-cols-5` con foto `EquipoOutletShop.jpg` (col-span-3) + texto descriptivo (col-span-2). Altura maxima foto 420px. Responsive: apilado en mobile, lado a lado en desktop. |
+| `apps/store/img/EquipoOutletShop.jpg` | Nuevo archivo: foto del equipo de trabajo. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — FAQ expandido: 15 preguntas en 5 categorias + indice + fecha
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/preguntas-frecuentes.html` | Hero: agregada fecha de ultima actualizacion. Indice de categorias con navegacion por anclajes. Contenido reestructurado en 5 categorias (Pedidos, Envios, Pagos, Devoluciones, Soporte) con separadores visuales. Preguntas expandidas de 5 a 15 (incluye: modificar/cancelar pedido, comprar sin registro, tiempos de envio, costo/envio gratuito, rastreo, seguridad pagos, garantia, producto danado, horario atencion). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Politica de Privacidad reestructurada con indice + contenido faltante
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/politica-privacidad.html` | Hero: agregada fecha de ultima actualizacion. Indice de contenidos con 9 anclajes. Contenido migrado de `white-space: pre-line` a secciones HTML con `<section>` + `id` + `scroll-mt-20`. Contenido nuevo: base legal por tratamiento (ejecucion contractual, consentimiento, interes legitimo, obligacion legal), plazo de conservacion (5 anos + 12 meses anonimizados), tipos de cookies (esenciales, rendimiento, funcionalidad), procedimiento para ejercer derechos ARCO (15 dias habiles). |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Terminos y Condiciones reestructurados + fix URL mitiendanube
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/terminos-condiciones.html` | **Fix critico:** URL `https://outletshop62.mitiendanube.com/` eliminada, reemplazada por texto generico ("opera a traves de su sitio web oficial y canales de venta digitales"). Hero: agregada fecha de ultima actualizacion. Indice de contenidos con 11 anclajes en grid 2 columnas. Contenido migrado de `white-space: pre-line` a secciones HTML con `<section>` + `id` + `scroll-mt-20`. Secciones agregadas: legislacion aplicable (tribunales de Medellin), contacto para notificaciones legales. Numeracion cambiada a listas `<ol>` y `<ul>` en Reversion del Pago y Cambios/Garantias. Lenguaje simplificado manteniendo valor legal. |
+| **Tests** | `npm test` → 99 passed, 0 failures |
+
+### 2026-06-13 — Indices de navegacion unificados: grid 2 columnas en las 3 paginas legales
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/politica-privacidad.html` | Indice convertido de `<ul>` a `<div class="grid grid-cols-1 sm:grid-cols-2">` con links directos `text-sky-600`. Numeracion secuencial removida. |
+| `apps/store/preguntas-frecuentes.html` | Indice convertido de pills `flex flex-wrap` (rounded-full, bg-slate-100) al mismo grid 2 columnas `text-sky-600` consistente con terminos y privacidad. |
+| **Consistencia** | Las 3 paginas legales ahora comparten identico patron visual de indice. |
+
 ### Decisiones de Diseno Tomadas
 
 - No implementar "Editar Venta" en el modal de historial. Las ventas CONFIRMADAS no se editan. Se usa el patron Void + Recreate (Anular + crear nueva). Esto preserva integridad de inventario, contabilidad y compliance DIAN.
@@ -639,12 +834,32 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Filtros combinados client-side:** Los 3 filtros de Card 4 (texto, proveedor dropdown, estado dropdown) operan 100% client-side sobre el array `COMPRAS`. No hay llamadas extra a DB.
 - **Botones en flujo normal (sin fixed) en todas las paginas CRUD:** Los botones de accion (Limpiar/Guardar) estan en flujo normal dentro del `max-w-7xl`, justo despues del ultimo `<details>` card. NO usan `position: fixed`. Esto garantiza que todo el contenido sea accesible via scroll natural sin overlap, igual que en `ventas.html`. El patron es: `<div class="flex flex-col sm:flex-row gap-3 pt-2">` con botones `flex-1 py-3.5`. Sin `pb-20`, sin `z-30`, sin `fixed bottom-0`. La IA futura debe replicar este patron en cualquier pagina CRUD nueva. La clase `.content-actions-pb` en `estilo.css` existe como utilidad historica pero no se usa activamente.
 - **Icon-only action columns:** Todos los botones de accion (Ver, Editar, Eliminar) en todas las paginas POS son icon-only (SVG + aria-label). No hay texto visible. Esto garantiza que en mobile las columnas de accion ocupen el minimo espacio necesario. Los iconos siguen el patron: pencil (Editar), trash (Eliminar), eye (Ver), con colores sky-500 (editar) y red-400 (eliminar).
+- **KPI Bar en ventas.html:** Los indicadores del dia (Ventas Hoy, Total Hoy, Promedio) se renderizan como barra compacta de 30px entre el header y el formulario, NO como cards. Esto evita romper el patron `<details>` colapsable y no compite visualmente con los botones de canal. La actualizacion es inmediata post-venta (sin cache, query agregado PostgREST que devuelve 1 fila). Fallback silencioso a `—` si la API falla.
+- **Codigo interno en modal de historial:** Se renderiza condicionalmente via `<span class="text-xs text-slate-400 font-mono w-20 truncate">` solo si `d.detalle.codigo_interno` existe. Sin cambios en HTML ni DB porque `sm:max-w-4xl` (896px) ya tiene espacio y los datos ya vienen en el join existente de `database.js`.
 - **Store checkout sin Edge Functions:** El modulo Store NO usa Supabase Edge Functions. El flujo de checkout (`checkout.js`) opera 100% via REST API directa a PostgREST usando `__supabase.post()` y `__supabase.get()`, con la anon key. Requiere grants INSERT + RLS policies para rol `anon` en `pos_clientes`, `st_direcciones`, `st_pedidos` y `st_pedidos_detalle`. Ver `specs/seed-anon-grants-store.sql`. El `canal_id` se obtiene consultando `pos_canales_venta` donde `codigo = 'web'`.
 - **Tags de producto como text[] con toggle chips:** `pos_productos.tags` es un array `text[]` con GIN index. En el POS se seleccionan via toggle chips (no free text) para garantizar lowercase exacto. Los valores validos son: `nuevo`, `destacado`, `oferta`, `super-oferta`, `remate`, `mas_vendido`, `liquidacion`, `imperdible`, `agotado`.
-- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`.
+- **Badge system del Store:** Los tags de producto se renderizan como badges visuales en las cards del catalogo. La funcion `obtenerBadges()` en `card-producto.js` itera `producto.tags[]` y mapea cada tag a un badge con icono y color CSS. Los badges se apilan verticalmente (`flex-col gap-1.5`). La prioridad "Agotado" oculta los demas badges. Los tags `oferta`, `super-oferta` y `remate` se agrupan bajo un unico badge "Oferta". Los tags deben coincidir EXACTAMENTE en lowercase con `badgeMap` en `card-producto.js:5-13`. **Stock check:** `obtenerBadges()` calcula `stockTotal` sumando `variantes[].stock` (multi-variante) o usando `producto.stock` (variante unica). Si stock ≤ 0, badge "Agotado" es prioritario sobre cualquier otro.
 - **Tags lowercase obligatorio en DB:** El `data-tag` en chips POS usa minusculas. Los tags se almacenan exactamente asi en `pos_productos.tags[]`. El Store filtra y mapea comparando con `badgeMap` usando `tags.indexOf('destacado')` — cualquier diferencia de case rompe el badge. Los 3 chips de oferta son: `nuevo`, `destacado`, `oferta`. Ademas hay chips adicionales: `mas_vendido`, `liquidacion`, `imperdible`.
 - **Navbar fixed en Store vs sticky:** Se usa `position: fixed` en vez de `sticky` porque Tailwind CDN no siempre procesa correctamente clases CSS en contenido inyectado via JavaScript (`innerHTML`). `position: fixed` es universalmente soportado y no depende del MutationObserver del CDN. Se compensa con `pt-14` (56px = altura del navbar `h-14`) en el `<main>` de cada página.
 - **Favicon SVG en Store:** Las 8 páginas HTML del Store usan `<link rel="icon" type="image/svg+xml" href="img/icon.svg">`. SVG es soportado como favicon en navegadores modernos (Chrome, Firefox, Edge, Safari 14+). No se generan versiones PNG ni ICO.
+- **Store Lightbox 100% via JS:** El lightbox modal de galeria de producto se construye completamente via JavaScript (DOM creation, eventos, animaciones). No se modifica `producto.html`. La estructura sigue el mismo patron que `abrirVideoModal()` existente: crear overlay, toolbar, contenido, adjuntar al body, limpiar al cerrar.
+- **Scope de funciones en producto.js:** Todas las funciones de la pagina de producto (`renderizarProducto`, `abrirLightbox`, `abrirVideoModal`, `renderizarRelacionados`) estan declaradas **dentro** del callback `DOMContentLoaded`. Esto es obligatorio porque `renderizarProducto` y las funciones del lightbox comparten variables de clausura (`_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer`, `_autoplayActivo`, `_tiempoFuera`). Cualquier funcion futura que acceda a estas variables debe estar en el mismo scope.
+- **Crossfade CSS vs slide:** La transicion entre imagenes del lightbox usa crossfade CSS (`.desvanecer` con `opacity 0.3s ease`) en vez de slide/translate. Es mas simple, ligero y evita problemas de layout con imagenes de distintas proporciones. La logica: agregar clase `.desvanecer` → wait 300ms (via `setTimeout`) → cambiar `img.src` → remover clase `.desvanecer`.
+- **Autoplay automatico al abrir el lightbox:** El autoplay arranca inmediatamente al abrir el modal (`abrirLightbox()` llama `iniciarAutoplay()` al final). Usa `setInterval` de 3s. Al navegar (flechas, dots, swipe, teclado) se pausa temporalmente via `pausarAutoplayTemporal()`: limpia el intervalo actual y programa uno nuevo con `setTimeout` a 3s. Esto evita que la imagen cambie inmediatamente despues de que el usuario interactuo. No inicia si hay 1 sola imagen (guard `if (_lightboxImagenes.length <= 1) return;`).
+- **Eventos del lightbox con cleanup:** Los eventos de teclado (`keydown`) y touch (`touchstart`/`touchend`) se limpian via `MutationObserver` que detecta cuando el overlay ya no esta en el DOM. Esto evita memory leaks y listeners huerfanos.
+- **cursor-pointer condicional en imagen principal:** No se pone `cursor-pointer` en el HTML estatico de `producto.html`. Se agrega via JS (`classList.add('cursor-pointer')`) solo cuando `_lightboxImagenes.length > 1`, es decir, cuando hay mas de una imagen y el lightbox tiene sentido abrirse al hacer click. Si solo hay 1 imagen, el cursor queda como default (arrow) porque hacer click no hace nada.
+- **Click-outside cierra lightbox:** El handler de clic del overlay cierra el modal cuando se hace clic en cualquier elemento que NO sea la imagen (`.lightbox-imagen`), flechas (`.lightbox-arrow`), dots (`.lightbox-dot`), boton autoplay (`.lightbox-btn`) o boton cerrar (`.lightbox-close`). Es el comportamiento estandar de Fancybox, GLightbox y Photoswipe. El usuario puede cerrar tocando el fondo negro, el padding alrededor de la imagen, el toolbar vacio o el area de dots.
+- **Store SW con ES_LOCAL bypass:** El service worker del Store detecta `self.location.hostname === 'localhost'` o `'127.0.0.1'` y hace `return;` sin `e.respondWith()` en fetch, y omite precache en install/activate. Esto permite que `npx serve` funcione sin interferencia del SW (los 301 redirects los maneja el navegador directamente).
+- **SW auto-reload via postMessage obligatorio:** Al activarse el SW, debe enviar `{accion:'recargar'}` a todos los clients via `clients.matchAll()` + `postMessage()`. Cada pagina HTML debe escuchar `navigator.serviceWorker.addEventListener('message', ...)` y ejecutar `location.reload()`. El usuario siempre ve la version mas reciente sin recarga manual. Esta decision aplica tanto a POS como a Store.
+- **SW ignoreSearch:true para producto.html:** `caches.match(e.request, {ignoreSearch:true})` permite que el cache de `producto.html` (sin query) sirva para requests a `producto.html?slug=...`. Sin esto, el cache-first fallaria en todas las paginas de producto porque la URL del cache no coincide con la URL solicitada (difieren en query string).
+- **SW .catch() obligatorio en fetch handler:** El fetch handler debe envolver la promesa en `.catch(() => fetch(e.request))`. Sin esto, si el cache falla o hay una redireccion, el SW lanza "A listener indicated an asynchronous response by returning true" y la pagina no carga.
+- **SW cache versioning YYYYMMDD-NN:** El nombre del cache usa formato `kubit-pos-YYYYMMDD-NN` (POS) y `outletshop-YYYYMMDD-NN` (Store). `YYYYMMDD` = fecha del deploy, `NN` = contador por dia que se incrementa manualmente en cada deploy del mismo dia (01, 02...). Esto garantiza que cada deploy use un cache nuevo. El SW elimina caches viejos en el evento `activate`.
+- **npx serve no funciona en Windows para el Store:** En Windows 10, `npx serve` hace un redirect 301 de `GET /producto.html?slug=...` → `GET /producto` (pierde query params). Este bug no tiene fix desde el codigo del proyecto. Usar `npx http-server apps/store -p 3000` o XAMPP como alternativa local.
+- **producto.js try/catch obligatorio:** El callback `DOMContentLoaded` en `apps/store/js/paginas/producto.js` debe estar envuelto en `try/catch` porque si el SW sirve una version corrupta o incompleta del JS, la pagina se rompe silenciosamente. El catch muestra "Error al cargar el producto. Por favor, recarga la pagina." en el contenedor `#app`.
+- **Footer compacto:** El pie de pagina del Store se diseno con brand y redes sociales en la misma fila, grid de 2 columnas en desktop (Enlaces + Contacto), acordeon compacto (`py-2`), padding reducido (`py-6 sm:py-8`) y la descripcion unificada con el copyright al final. Los iconos sociales usan `w-7 h-7` en mobile (vs `w-10 h-10` anterior). Sin contenido duplicado. Esto reduce la altura del footer ~50%.
+- **Paginas legales con indice grid 2 columnas:** Las 3 paginas (terminos, privacidad, FAQ) usan el mismo patron de indice: tarjeta blanca con `<div class="grid grid-cols-1 sm:grid-cols-2">` y links `text-sky-600`. Sin listas `<ul>`, sin chips `rounded-full`. Consistencia visual garantizada.
+- **Contenido legal migrado de pre-line a HTML semantico:** Tanto `terminos-condiciones.html` como `politica-privacidad.html` migraron de `white-space: pre-line` (un solo div de texto plano) a secciones HTML con `<section>`, `id` para anclajes, `scroll-mt-20` para navegacion suave, y estructura `<h3>` + `<ul>`/`<ol>` + `<p>`. Esto es esencial para escalabilidad, SEO y accesibilidad.
+- **Compras del Mes en tiempo real en el Panel:** El KPI "Compras" del Dashboard (`panel.html`) no debe leer `pos_finanzas_mensuales.compras_total` (dato estatico que se desactualiza). En su lugar usa `DB.compras.totalDelMes()` que suma `pos_compras.total` del mes actual via PostgREST. Sin cache, filtro por `estado IN (RECIBIDA,PENDIENTE)`, soft-delete excluido. Usa `api.get()` directo (no `select()` helper) porque los operadores `in.()` e `is.null` no son compatibles con el query builder de `database.js`.
 
 ---
 
@@ -699,3 +914,146 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Badge imperdible | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-imperdible` |
 | Badge nuevo | `card-producto.js::badgeMap`, `apps/store/css/estilo.css` `.badge-nuevo` |
 | Correo transaccional (post-MVP) | `specs/06-servicio-correo.md`, Resend, Edge Function send-mail, postergado |
+| Canales dinamicos POS | `pos_canales_venta.tipo` agrupa canales en `fisico`, `web_propio` o `marketplace`. Los marketplaces se renderizan dinamicamente desde DB en `<select>`. Costos visibles solo si `tipo === 'marketplace'`. |
+| Canales dinamicos (renderizado) | `ventas.js`: `renderizarCanales()`, `renderizarMarketplaces()`, `seleccionarTipo()`, `seleccionarMarketplace()` |
+| Service worker redirect fix | `fetch(e.request, { redirect: 'follow' })`, `if (r && !r.redirected) return r` en cache |
+| Sidebar Stock label | Sidebar label "Stock" en vez de "Inventario" en 16 paginas POS |
+| Deploy Vercel QA | `https://pos-calidad.vercel.app/` |
+| KPI Bar ventas hoy | `ventas.html`, `cargarEstadisticas()`, `DB.ventas.estadisticasHoy()`, IDs `kpi-ventas-*` |
+| Codigo interno en historial | `ventas-historial.js::abrirDetalle()`, `d.detalle.codigo_interno`, modal `sm:max-w-4xl` |
+| Stats bar de Totales (carrito) | `actualizarStatsCarrito()`, IDs `stats-productos`, `stats-unidades`, `stats-ticket-prom` |
+| Store producto agotado | `mapearProducto()` campo `stock`, `obtenerBadges()` fallback `producto.stock`, `agregarAlCarrito()` bloqueo stock ≤ 0 |
+| Modal agotado Store | `card-producto.js::agregarAlCarrito()`, SVG bolsa tachada, mensaje "Producto agotado" |
+| Lightbox Store | `producto.js::abrirLightbox()`, `estilo.css` clases `.lightbox-*`, lightbox fullscreen con autoplay, crossfade CSS, navegacion por flechas/dots/teclado/swipe |
+| Lightbox scope fix | `producto.js`: todas las funciones dentro del callback DOMContentLoaded para compartir clausura con `_lightboxImagenes`, `_lightboxIndice`, `_autoplayTimer` |
+| Lightbox CSS | `estilo.css` lineas 744-835: `.lightbox-overlay`, `.lightbox-toolbar`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-imagen.desvanecer`, responsive |
+| Lightbox autoplay (3s) | `iniciarAutoplay()` (3000ms), `pausarAutoplayTemporal()` (reanuda 3s), arranque automatico al abrir, guard `_lightboxImagenes.length <= 1` |
+| Lightbox click-outside | `cerrarLightbox()` en overlay click, excluye `.lightbox-imagen`, `.lightbox-arrow`, `.lightbox-dot`, `.lightbox-btn`, `.lightbox-close` |
+| Lightbox touch swipe | `touchstart`/`touchend` delta >50px, `passive: true` |
+| Lightbox keyboard | `keydown` Escape/←/→, cleanup via MutationObserver |
+| Lightbox cursor | `cursor-pointer` agregado via JS solo si mas de 1 imagen |
+| Void + Recreate (Editar Venta) | `ventas.js::cargarEdicion()`, `ventas-historial.js::editarVenta()`, `database.js::anularConRevertir()`. Crear nueva venta PRIMERO, anular original solo si exito. sessionStorage `kubit_editar_venta` + query param `?editar=ID`. |
+| anularConRevertir | `database.js::ventas.anularConRevertir(id, opts)`. Revierte stock (entrada_anulacion), finanzas mensuales (valores negativos), marca ANULADA. |
+| cargarEdicion | `ventas.js::cargarEdicion(v)`. Puebla formulario ventas.html desde objeto venta completo: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito con items. |
+| Store SW service worker | `apps/store/service-worker.js`, ES_LOCAL bypass, cache outletshop-YYYYMMDD-NN, postMessage auto-reload |
+| Store SW registration | `navigator.serviceWorker.register`, 8 paginas Store |
+| SW localhost bypass | `self.location.hostname === 'localhost'`, `return;` sin `e.respondWith()` |
+| SW auto-reload | `postMessage({accion:'recargar'})`, `location.reload()` en listener |
+| SW cache versioning | `kubit-pos-YYYYMMDD-NN` (POS), `outletshop-YYYYMMDD-NN` (Store) |
+| SW ignoreSearch | `caches.match(e.request, {ignoreSearch:true})` para producto.html?slug=... |
+| SW .catch() fetch handler | `.catch(() => fetch(e.request))` evita "listener indicated asynchronous response" |
+| SW redirect fix | `!r.redirected`, `{ redirect: 'follow' }` para navegacion |
+| npx http-server alternativa | `npx http-server apps/store -p 3000` evita bug 301 de `npx serve` en Windows |
+| Store producto.js try/catch | `producto.js` DOMContentLoaded envuelto en try/catch, mensaje fallback si falla |
+| Footer tagline Store | `footer-store.js`, Alternativa 4: "Productos fisicos y digitales con los mejores precios del mercado. Compras seguras, envios confiables y un equipo comprometido con tu satisfaccion." |
+| Footer diseno compacto | `footer-store.js`: brand+social misma fila, grid 2 cols, padding reducido `py-6 sm:py-8`, altura ~50% menor |
+| Equipo foto | `apps/store/sobre-nosotros.html`, `EquipoOutletShop.jpg`, grid lg:grid-cols-5, foto col-span-3 |
+| FAQ categorizado | `preguntas-frecuentes.html`, 5 categorias (Pedidos, Envios, Pagos, Devoluciones, Soporte), 15 preguntas, indice, fecha actualizacion |
+| Privacidad reestructurada | `politica-privacidad.html`, indice 9 anclajes, secciones HTML, base legal, conservacion 5 anos, cookies detalladas |
+| Terminos reestructurados | `terminos-condiciones.html`, fix URL mitiendanube, indice 11 anclajes, legislacion Medellin, notificaciones legales |
+| Paginas legales indice grid | `grid grid-cols-1 sm:grid-cols-2` en TOC de terminos, privacidad y FAQ, estilo `text-sky-600` unificado |
+| Herramientas module | `herramientas.html`, `herramientas/`, `js/herramientas/` |
+| Renombrar Archivos tool | `renombrar-archivos.html`, `renombrar-archivos.js`, File System Access API, `showDirectoryPicker` |
+| Panel Dashboard | `panel.html`, `panel.js`, KPIs del Mes (finanzas mensuales), KPIs Operativos (ventas hoy/stock bajo) |
+| Store URL desde DB | `configuracion.html#campo-store-url`, `cargarLinkTienda()` en `database.js`, `#link-tienda-virtual` en sidebar |
+| Top 5 productos | `database.js::ventas.topProductos(limite)`, agregacion por `pos_ventas_detalle` del mes actual |
+| Sidebar compartido | `js/compartido/sidebar.js`, `toggleSidebar()`, paginas no-CRUD |
+| Action buttons patron | `#action-bar`, natural flow, `flex flex-col sm:flex-row gap-3`, show/hide contextual |
+| Card visibility patron | `class="hidden"` (NUNCA `style="display:none"`) para elementos controlados por JS |
+| Migracion V1→V2 | `ScriptMigracionDB/`, `14-migracion-datos.md` |
+| Scripts INSERT migracion | `NN-migrate-<tabla>.sql` |
+| Orden de migracion | `14-migracion-datos.md` §3, `AGENTS.md` §5 |
+| Datos corruptos V1 | `cliente 21760f85`, `primer_apellido = Medellin` |
+| Transformacion impuesto | `impuesto_default /100`, `19.00 → 0.19` |
+| UUID admin V1 | `497a2c95-d707-4d5b-8b01-34257f3b0224` |
+| Compras del Mes en tiempo real | `database.js::DB.compras.totalDelMes()`, `panel.js::cargarKpisMes()`, query en vivo a `pos_compras`, sin cache, filtro `estado IN (RECIBIDA,PENDIENTE)` |
+
+## 13. Registro de Cambios (continuacion)
+
+### 2026-06-22 — Panel Compras en Tiempo Real (Fase 18)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `DB.compras.totalDelMes()`: suma `pos_compras.total` del mes en tiempo real via `api.get()` directo (operadores `in.()` e `is.null` no compatibles con `select()` helper). Sin cache. |
+| `apps/pos/js/paginas/panel.js` | `f.compras_total || 0` reemplazado por `await DB.compras.totalDelMes(f.anio, f.mes)` en `cargarKpisMes()`. El KPI ahora refleja compras nuevas inmediatamente. |
+| `tests/compartido/database.test.js` | 3 nuevos tests: suma correcta (229572), array vacio retorna 0, error de red retorna 0. |
+| `AGENTS.md` | Seccion 7.2: Fase 18 agregada. Seccion 5: decision de diseno de compras en tiempo real. Seccion 11: keyword totalDelMes. |
+| `specs/ARCHITECTURE.md` | Conteo de tests actualizado: 99 → 102. |
+| **Tests** | `npm test` → 102 passed, 0 failures (99→102, +3 tests) |
+
+### 2026-06-15 — Modulo Herramientas POS (Fase 15)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/herramientas.html` | Nuevo: hub page con card grid (`grid-cols-1 sm:grid-cols-2 lg:grid-cols-3`), header/sidebar POS completo, referencia a `sidebar.js` |
+| `apps/pos/herramientas/renombrar-archivos.html` | Nuevo: tool page con 3-card workflow (Seleccionar Carpeta, Vista Previa, Resultados) + action bar externa fuera de cards |
+| `apps/pos/js/herramientas/renombrar-archivos.js` | Nuevo: logica completa con File System Access API (`showDirectoryPicker`), renombrado masivo, preview editable, estadisticas, toast system |
+| `apps/pos/js/compartido/sidebar.js` | Nuevo: funcion `toggleSidebar()` compartida para paginas que no pertenecen a los 14 CRUD principales |
+| `apps/pos/css/estilo.css` | Nuevas clases `.herramienta-card` con hover/focus/active states slate-800 |
+| `apps/pos/ventas.html`...`apps/pos/configuracion.html` (14 paginas) | Grupo "Herramientas" insertado en sidebar entre "Caja y Finanzas" y "Administracion" |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Cards 2 y 3 cambiadas de `style="display:none"` a `class="hidden"` + `open` para compatibilidad con `classList.remove('hidden')` |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Botones de accion movidos fuera de cards a `#action-bar` en flujo natural (`flex flex-col sm:flex-row gap-3`), show/hide contextual |
+| `apps/pos/herramientas/renombrar-archivos.html` | Fix: Agregado `<script src="../js/compartido/sidebar.js">` para reparar menu hamburguesa |
+| `tests/` | Verificacion: `npm test` → 99 tests, 0 failures (5 suites) |
+
+### 2026-06-17 — Void + Recreate (Edicion de Ventas) — Fase 16
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `ventas.anularConRevertir()`: obtiene detalles, revierte stock por item (entrada_anulacion via ajustarStock), revierte finanzas mensuales con valores negativos, marca venta como ANULADA |
+| `apps/pos/ventas-historial.html` | Boton "Editar" agregado en modal footer entre "Anular Venta" e "Imprimir" |
+| `apps/pos/js/paginas/ventas-historial.js` | Nueva funcion `editarVenta()`: guarda venta en sessionStorage (`kubit_editar_venta`), redirige a `ventas.html?editar=ID`. Boton habilitado solo para estados CONFIRMADA/PENDIENTE. |
+| `apps/pos/js/paginas/ventas.js` | `init()` detecta query param `?editar=ID`, carga venta desde sessionStorage. `cargarEdicion()` puebla todo el formulario: cliente, fecha, metodo_pago, referencia, vendedor, canal, costos, descuento global, carrito completo. `procesarVenta()` ejecuta CREATE primero (nueva venta + stock + finanzas), luego VOID (anularConRevertir) solo si la creacion fue exitosa. |
+| `apps/pos/ventas.html` | `id="exito-titulo"` agregado al `<h3>` del modal de exito; cambia a "Venta Editada" via JS segun contexto |
+| `apps/pos/AGENTS.md` | Documentacion actualizada: decision de diseno (seccion 5), completado (seccion 7.2), palabras clave (seccion 11), registro de cambios (seccion 13) |
+| `specs/03-pos-spec.md` | Politica de edicion actualizada: CREATE primero, solo VOID si exito (seccion 4.1.1) |
+| `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
+
+### 2026-06-17 — Panel Dashboard + Tienda Virtual + Store URL desde DB (Fase 17)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nueva funcion `cargarLinkTienda()` centralizada al final del IIFE: busca `#link-tienda-virtual`, asigna href desde `pos_configuracion_empresa.store_url`. Nuevo metodo `ventas.topProductos(limite)` que agrega ventas del mes agrupadas por producto. |
+| `apps/pos/panel.html` | Nueva pagina dashboard POS con KPIs del Mes (ventas/gastos/compras/utilidad/margen), KPIs Operativos (ventas hoy/ticket prom./productos/stock bajo), Top 5 productos del mes, Accesos Rapidos. Sidebar completo con link Dashboard activo + Tienda Virtual link. |
+| `apps/pos/js/paginas/panel.js` | Nueva logica: carga finanzas mensuales, estadisticas del dia, stock bajo, top 5 productos. Formato COP con puntos. Sin Chart.js — solo Tailwind + SVG icons. |
+| `apps/pos/configuracion.html` | Campo `#campo-store-url` agregado en Card 1 (Datos de la Empresa) despues de Logo URL. |
+| `apps/pos/js/paginas/configuracion.js` | `store_url` agregado en `cargarConfig()` y `obtenerDatosForm()`. |
+| `specs/02-database-schema.sql` | Columna `store_url text` agregada en tabla `pos_configuracion_empresa` despues de `mensaje_legal`. |
+| `apps/pos/*.html` (15 paginas) | Sidebar: grupo "Dashboard" agregado arriba de Ventas con link a `panel.html`. Tienda Virtual link (`#link-tienda-virtual`, `target="_blank"`) agregado en el area inferior del sidebar antes de Cerrar sesion. |
+| `apps/pos/herramientas/renombrar-archivos.html` | Sidebar actualizado con Dashboard link (`../panel.html`) y Tienda Virtual link. |
+| `tests/` | Verificacion: `npm test` → 99 passed, 0 failures (5 suites) |
+
+### 2026-06-22 — Migracion Fase 3: Ventas, Compras, Movimientos y Relink Gastos
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/10-migrate-ventas.sql` | Nuevo: migra 300 ventas + 318 detalle desde CSV V1. Canal hardcodeado MercadoLibre, metodo pago Transferencia. `producto_detalle_id` resuelto via subquery. Estados: `completada`→`CONFIRMADA` (298), `deleted_at`→`ANULADA` (2). |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/11-migrate-compras.sql` | Nuevo: migra 42 compras + 96 detalle desde CSV V1. Estados mapeados. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/12-migrate-movimientos.sql` | Nuevo: migra 446 movimientos de inventario desde CSV V1. Tipos mapeados `entrada`→`entrada_compra`, `salida`→`salida_venta`. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/08b-relink-ventas-gastos.sql` | **Regenerado.** Ya no usa temp table. Usa CTE con 298 pares `gasto_id ↔ venta_uuid` hardcodeados. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/_generar_fase3.py` | Nuevo: generador Python que lee CSVs y produce los 4 scripts con casts explicitos (`::uuid`, `::timestamptz`). |
+| `AGENTS.md` | Seccion 5: 5 nuevas decisiones Fase 3. Seccion 7.3: Fase 3 completada. Seccion 7.5: scripts Fase 3 agregados. |
+| `specs/14-migracion-datos.md` | Orden de migracion actualizado con Fase 2 y Fase 3. Checklist completo. |
+
+### 2026-06-22 — 09c regenerado con deduplicacion y UUIDs deterministicos
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` | **Regenerado.** Ahora usa UUIDs deterministicos v5 en las 3 tablas (pos_productos, pos_productos_detalle, pos_productos_multimedia). Se eliminaron los CTE y las tablas temporales — los UUIDs se generan en Python y se hardcodean en el SQL. **Deduplicacion:** 7 duplicados exactos omitidos (insercion unica), 4 duplicados cercanos renombrados con "(v2)". **Totales:** 196 productos (de 203 originales), 1756 imagenes, 196 videos. |
+
+### 2026-06-19 — Migracion V1→V2: Spec, Scripts y Convenciones
+
+| Archivo | Cambio |
+|---|---|
+| `specs/14-migracion-datos.md` | Nuevo: especificacion completa de migracion V1→V2 con analisis campo a campo de 8 tablas, orden de ejecucion por FK, transformaciones, datos problematicos y checklist |
+| `specs/01-master-spec.md` | Mapa de artefactos actualizado: incluye los 4 scripts SQL (00-03), specs 13-14, ArchivosInformativos y ScriptMigracionDB |
+| `AGENTS.md` | Seccion 3.1: directorio `ScriptMigracionDB/` agregado bajo ArchivosInformativos. Seccion 5: 5 nuevas decisiones de migracion (UUIDs preservados, datos corruptos, impuesto_default /100, orden FK). Seccion 7.3: pendientes de migracion separados en Fase 1 y Fase 2. Seccion 7.5: nuevo estado de documentacion de migracion. Seccion 9.2: nueva subseccion detallando ScriptMigracionDB. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/04-migrate-clientes.sql` | Nuevo: script INSERT para pos_clientes (5 registros con UUIDs preservados) |
+
+### 2026-06-21 — Migration Scripts Productos (Fase 2): 09, 09b, 09c
+
+| Archivo | Cambio |
+|---|---|
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09-migrate-productos-pos.sql` | Nuevo: migra 128 productos desde CSV V1 (productos_rows.csv) a pos_productos + pos_productos_detalle. UUIDs V1 preservados. tipo_producto='Fisico' (excepto CV001='Digital'). tasa_impuesto/100. precio_compra=0 si vacio. margen_ganancia=NULL si vacio (no recalcular). Sin multimedia en esta fase. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09b-update-store-data.sql` | Nuevo: para 110 productos comunes (CSV+JSON): UPDATE descripcion desde JSON + INSERT multimedia (1068 imagenes + 110 videos) desde JSON.imagenes[] y JSON.video. Tipo 'imagen' con orden secuencial, tipo 'video' con orden=999. Requisito: 09 ejecutado primero. |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` | Nuevo: migra 203 productos digitales (cursos CV-prefix + PooBasico + ProductoDigitalPremium) 100% desde JSON. CTE para INSERT pos_productos + pos_productos_detalle con UUID consistente. Categoria fija: Cursos Virtuales. Tipo Digital, tasa_impuesto=0, stock=999 simbolico. Multimedia: 1819 imagenes + 203 videos. Tabla temporal _v1_prod_digital_map para mapeo nombre→UUID. precio_venta pendiente de actualizar manualmente. |

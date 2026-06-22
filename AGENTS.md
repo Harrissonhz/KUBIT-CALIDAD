@@ -396,6 +396,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `specs/02-database-schema.sql` — Columna `store_url` agregada
 - [x] `npm test` → 99 passed, 0 failures
 
+#### Módulo POS — Fase 18: Panel Compras en Tiempo Real
+- [x] `database.js::DB.compras.totalDelMes()` — Nuevo metodo que suma `pos_compras.total` del mes en tiempo real via PostgREST, sin cache. Filtra `estado IN (RECIBIDA,PENDIENTE)`, excluye soft-delete, rango por fecha. Usa `api.get()` directo (operadores `in.()` e `is.null` no compatibles con `select()` helper).
+- [x] `panel.js::cargarKpisMes()` — `f.compras_total || 0` reemplazado por `await DB.compras.totalDelMes(f.anio, f.mes)`. Query en vivo, refleja compras nuevas inmediatamente.
+- [x] `database.test.js` — 3 nuevos tests: suma correcta (100000+129572=229572), array vacio retorna 0, error de red retorna 0.
+- [x] `npm test` → 102 passed, 0 failures (99→102, +3 tests totalDelMes)
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -853,6 +859,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Footer compacto:** El pie de pagina del Store se diseno con brand y redes sociales en la misma fila, grid de 2 columnas en desktop (Enlaces + Contacto), acordeon compacto (`py-2`), padding reducido (`py-6 sm:py-8`) y la descripcion unificada con el copyright al final. Los iconos sociales usan `w-7 h-7` en mobile (vs `w-10 h-10` anterior). Sin contenido duplicado. Esto reduce la altura del footer ~50%.
 - **Paginas legales con indice grid 2 columnas:** Las 3 paginas (terminos, privacidad, FAQ) usan el mismo patron de indice: tarjeta blanca con `<div class="grid grid-cols-1 sm:grid-cols-2">` y links `text-sky-600`. Sin listas `<ul>`, sin chips `rounded-full`. Consistencia visual garantizada.
 - **Contenido legal migrado de pre-line a HTML semantico:** Tanto `terminos-condiciones.html` como `politica-privacidad.html` migraron de `white-space: pre-line` (un solo div de texto plano) a secciones HTML con `<section>`, `id` para anclajes, `scroll-mt-20` para navegacion suave, y estructura `<h3>` + `<ul>`/`<ol>` + `<p>`. Esto es esencial para escalabilidad, SEO y accesibilidad.
+- **Compras del Mes en tiempo real en el Panel:** El KPI "Compras" del Dashboard (`panel.html`) no debe leer `pos_finanzas_mensuales.compras_total` (dato estatico que se desactualiza). En su lugar usa `DB.compras.totalDelMes()` que suma `pos_compras.total` del mes actual via PostgREST. Sin cache, filtro por `estado IN (RECIBIDA,PENDIENTE)`, soft-delete excluido. Usa `api.get()` directo (no `select()` helper) porque los operadores `in.()` e `is.null` no son compatibles con el query builder de `database.js`.
 
 ---
 
@@ -959,8 +966,20 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Datos corruptos V1 | `cliente 21760f85`, `primer_apellido = Medellin` |
 | Transformacion impuesto | `impuesto_default /100`, `19.00 → 0.19` |
 | UUID admin V1 | `497a2c95-d707-4d5b-8b01-34257f3b0224` |
+| Compras del Mes en tiempo real | `database.js::DB.compras.totalDelMes()`, `panel.js::cargarKpisMes()`, query en vivo a `pos_compras`, sin cache, filtro `estado IN (RECIBIDA,PENDIENTE)` |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-06-22 — Panel Compras en Tiempo Real (Fase 18)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `DB.compras.totalDelMes()`: suma `pos_compras.total` del mes en tiempo real via `api.get()` directo (operadores `in.()` e `is.null` no compatibles con `select()` helper). Sin cache. |
+| `apps/pos/js/paginas/panel.js` | `f.compras_total || 0` reemplazado por `await DB.compras.totalDelMes(f.anio, f.mes)` en `cargarKpisMes()`. El KPI ahora refleja compras nuevas inmediatamente. |
+| `tests/compartido/database.test.js` | 3 nuevos tests: suma correcta (229572), array vacio retorna 0, error de red retorna 0. |
+| `AGENTS.md` | Seccion 7.2: Fase 18 agregada. Seccion 5: decision de diseno de compras en tiempo real. Seccion 11: keyword totalDelMes. |
+| `specs/ARCHITECTURE.md` | Conteo de tests actualizado: 99 → 102. |
+| **Tests** | `npm test` → 102 passed, 0 failures (99→102, +3 tests) |
 
 ### 2026-06-15 — Modulo Herramientas POS (Fase 15)
 

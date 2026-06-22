@@ -756,7 +756,26 @@ window.DB = (function () {
       return { data: res.data && res.data[0] || null, error: res.error };
     },
 
-    eliminar: async function (id) { return softDelete('pos_compras', id); }
+    eliminar: async function (id) { return softDelete('pos_compras', id); },
+
+    totalDelMes: async function (anio, mes) {
+      try {
+        var a = anio || new Date().getFullYear();
+        var m = mes || (new Date().getMonth() + 1);
+        var desde = a + '-' + String(m).padStart(2, '0') + '-01';
+        var hasta = (m === 12 ? a + 1 : a) + '-' + String((m % 12) + 1).padStart(2, '0') + '-01';
+        var data = await api.get('pos_compras?select=total' +
+          '&estado=in.(RECIBIDA,PENDIENTE)' +
+          '&deleted_at=is.null' +
+          '&fecha_compra=gte.' + desde +
+          '&fecha_compra=lt.' + hasta);
+        if (!data || !data.length) return 0;
+        return data.reduce(function (s, r) { return s + (r.total || 0); }, 0);
+      } catch (e) {
+        console.error('[DB] compras.totalDelMes error:', e);
+        return 0;
+      }
+    }
   };
 
   /* ════════════════════════════════════════════════════════════

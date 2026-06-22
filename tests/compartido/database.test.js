@@ -925,3 +925,42 @@ describe('DB.categorias — EXT', function () {
   });
 
 });
+
+// ═══════════════════════════════════════════════════════════════
+// DB.compras — totalDelMes
+// ═══════════════════════════════════════════════════════════════
+describe('DB.compras.totalDelMes', function () {
+
+  it('suma totales de compras RECIBIDA y PENDIENTE del mes', async function () {
+    window.__supabase.get.mockResolvedValue([
+      { total: 100000 },
+      { total: 129572 }
+    ]);
+
+    var resultado = await DB.compras.totalDelMes(2026, 6);
+
+    expect(resultado).toBe(229572);
+    var url = decodeURIComponent(window.__supabase.get.mock.calls[0][0]);
+    expect(url).toContain('estado=in.(RECIBIDA,PENDIENTE)');
+    expect(url).toContain('deleted_at=is.null');
+    expect(url).toContain('fecha_compra=gte.2026-06-01');
+    expect(url).toContain('fecha_compra=lt.2026-07-01');
+  });
+
+  it('retorna 0 cuando no hay compras en el mes', async function () {
+    window.__supabase.get.mockResolvedValue([]);
+
+    var resultado = await DB.compras.totalDelMes(2025, 1);
+
+    expect(resultado).toBe(0);
+  });
+
+  it('retorna 0 cuando el API falla', async function () {
+    window.__supabase.get.mockRejectedValue(new Error('Network error'));
+
+    var resultado = await DB.compras.totalDelMes(2026, 6);
+
+    expect(resultado).toBe(0);
+  });
+
+});
