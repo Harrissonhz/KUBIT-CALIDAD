@@ -159,8 +159,11 @@ window.DB = (function () {
 
     listarConDetalle: async function (opts) {
       var cacheKey = 'productos_detalle';
-      var cached = _cacheGet(cacheKey);
-      if (cached) return cached;
+      var mostrarInactivos = opts && opts.mostrarInactivos;
+      if (!mostrarInactivos) {
+        var cached = _cacheGet(cacheKey);
+        if (cached) return cached;
+      }
 
       var res = await select('pos_productos_detalle', Object.assign({
         select: '*,producto:producto_id(id,nombre,slug,categoria_id,tasa_impuesto,activo,tags,marca,modelo,descripcion,categoria:categoria_id(id,nombre))',
@@ -168,7 +171,7 @@ window.DB = (function () {
       }, opts || {}));
 
       var data = (res.data || []).filter(function (d) {
-        return d.producto && d.producto.activo !== false;
+        return d.producto && (mostrarInactivos || d.producto.activo !== false);
       });
 
       var result = { data: data, error: res.error, count: data.length, total: res.total };

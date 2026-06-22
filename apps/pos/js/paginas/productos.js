@@ -60,7 +60,8 @@
   async function cargarProductos() {
     $('productos-tbody').innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Cargando...</td></tr>';
     PAGINA = 1;
-    var res = await DB.productos.listarConDetalle({ skipCache: true });
+    var mostrarInactivos = $('mostrar-inactivos') && $('mostrar-inactivos').checked;
+    var res = await DB.productos.listarConDetalle({ skipCache: true, mostrarInactivos: mostrarInactivos });
     if (res.error) {
       console.error('[Productos] Error:', res.error);
       mostrarErrorTabla('Error al cargar productos. Verifica tu conexion.');
@@ -147,8 +148,9 @@
         bajo ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400' :
         'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400';
       var badgeTxt = agotado ? 'Agotado' : bajo ? 'Bajo' : p.stock;
+      var estadoBadge = p.activo ? '' : '<span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-400 ml-2">Inactivo</span>';
       return '<tr class="border-b border-slate-100 dark:border-slate-800/50 hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">' +
-        '<td class="py-3 px-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">' + p.nombre.charAt(0).toUpperCase() + '</div><div><p class="text-sm font-medium text-slate-950 dark:text-white">' + p.nombre + '</p><p class="text-xs text-slate-400 sm:hidden">' + p.categoriaNombre + '</p></div></div></td>' +
+        '<td class="py-3 px-2"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-700 flex items-center justify-center text-xs font-bold text-slate-500 dark:text-slate-400 shrink-0">' + p.nombre.charAt(0).toUpperCase() + '</div><div><p class="text-sm font-medium text-slate-950 dark:text-white">' + p.nombre + estadoBadge + '</p><p class="text-xs text-slate-400 sm:hidden">' + p.categoriaNombre + '</p></div></div></td>' +
         '<td class="py-3 px-2 text-sm text-slate-500 dark:text-slate-400 hidden sm:table-cell">' + p.categoriaNombre + '</td>' +
         '<td class="py-3 px-2 text-center text-xs text-slate-400 hidden md:table-cell">' + (p.codigoInterno || p.codigoBarras || '—') + '</td>' +
         '<td class="py-3 px-2 text-center"><span class="inline-flex px-2 py-0.5 rounded-full text-xs font-medium ' + badge + '">' + badgeTxt + '</span></td>' +
@@ -1057,6 +1059,7 @@
     // Filtros
     $('buscador-productos').addEventListener('input', productosFiltrarYRender);
     $('filtro-categoria').addEventListener('change', productosFiltrarYRender);
+    $('mostrar-inactivos').addEventListener('change', cargarProductos);
 
     // Paginacion
     $('pag-controles').addEventListener('click', function (e) {
