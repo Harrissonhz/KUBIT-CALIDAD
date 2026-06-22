@@ -83,6 +83,7 @@ function mapearProducto(row) {
     precio_original: primerDetalle.precio_original || null,
     categoria: catSlug,
     stock: primerDetalle.stock_actual || 0,
+    tipo: row.tipo_producto || 'Fisico',
     tags: tags,
     imagen: imagenPrincipal,
     imagenes: imagenes,
@@ -121,7 +122,7 @@ window.StoreAPI.productos = {
 
   async obtenerDestacados(limite) {
     var productos = await _fetchProductos();
-    var destacados = productos.filter(function(p) { return p.tags.indexOf('destacado') !== -1; });
+    var destacados = productos.filter(function(p) { return p.tags.indexOf('destacado') !== -1 && p.tipo !== 'Digital'; });
     return limite ? _shuffleArray(destacados).slice(0, limite) : _shuffleArray(destacados);
   },
 
@@ -134,10 +135,10 @@ window.StoreAPI.productos = {
   async obtenerPorCategoria(slug) {
     if (!slug || slug === 'todos') {
       var todos = await _fetchProductos();
-      return _shuffleArray(todos);
+      return _shuffleArray(todos.filter(function(p) { return p.tipo !== 'Digital'; }));
     }
     var productos = await _fetchProductos();
-    return _shuffleArray(productos.filter(function(p) { return p.categoria === slug; }));
+    return _shuffleArray(productos.filter(function(p) { return p.categoria === slug && p.tipo !== 'Digital'; }));
   },
 
   async obtenerPorSlug(slug) {
@@ -188,6 +189,7 @@ window.StoreAPI.productos = {
         });
       }
     }
+    productos = productos.filter(function(p) { return p.tipo !== 'Digital'; });
     var total = productos.length;
     productos = _shuffleArray(productos);
     var totalPaginas = Math.max(1, Math.ceil(total / porPagina));
