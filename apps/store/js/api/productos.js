@@ -192,7 +192,8 @@ window.StoreAPI.productos = {
         });
       }
     }
-    productos = productos.filter(function(p) { return p.tipo !== 'Digital'; });
+    var esCategoriaCurso = filtros && filtros.categoria === 'cursos-virtuales';
+    productos = productos.filter(function(p) { return esCategoriaCurso || p.tipo !== 'Digital'; });
     var total = productos.length;
     productos = _shuffleArray(productos);
     var totalPaginas = Math.max(1, Math.ceil(total / porPagina));
