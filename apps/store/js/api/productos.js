@@ -138,7 +138,10 @@ window.StoreAPI.productos = {
       return _shuffleArray(todos.filter(function(p) { return p.tipo !== 'Digital'; }));
     }
     var productos = await _fetchProductos();
-    return _shuffleArray(productos.filter(function(p) { return p.categoria === slug && p.tipo !== 'Digital'; }));
+    var esCurso = slug === 'cursos-virtuales';
+    return _shuffleArray(productos.filter(function(p) {
+      return p.categoria === slug && (esCurso || p.tipo !== 'Digital');
+    }));
   },
 
   async obtenerPorSlug(slug) {
