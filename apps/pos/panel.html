@@ -27,6 +27,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <link rel="apple-touch-icon" href="img/icon-192x192.png">
   <link rel="icon" href="img/icon.svg" type="image/svg+xml">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 </head>
 <body class="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
 
@@ -233,15 +234,23 @@
   <main class="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 pt-16 sm:pt-16 lg:pt-16">
     <div class="max-w-6xl mx-auto space-y-6">
 
-      <!-- HEADER -->
-      <div class="flex items-start justify-between gap-4">
+      <!-- HEADER + FILTROS -->
+      <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div class="min-w-0">
           <h1 class="text-lg font-semibold text-slate-950 dark:text-white">Panel de Control</h1>
           <p class="text-sm text-slate-500 dark:text-slate-400" id="panel-subtitulo">Cargando...</p>
         </div>
+        <div class="flex flex-wrap items-center gap-2" id="barra-filtros">
+          <select id="filtro-canal" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1.5 min-w-[140px]">
+            <option value="">Todos los canales</option>
+          </select>
+          <select id="filtro-mes" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1.5"></select>
+          <select id="filtro-anio" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2.5 py-1.5"></select>
+          <button id="btn-actualizar" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-sky-600 text-white hover:bg-sky-700 transition-colors">Actualizar</button>
+        </div>
       </div>
 
-      <!-- KPIs del Mes -->
+      <!-- KPIs del Periodo -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="kpis-mes">
         <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
           <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ventas Brutas</span>
@@ -268,44 +277,82 @@
           <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-utilidad">---</span>
         </div>
         <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Flujo Operativo</span>
-          <span class="text-lg font-bold text-sky-500 block" id="kpi-mes-flujo">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
           <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Margen</span>
           <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-margen">---</span>
         </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
+          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ticket Prom.</span>
+          <span class="text-lg font-bold text-sky-500 block" id="kpi-mes-ticket">---</span>
+        </div>
       </div>
 
-      <!-- KPIs Operativos + Top Productos -->
+      <!-- KPIs Operativos (Hoy) + Inventario -->
+      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 sm:gap-4">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Ventas Hoy</span>
+          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-op-ventas-hoy">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">$ Hoy</span>
+          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-op-total-hoy">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Ticket Prom. Hoy</span>
+          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-op-ticket-prom">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Prod. Hoy</span>
+          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-op-prod-hoy">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Total Productos</span>
+          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-inv-total">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Stock Bajo</span>
+          <span class="text-lg font-bold text-amber-500 block" id="kpi-inv-stock-bajo">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Agotados</span>
+          <span class="text-lg font-bold text-red-500 block" id="kpi-inv-agotados">---</span>
+        </div>
+        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-3 space-y-0.5">
+          <span class="text-xs text-slate-400">Valor Inventario</span>
+          <span class="text-lg font-bold text-emerald-500 block" id="kpi-inv-valor">---</span>
+        </div>
+      </div>
+
+      <!-- Ventas Mensuales Chart -->
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Ventas Mensuales</h3>
+          <select id="chart-anio" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"></select>
+        </div>
+        <div class="relative" style="height:280px">
+          <canvas id="ventasMensualesChart"></canvas>
+        </div>
+      </div>
+
+      <!-- Comparativa Anual + Top 5 -->
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-        <!-- KPIs Operativos -->
-        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 space-y-4">
-          <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Operativos</h3>
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            <div class="space-y-1">
-              <span class="text-xs text-slate-400">Ventas Hoy</span>
-              <span class="text-xl font-bold text-slate-950 dark:text-white block" id="kpi-op-ventas-hoy">---</span>
+        <!-- Comparativa Anual -->
+        <div class="lg:col-span-2 bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Comparativa Anual</h3>
+            <div class="flex gap-2">
+              <select id="comp-anio1" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"></select>
+              <select id="comp-anio2" class="text-xs rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-2 py-1"></select>
             </div>
-            <div class="space-y-1">
-              <span class="text-xs text-slate-400">Ticket Prom.</span>
-              <span class="text-xl font-bold text-slate-950 dark:text-white block" id="kpi-op-ticket-prom">---</span>
-            </div>
-            <div class="space-y-1">
-              <span class="text-xs text-slate-400">Productos</span>
-              <span class="text-xl font-bold text-slate-950 dark:text-white block" id="kpi-op-total-productos">---</span>
-            </div>
-            <div class="space-y-1">
-              <span class="text-xs text-slate-400">Stock Bajo</span>
-              <span class="text-xl font-bold text-amber-500 block" id="kpi-op-stock-bajo">---</span>
-            </div>
+          </div>
+          <div class="relative" style="height:260px">
+            <canvas id="comparativaChart"></canvas>
           </div>
         </div>
 
         <!-- Top 5 Productos -->
         <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-5 space-y-3">
-          <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Top 5 del Mes</h3>
+          <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Top 5 del Periodo</h3>
           <div id="top-productos" class="space-y-2">
             <p class="text-xs text-slate-400">Cargando...</p>
           </div>

@@ -512,6 +512,44 @@ window.DB = (function () {
         .sort(function (a, b) { return b.cantidad - a.cantidad; })
         .slice(0, limite);
       return { data: ordenado, error: null };
+    },
+
+    estadisticasDelPeriodo: async function (anio, mes, canalId) {
+      var m = String(mes).padStart(2, '0');
+      var desde = anio + '-' + m + '-01T00:00:00';
+      var lFin = new Date(anio, mes, 0).getDate();
+      var hasta = anio + '-' + m + '-' + String(lFin).padStart(2, '0') + 'T23:59:59';
+      var qs = 'select=count,sum_total:sum:total,avg_total:avg:total,sum_costos:sum:costos&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
+      if (canalId) {
+        qs += '&canal_id=eq.' + encodeURIComponent(canalId);
+      }
+      try {
+        var res = await api.get('pos_ventas?' + qs);
+        var row = (res || [])[0] || {};
+        return { count: row.count || 0, total: row.sum_total || 0, promedio: row.avg_total || 0, costos: row.sum_costos || 0, error: null };
+      } catch (e) {
+        return { count: 0, total: 0, promedio: 0, costos: 0, error: e.message };
+      }
+    },
+
+    porMes: async function (anio, canalId) {
+      var desde = anio + '-01-01T00:00:00';
+      var hasta = anio + '-12-31T23:59:59';
+      var qs = 'select=total,fecha_venta&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
+      if (canalId) {
+        qs += '&canal_id=eq.' + encodeURIComponent(canalId);
+      }
+      try {
+        var res = await api.get('pos_ventas?' + qs);
+        var meses = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        (res || []).forEach(function (v) {
+          var d = new Date(v.fecha_venta);
+          meses[d.getMonth()] += (v.total || 0);
+        });
+        return { data: meses, error: null };
+      } catch (e) {
+        return { data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], error: e.message };
+      }
     }
   };
 
