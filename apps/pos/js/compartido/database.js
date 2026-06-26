@@ -493,7 +493,7 @@ window.DB = (function () {
       var m = String(hoy.getMonth() + 1).padStart(2, '0');
       var desde = y + '-' + m + '-01T00:00:00';
       var res = await select('pos_ventas_detalle', {
-        select: 'producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug,codigo_interno))',
+        select: 'producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug))',
         filters: [
           { col: 'created_at', op: 'gte', val: desde }
         ]
