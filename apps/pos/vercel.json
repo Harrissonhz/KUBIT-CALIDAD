@@ -1,5 +1,6 @@
 {
   "rewrites": [
-    { "source": "/factura-print", "destination": "/factura-print.html" }
+    { "source": "/factura-print", "destination": "/factura-print.html" },
+    { "source": "/cuenta-cobro-print", "destination": "/cuenta-cobro-print.html" }
   ]
 }
