@@ -989,21 +989,122 @@ El `codigo_interno` se obtiene via `d.detalle.codigo_interno` gracias al `*` wil
 
 ---
 
-## 11. Enlace a Tienda Virtual desde el POS
+## 11. Cuenta de Cobro (cuenta-cobro-print.html)
 
-### 10.1 Store URL
+### 11.1 Propósito
+Documento comercial imprimible que permite a los clientes generar una **Cuenta de Cobro** derivada de una venta existente. A diferencia de la Factura de Venta, la Cuenta de Cobro no es un documento fiscal — es un documento comercial usado para solicitar el pago al cliente, típicamente por independientes, contratistas o servicios. Se accede via `cuenta-cobro-print?id=<venta_uuid>` desde el modal de detalle en `ventas-historial.html`. Sigue el mismo patrón de página standalone que `factura-print.html`.
+
+### 11.2 Diseño Visual — Clarity Professional
+
+| Elemento | Descripción |
+|---|---|
+| **Tono** | Clarity Professional — limpio, de confianza, con espacio para firma. Menos denso que la factura |
+| **Fondo pantalla** | `#f8f7f4` (papel más claro que la factura para diferenciar visualmente) |
+| **Fondo impresión** | Blanco puro, sin sombras |
+| **Tipografía título** | `Georgia, 'Times New Roman', serif` — "CUENTA DE COBRO" 20px, `letter-spacing: 1.2px` |
+| **Tipografía cuerpo** | `'Segoe UI', system-ui, -apple-system, sans-serif` |
+| **Tipografía códigos** | `'Consolas', 'Courier New', monospace` |
+| **Header empresa** | Doble línea inferior (2px), logo 60px + nombre + datos fiscales |
+| **Info boxes** | "Cobrar a" (izquierda) + "Informacion" (derecha) con método de pago, vendedor, referencia a factura |
+| **Tabla** | 5 columnas con filas alternadas, header con fondo `#f1f5f9` |
+| **Totales** | Subtotal → Descuento (opcional) → **Total a Cobrar** (sin IVA) |
+| **Firma** | Línea horizontal de 220px centrada con label "Firma del cobrador" |
+| **Footer** | "Derivado de la Factura No. {numero}" + mensaje legal + timestamp |
+
+### 11.3 Estructura de la Tabla (5 columnas)
+
+| # | Columna | Clase CSS | Ancho | Alineación | Fuente de Datos |
+|---|---|---|---|---|---|
+| 1 | `#` | `.cc-col-num` | 28px | Centro | Índice secuencial (`i + 1` en `map()`) |
+| 2 | `Código` | `.cc-col-codigo` | 100px | Izquierda | `d.detalle.codigo_interno` (monospace gris) |
+| 3 | `Descripción` | (default) | Auto | Izquierda | `d.detalle.producto.nombre` |
+| 4 | `Cant.` | `.cc-col-cant` | 56px | Centro | `d.cantidad` |
+| 5 | `Valor Unit` | `.cc-col-valor` | 130px | Derecha | `d.precio_unitario` (negrita) |
+
+**Diferencias con la Factura:** No tiene columna IVA ni Total por ítem — el valor unitario refleja el precio total del producto incluyendo impuestos.
+
+### 11.4 Datos Disponibles
+Reutiliza exactamente los mismos datos que `factura-print.html` — no requiere cambios en `database.js`. La función `DB.ventas.obtener(id)` retorna toda la información necesaria (empresa, cliente, venta, detalles con `codigo_interno` y `producto.nombre`).
+
+### 11.5 Comportamiento
+
+| Aspecto | Detalle |
+|---|---|
+| **Carga** | Mismo patrón: `Promise.all([DB.ventas.obtener(), DB.configuracionEmpresa.obtener()])` |
+| **Error** | Muestra `#error-msg` con botón "Cerrar" |
+| **Auto-print** | `setTimeout(window.print, 500)` — misma estrategia que factura |
+| **Número de documento** | Se genera como `CC-{prefijo}-{numero_venta}` (ej: `CC-FV-00123`) |
+| **Referencia** | En el footer se muestra "Derivado de la Factura No. {numero}" |
+| **Responsive** | En ≤600px: header apilado, info boxes en columna, tabla comprimida |
+| **Print** | `@page A4`, `thead { display: table-header-group }`, `page-break-inside: avoid` |
+
+### 11.6 Acceso desde la UI
+
+El acceso a la Cuenta de Cobro se realiza **exclusivamente desde el modal de detalle de venta** en `ventas-historial.html`. No hay entrada en el sidebar, ni nueva sección de navegación, ni ruta en el menú.
+
+**Flujo:**
+1. Usuario navega a **Ventas → Historial**
+2. Hace clic en una venta para abrir el modal de detalle
+3. En el footer del modal, aparece el botón **"Cuenta de Cobro"** (verde esmeralda, entre "Imprimir" y "Cerrar")
+4. Al hacer clic, se abre `cuenta-cobro-print?id=<uuid>` en nueva pestaña
+5. La página carga automáticamente los datos y dispara la impresión/PDF
+
+**Código del botón (ventas-historial.html:~361):**
+```html
+<button id="btn-cuenta-cobro" class="... border-emerald-200 text-emerald-600 ...">
+  Cuenta de Cobro
+</button>
+```
+
+**Código del handler (ventas-historial.js:~350):**
+```javascript
+$('btn-cuenta-cobro').addEventListener('click', function () {
+  if (!VENTA_ACTUAL) return;
+  window.open('cuenta-cobro-print?id=' + VENTA_ACTUAL.id, '_blank');
+});
+```
+
+### 11.7 Archivos del Módulo
+
+| Archivo | Rol |
+|---|---|
+| `apps/pos/cuenta-cobro-print.html` | Página standalone con CSS inline + JS. Contiene toda la lógica de renderizado, helpers y estilos |
+| `apps/pos/ventas-historial.html` | Modal de detalle de venta — agrega el botón "Cuenta de Cobro" |
+| `apps/pos/js/paginas/ventas-historial.js` | Handler del botón — abre `cuenta-cobro-print?id=` |
+| `apps/pos/service-worker.js` | Precaché del archivo `cuenta-cobro-print.html` |
+
+**No requiere modificaciones en:** `database.js`, `config.js`, `factura-print.html`, sidebar, routing, `vercel.json`.
+
+### 11.8 Decisiones de Diseño (No Reabrir)
+
+| Decisión | Valor |
+|---|---|
+| **Página separada vs integración** | Se eligió página separada (`cuenta-cobro-print.html`) en vez de integrar en `factura-print.html` vía `?tipo=cuenta-cobro`. Motivo: mantenibilidad a futuro. Cada documento es autónomo. Si se agregan más documentos (cotización, remisión), el patrón se escala sin condicionales. |
+| **Sin IVA en la tabla** | La Cuenta de Cobro no es un documento fiscal. No requiere desglose de IVA. El `precio_unitario` mostrado ya incluye impuestos. |
+| **Sin columna total por ítem** | Se simplificó a 5 columnas para mantener el diseño limpio. El total por producto se omite; el valor unitario multiplicado por la cantidad da el subtotal. |
+| **Línea de firma** | Se incluyó una línea de firma para el cobrador como elemento distintivo de la Cuenta de Cobro, dándole formalidad al documento. |
+| **Referencia a factura origen** | En el footer se muestra "Derivado de la Factura No. XXXX" para mantener trazabilidad con la venta original. |
+| **Acceso solo desde historial** | No se agregó en el modal post-cobro (`ventas.html`) para no sobrecargar el flujo de venta rápida. Solo desde Historial, donde el usuario busca explícitamente una venta para gestionarla. |
+| **Sin nuevo menú/sidebar** | La Cuenta de Cobro no merece una entrada en el sidebar. Su acceso es contextual (desde el detalle de una venta), no es una sección independiente del POS. |
+| **Numeración CC-{prefijo}-{numero}** | El número de la cuenta de cobro se deriva del número de factura con prefijo "CC-" para mantener correlación clara entre ambos documentos. |
+
+---
+
+## 13. Enlace a Tienda Virtual desde el POS
+
+### 12.1 Store URL
 La URL de la tienda virtual se configura en `pos_configuracion_empresa.store_url` y se edita desde `configuracion.html` (campo `#campo-store-url`).
 
-### 10.2 Carga Dinámica en Sidebar
+### 12.2 Carga Dinámica en Sidebar
 El bloque autoejecutable `cargarLinkTienda()` al final de `database.js` busca `#link-tienda-virtual` en todas las paginas POS y asigna `href` desde la DB. Si `store_url` es null/vacio, el link queda con `href="#"` (no navega).
 
-### 10.3 Comportamiento
+### 12.3 Comportamiento
 - El link abre en nueva pestaña (`target="_blank" rel="noopener noreferrer"`)
 - Visible para todos los usuarios autenticados (sin `data-permiso`)
 - Ubicado en el area inferior del sidebar, sobre "Cerrar sesion"
 - Estilo: icono tienda SVG + texto "Tienda Virtual", hover azul sky
 
-### 10.4 Sidebar POS — Orden de Grupos
+### 12.4 Sidebar POS — Orden de Grupos
 1. **Dashboard** (link directo, no colapsable) → `panel.html`
 2. **Ventas** (colapsable) → Registrar Venta, Mostrador, Historial, Facturacion
 3. **Stock** (colapsable) → Productos, Categorias, Stock
@@ -1017,7 +1118,7 @@ El bloque autoejecutable `cargarLinkTienda()` al final de `database.js` busca `#
 
 ---
 
-## 12. Glosario
+## 14. Glosario
 
 | Término | Definición |
 |---|---|

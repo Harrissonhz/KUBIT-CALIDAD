@@ -413,6 +413,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `AGENTS.md` — Decision de diseno documentada en seccion 5, keywords agregadas en seccion 11, Fase 19 en seccion 7.2
 - [x] `npm test` → 102 passed, 0 failures (sin cambios en JS de logica de negocio)
 
+#### Módulo POS — Fase 20: Cuenta de Cobro (documento imprimible)
+- [x] `cuenta-cobro-print.html` — Nueva pagina standalone con CSS DIAN-style, tabla 5 columnas (#, Codigo, Descripcion, Cant, Valor Unit), sin IVA, sin DIAN, con seccion de firma y referencia a factura origen
+- [x] `ventas-historial.html` — Boton "Cuenta de Cobro" (verde emerald) agregado en modal footer entre "Imprimir" y "Cerrar"
+- [x] `ventas-historial.js` — Handler `window.open('cuenta-cobro-print?id=' + VENTA_ACTUAL.id, '_blank')`
+- [x] `service-worker.js` — `'cuenta-cobro-print.html'` agregado al precache de assets criticos
+- [x] `specs/03-pos-spec.md` — Nueva seccion 11 documentando cuenta-cobro: diseno, tabla 5 columnas, decisiones de diseno, acceso desde historial
+- [x] `AGENTS.md` — Decision de diseno en seccion 5, keywords en seccion 11, Fase 20 en seccion 7.2
+- [x] `npm test` → 102 passed, 0 failures
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -872,6 +881,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Contenido legal migrado de pre-line a HTML semantico:** Tanto `terminos-condiciones.html` como `politica-privacidad.html` migraron de `white-space: pre-line` (un solo div de texto plano) a secciones HTML con `<section>`, `id` para anclajes, `scroll-mt-20` para navegacion suave, y estructura `<h3>` + `<ul>`/`<ol>` + `<p>`. Esto es esencial para escalabilidad, SEO y accesibilidad.
 - **Compras del Mes en tiempo real en el Panel:** El KPI "Compras" del Dashboard (`panel.html`) no debe leer `pos_finanzas_mensuales.compras_total` (dato estatico que se desactualiza). En su lugar usa `DB.compras.totalDelMes()` que suma `pos_compras.total` del mes actual via PostgREST. Sin cache, filtro por `estado IN (RECIBIDA,PENDIENTE)`, soft-delete excluido. Usa `api.get()` directo (no `select()` helper) porque los operadores `in.()` e `is.null` no son compatibles con el query builder de `database.js`.
 - **Factura Print DIAN-Style:** La pagina `factura-print.html` usa diseño clasico colombiano DIAN-style con CSS plano nativo (sin Tailwind CDN). Tabla de 7 columnas: `#` | Codigo | Producto | Cant | Precio U. | IVA | Total. El `codigo_interno` se muestra como columna independiente en monospace gris. La resolucion DIAN no se renderiza (el campo `resolucion_dian` se mantiene en DB para uso futuro). IVA se muestra por producto y totalizado. El bloque de resolucion DIAN se elimino del diseño -- no confundir: los datos existen en DB pero no se muestran en la factura.
+- **Cuenta de Cobro (pagina separada):** Se eligio pagina separada `cuenta-cobro-print.html` en vez de integrarla en `factura-print.html` via `?tipo=cuenta-cobro`. Motivo: mantenibilidad a futuro. Cada documento es autonomo. Tabla de 5 columnas (#, Codigo, Descripcion, Cant, Valor Unit) sin IVA ni DIAN. Incluye seccion de firma y referencia a factura origen. Acceso exclusivo desde el modal de historial (boton verde "Cuenta de Cobro"), sin nuevo menu ni sidebar.
 
 ---
 
@@ -985,8 +995,23 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Numeracion items factura | `factura-print.html::col-num`, indice secuencial `i+1` en `map()` |
 | Resolucion DIAN | Campo `pos_configuracion_empresa.resolucion_dian`, almacenado en DB pero no renderizado en factura-print |
 | Factura print optimizada | `@page A4`, `thead { display: table-header-group }`, `page-break-inside: avoid`, margenes 12mm 15mm |
+| Cuenta de Cobro | `cuenta-cobro-print.html`, pagina standalone, tabla 5 columnas, sin IVA, con firma |
+| Acceso Cuenta de Cobro | `ventas-historial.html#btn-cuenta-cobro`, boton verde emerald en modal historial |
+| Numeracion Cuenta de Cobro | `CC-{prefijo}-{numero_venta}`, derivado del numero de factura |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-06-26 — Cuenta de Cobro (documento imprimible) — Fase 20
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/cuenta-cobro-print.html` | Nueva pagina standalone con CSS DIAN-style, tabla 5 columnas (#, Codigo, Descripcion, Cant, Valor Unit), sin IVA, sin DIAN, con seccion de firma y referencia a factura origen |
+| `apps/pos/ventas-historial.html` | Boton "Cuenta de Cobro" (verde emerald) agregado en modal footer entre "Imprimir" y "Cerrar" |
+| `apps/pos/js/paginas/ventas-historial.js` | Handler `window.open('cuenta-cobro-print?id=' + VENTA_ACTUAL.id, '_blank')` |
+| `apps/pos/service-worker.js` | `'cuenta-cobro-print.html'` agregado al precache de assets criticos |
+| `specs/03-pos-spec.md` | Nueva seccion 11 documentando cuenta-cobro: diseno, tabla 5 columnas, decisiones de diseno, acceso desde historial. Renumeracion de secciones 12-14. |
+| `AGENTS.md` | Seccion 5: decision de diseno cuenta-cobro. Seccion 7.2: Fase 20. Seccion 11: 3 nuevas keywords. |
+| **Tests** | `npm test` → 102 passed, 0 failures |
 
 ### 2026-06-26 — Factura Print Redesign (DIAN-style) + Columna Codigo Interno + IVA por producto
 
