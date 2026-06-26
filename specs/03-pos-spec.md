@@ -869,46 +869,98 @@ El logo de la empresa se almacena en `pos_configuracion_empresa.logo_url` y se r
 ## 9. Panel Dashboard (panel.html)
 
 ### 9.1 Propósito
-Pagina principal del POS que muestra indicadores clave del negocio en tiempo real. Diseñada como landing page post-login, accesible desde el sidebar como primer item ("Dashboard").
+Pagina principal del POS que muestra indicadores clave del negocio en tiempo real, con filtros por canal/mes/año y graficos interactivos. Disenada como landing page post-login, accesible desde el sidebar como primer item ("Dashboard").
 
-### 9.2 KPIs del Mes
-Fuente: `pos_finanzas_mensuales` (tabla mensual). Se obtienen via `DB.finanzasMensuales.obtenerPorPeriodo(anio, mes)`.
+### 9.2 Barra de Filtros (Global)
+Ubicada en el header de la pagina, sticky, debajo del header fixed del POS. Contiene 3 selectores + boton Actualizar:
 
-| Indicador | Campo DB | Color | Descripción |
+| Control | ID | Fuente de datos | Comportamiento |
 |---|---|---|---|
-| Ventas | `venta_bruta` | slate-950 | Total ventas brutas del mes |
-| Gastos | `total_gastos` | red-500 | Total gastos operativos del mes |
-| Compras | `costo_mercaderia + costo_comision` | slate-950 | Suma de costo de mercadería + comisiones |
-| Utilidad | `utilidad_neta` | emerald-500 | Ganancia neta del mes |
-| Margen | `margen` (decimal) | emerald-500 | Margen de ganancia (se muestra como %) |
+| Canal | `#filtro-canal` | `pos_canales_venta` (activos) via `DB.select()` | Opcion "Todos los canales" (vacio) + canales activos desde DB |
+| Mes | `#filtro-mes` | Generado en JS (Enero-Diciembre) | Default: mes actual |
+| Año | `#filtro-anio` | Generado en JS (2024-2027) | Default: año actual |
+| Actualizar | `#btn-actualizar` | — | Recarga todos los KPIs y graficos |
 
-### 9.3 KPIs Operativos
-Se cargan en paralelo via `Promise.all`:
+Al cambiar cualquier filtro, se recarga automaticamente todo el dashboard via `cargarTodo()`.
 
-| Indicador | Fuente | Descripción |
-|---|---|---|
-| Ventas Hoy | `DB.ventas.estadisticasHoy().count` | Número de ventas CONFIRMADAS hoy |
-| Ticket Prom. | `DB.ventas.estadisticasHoy().promedio` | Venta promedio del día |
-| Productos | `DB.productos.listarConDetalle()` | Conteo de productos únicos (por `producto_id`) |
-| Stock Bajo | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= stock_min` (default 2) |
+### 9.3 KPIs del Periodo (8 cards)
+Fuente: cuando `canalId` = vacio ("Todos"), se usa `DB.finanzasMensuales.obtenerPorPeriodo(anio, mes)`. Cuando hay un canal especifico, se usa `DB.ventas.estadisticasDelPeriodo(anio, mes, canalId)` con agregacion en vivo.
 
-### 9.4 Top 5 Productos del Mes
-Agrega `pos_ventas_detalle` del mes actual, agrupando por `producto_detalle_id` y ordenando por cantidad descendente. Implementado en `database.js::ventas.topProductos(limite)`. El ranking visual usa medallas de posicion:
+| Indicador | ID | Color | Fuente (Todos) | Fuente (por Canal) |
+|---|---|---|---|---|
+| Ventas Brutas | `#kpi-mes-ventas` | slate-950 | `finanzas.ventas_brutas` | `estadisticas.total` |
+| Ventas Netas | `#kpi-mes-ventas-netas` | emerald-500 | `brutas - comisiones - devoluciones - descuentos` | `brutas - comisiones` |
+| Compras | `#kpi-mes-compras` | red-500 | `DB.compras.totalDelMes()` (en vivo) | mismo (compras globales) |
+| Comisiones | `#kpi-mes-comisiones` | amber-500 | `finanzas.costos_comision_total` | `estadisticas.costos` |
+| Gastos | `#kpi-mes-gastos` | red-500 | `finanzas.gastos_operativos_total` | mismo (gastos globales) |
+| Utilidad Neta | `#kpi-mes-utilidad` | emerald-500 | `finanzas.utilidad_neta` | `brutas - comisiones - gastos - compras` |
+| Margen | `#kpi-mes-margen` | emerald-500 | `utilidad / brutas * 100` | mismo calculo |
+| Ticket Prom. | `#kpi-mes-ticket` | sky-500 | `brutas / count(ventas)` | `estadisticas.total / estadisticas.count` |
+
+### 9.4 KPIs Operativos (Hoy) + Inventario (8 cards compactos)
+Grid 8-columnas responsive (`grid-cols-2 sm:grid-cols-4 lg:grid-cols-8`). Sin filtro de canal (son datos absolutos del dia/de inventario).
+
+| Indicador | ID | Fuente | Descripcion |
+|---|---|---|---|
+| Ventas Hoy | `#kpi-op-ventas-hoy` | `DB.ventas.estadisticasHoy().count` | Numero de ventas CONFIRMADAS hoy |
+| $ Hoy | `#kpi-op-total-hoy` | `DB.ventas.estadisticasHoy().total` | Total en dinero vendido hoy |
+| Ticket Prom. Hoy | `#kpi-op-ticket-prom` | `DB.ventas.estadisticasHoy().promedio` | Venta promedio del dia |
+| Prod. Hoy | `#kpi-op-prod-hoy` | (no implementado, muestra '—') | Unidades vendidas hoy |
+| Total Productos | `#kpi-inv-total` | `DB.productos.listarConDetalle()` (conteo unico por `producto_id`) | Cantidad de productos distintos en catalogo |
+| Stock Bajo | `#kpi-inv-stock-bajo` | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= stock_min` (default 2) y stock > 0 |
+| Agotados | `#kpi-inv-agotados` | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= 0` |
+| Valor Inventario | `#kpi-inv-valor` | `DB.productos.listarConDetalle()` (suma `stock_actual * precio_venta`) | Valor total del inventario a precio de venta |
+
+### 9.5 Top 5 Productos del Periodo (con filtros)
+Agrega `pos_ventas_detalle` del periodo filtrado (mes/año + canal opcional), agrupando por `producto_detalle_id` y ordenando por cantidad descendente. Reside en `panel.js::cargarTopProductos()` — NO usa `DB.ventas.topProductos()` (que es solo para mes actual sin filtro de canal). El ranking visual usa medallas de posicion:
 - 1ro: dorado (`bg-amber-100`)
 - 2do: plata (`bg-slate-100`)
 - 3ro: bronce (`bg-orange-100`)
 - 4to-5to: neutro (`bg-slate-50`)
 
-### 9.5 Accesos Rapidos
+Cada item muestra: nombre, cantidad, total $ y porcentaje del total vendido.
+
+### 9.6 Graficos (Chart.js)
+Se usa Chart.js v4.4.7 via CDN (`chart.umd.min.js`). Los graficos se destruyen y recrean al cambiar filtros.
+
+#### 9.6.1 Ventas Mensuales (`#ventasMensualesChart`)
+- Tipo: Barra simple
+- Eje X: Meses (Ene-Dic)
+- Eje Y: Total de ventas en COP
+- Filtro: Selector de año (`#chart-anio`) + canal global (`#filtro-canal`)
+- Fuente: `DB.ventas.porMes(anio, canalId)` — consulta todas las ventas CONFIRMADAS del año y agrupa client-side por mes
+- Color: sky-500 (`rgba(14, 165, 233, 0.6)`)
+
+#### 9.6.2 Comparativa Anual (`#comparativaChart`)
+- Tipo: Barra agrupada (2 datasets)
+- Eje X: Meses (Ene-Dic)
+- Eje Y: Total de ventas en COP
+- Filtro: 2 selectores de año (`#comp-anio1`, `#comp-anio2`) + canal global
+- Fuente: `DB.ventas.porMes(anio, canalId)` para cada año
+- Colores: slate-500 (año 1), sky-500 (año 2)
+- Comportamiento: si ambos años son iguales, se incrementa automaticamente anio2
+
+### 9.7 Accesos Rapidos
 Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 - Nueva Venta, Mostrador, Caja, Productos, Compras, Reportes
 
-### 9.6 Arquitectura
-- `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration
-- `panel.js` — IIFE con `init()` → `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos()])`
-- Sin dependencias graficas externas (no Chart.js). Todo Tailwind + SVG icons + vanilla JS
+### 9.8 Arquitectura
+- `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration. Dependencia externa: Chart.js CDN
+- `panel.js` — IIFE con `init()` async que: carga canales → puebla selectores → bindea eventos → `cargarTodo()`
+- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual()])`
+- 2 instancias globales de Chart.js (`chartVentas`, `chartComparativa`) con cleanup automatico via `.destroy()` antes de recrear
+- Filtros reactivos: `change` event en canal/mes/anio dispara `cargarTodo()`. Selectores de anio de graficos disparan solo recarga de graficos
 - El subtitulo del header muestra la fecha actual en formato local (`toLocaleDateString('es-CO')`)
 - Formato moneda: `formatCOP()` — redondea a entero, separador de miles con punto
+- `getFiltros()` — funcion helper que lee los 3 filtros y devuelve objeto `{ canalId, mes, anio }`
+- Cuando `canalId` = '' (Todos): KPIs via `DB.finanzasMensuales` (pre-agregado, rapido). Cuando hay canal especifico: via `DB.ventas.estadisticasDelPeriodo()` (en vivo, solo afecta ventas/comisiones)
+
+### 9.9 Métodos Nuevos en database.js
+
+| Método | Firma | Descripción |
+|---|---|---|
+| `DB.ventas.estadisticasDelPeriodo` | `(anio, mes, canalId)` | Devuelve `{ count, total, promedio, costos, error }`. Usa `api.get()` directo con agregados PostgREST `select=count,sum_total:sum:total,avg_total:avg:total,sum_costos:sum:costos`. Sin cache. |
+| `DB.ventas.porMes` | `(anio, canalId)` | Devuelve `{ data: [12 números], error }`. Consulta todas las ventas CONFIRMADAS del año, agrupa por mes client-side via `forEach`. Sin cache. |
 
 ---
 

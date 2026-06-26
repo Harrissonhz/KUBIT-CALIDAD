@@ -422,6 +422,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `AGENTS.md` — Decision de diseno en seccion 5, keywords en seccion 11, Fase 20 en seccion 7.2
 - [x] `npm test` → 102 passed, 0 failures
 
+#### Módulo POS — Fase 21: Panel Dinamico con Filtros y Graficos
+- [x] `database.js` — Nuevos métodos: `DB.ventas.estadisticasDelPeriodo(anio, mes, canalId)` (agregacion en vivo por periodo/canal) y `DB.ventas.porMes(anio, canalId)` (ventas mensuales del año con filtro opcional de canal)
+- [x] `panel.html` — Barra de filtros (canal, mes, ano) + graficos Chart.js (ventas mensuales + comparativa anual) + KPIs expandidos (8 financieros, 8 operativos/inventario)
+- [x] `panel.js` — Logica reactiva de filtros, 2 instancias Chart.js con cleanup, top 5 filtrable por periodo/canal con % del total, valor de inventario, productos agotados
+- [x] Filtro Canal: cuando "Todos" usa `finanzasMensuales` (pre-agregado), cuando canal especifico usa `estadisticasDelPeriodo` (en vivo solo para ventas)
+- [x] `npm test` → 102 passed, 0 failures
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -882,6 +889,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Compras del Mes en tiempo real en el Panel:** El KPI "Compras" del Dashboard (`panel.html`) no debe leer `pos_finanzas_mensuales.compras_total` (dato estatico que se desactualiza). En su lugar usa `DB.compras.totalDelMes()` que suma `pos_compras.total` del mes actual via PostgREST. Sin cache, filtro por `estado IN (RECIBIDA,PENDIENTE)`, soft-delete excluido. Usa `api.get()` directo (no `select()` helper) porque los operadores `in.()` e `is.null` no son compatibles con el query builder de `database.js`.
 - **Factura Print DIAN-Style:** La pagina `factura-print.html` usa diseño clasico colombiano DIAN-style con CSS plano nativo (sin Tailwind CDN). Tabla de 7 columnas: `#` | Codigo | Producto | Cant | Precio U. | IVA | Total. El `codigo_interno` se muestra como columna independiente en monospace gris. La resolucion DIAN no se renderiza (el campo `resolucion_dian` se mantiene en DB para uso futuro). IVA se muestra por producto y totalizado. El bloque de resolucion DIAN se elimino del diseño -- no confundir: los datos existen en DB pero no se muestran en la factura.
 - **Cuenta de Cobro (pagina separada):** Se eligio pagina separada `cuenta-cobro-print.html` en vez de integrarla en `factura-print.html` via `?tipo=cuenta-cobro`. Motivo: mantenibilidad a futuro. Cada documento es autonomo. Tabla de 5 columnas (#, Codigo, Descripcion, Cant, Valor Unit) sin IVA ni DIAN. Incluye seccion de firma y referencia a factura origen. Acceso exclusivo desde el modal de historial (boton verde "Cuenta de Cobro"), sin nuevo menu ni sidebar.
+- **Panel dinamico con filtros:** Los filtros (canal/mes/ano) son reactivos — al cambiar cualquiera, se recarga todo el dashboard. El filtro de canal solo afecta KPIs de ventas, NO a inventario, gastos ni compras (que son globales). Diseñado intencionalmente para no sobrecargar al usuario con informacion no relevante por canal.
+- **Dos fuentes de datos segun filtro de canal:** Cuando el filtro es "Todos los canales", los KPIs financieros vienen de `pos_finanzas_mensuales` (pre-agregado, 1 query rapida). Cuando se selecciona un canal especifico, se usa `DB.ventas.estadisticasDelPeriodo()` con agregacion en vivo via PostgREST. Esto optimiza el caso de uso mas comun (vision general) sin penalizar el caso avanzado (por canal).
+- **Chart.js para graficos en vez de SVG puro:** Se eligio Chart.js v4 por su interactividad (tooltips, responsive, legend) y menor codigo de mantenimiento vs. SVG/CSS manual. Decision confirmada con el usuario.
+- **Flujo Operativo removido de KPIs:** El indicador "Flujo Operativo" (Ventas Netas - Gastos) se elimino del panel por ser redundante con Ventas Netas y Gastos visibles por separado. Se reemplazo por "Ticket Promedio del Periodo" que aporta informacion no derivable de otros KPIs.
+- **Top 5 con % del total:** El Top 5 ahora muestra no solo cantidad y total $, sino tambien el porcentaje que representa cada producto sobre el total vendido del periodo. Esto permite identificar rapidamente productos estrella vs. productos de relleno.
+- **KPIs de Inventario separados de Operativos:** Los indicadores de inventario (Total Productos, Stock Bajo, Agotados, Valor Inventario) estan en la misma fila que los Operativos del dia pero conceptualmente separados. Comparten la misma fuente de datos (`DB.productos.listarConDetalle`) para minimizar queries.
+- **Sin filtro de canal en KPIs de inventario:** El stock y valor de inventario son conceptos absolutos del negocio, no atribuibles a un canal de venta. Aplicarles filtro de canal daria informacion erronea o incompleta.
+- **`estadisticasDelPeriodo` usa `api.get()` directo:** A diferencia de otros metodos que usan el helper `select()`, `estadisticasDelPeriodo` y `porMes` usan `api.get()` directamente con querystring construido manualmente. Esto es necesario porque los agregados PostgREST (`sum:total`, `sum:costos`) y la notacion de alias (`sum_total:sum:total`) no son compatibles con el query builder de `database.js`.
 
 ---
 
@@ -998,8 +1013,27 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Cuenta de Cobro | `cuenta-cobro-print.html`, pagina standalone, tabla 5 columnas, sin IVA, con firma |
 | Acceso Cuenta de Cobro | `ventas-historial.html#btn-cuenta-cobro`, boton verde emerald en modal historial |
 | Numeracion Cuenta de Cobro | `CC-{prefijo}-{numero_venta}`, derivado del numero de factura |
+| Panel dashboard | `panel.html`, `panel.js`, KPIs del Mes, KPIs Operativos, Top 5, Chart.js |
+| Filtro canal | `#filtro-canal`, `DB.ventas.estadisticasDelPeriodo()`, `getFiltros()` |
+| Grafico ventas mensuales | `cargarVentasMensuales()`, `DB.ventas.porMes()`, `#ventasMensualesChart`, Chart.js bar |
+| Grafico comparativa anual | `cargarComparativaAnual()`, `#comparativaChart`, Chart.js grouped bar |
+| Valor inventario KPI | `#kpi-inv-valor`, `stock_actual * precio_venta` en `cargarKpisOperativos()` |
+| Productos agotados KPI | `#kpi-inv-agotados`, `stock_actual <= 0` |
+| Ticket promedio periodo | `#kpi-mes-ticket`, nuevo 8vo KPI financiero |
+| Filtros reactivos | `bindearFiltros()`, `change` event → `cargarTodo()`, recarga completa del dashboard |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-06-26 — Panel Dinamico con Filtros y Graficos (Fase 21)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevos metodos: `DB.ventas.estadisticasDelPeriodo(anio, mes, canalId)` (agregacion en vivo por periodo/canal) y `DB.ventas.porMes(anio, canalId)` (ventas mensuales del ano con filtro opcional de canal) |
+| `apps/pos/panel.html` | Barra de filtros (canal, mes, ano) + graficos Chart.js (ventas mensuales + comparativa anual) + KPIs expandidos (8 financieros, 8 operativos/inventario) |
+| `apps/pos/js/paginas/panel.js` | Logica reactiva de filtros, 2 instancias Chart.js con cleanup, top 5 filtrable por periodo/canal con % del total, valor de inventario, productos agotados |
+| `specs/03-pos-spec.md` | Seccion 9 reescrita: filtros (9.2), KPIs del periodo (9.3), operativos+inventario (9.4), top 5 (9.5), graficos Chart.js (9.6), arquitectura (9.8), metodos nuevos DB (9.9) |
+| `AGENTS.md` | Seccion 5: 7 nuevas decisiones de diseno (panel filtros, dos fuentes datos, Chart.js, Flujo removido, Top 5 con %, inventario separado, api.get directo). Seccion 7.2: Fase 21. Seccion 11: 7 nuevas keywords. Seccion 13: changelog. |
+| `tests/` | Verificacion: `npm test` → 102 passed, 0 failures |
 
 ### 2026-06-26 — Cuenta de Cobro (documento imprimible) — Fase 20
 
