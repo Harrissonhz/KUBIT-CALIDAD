@@ -511,6 +511,41 @@ Los productos pueden tener uno o varios tags (campo `tags text[]` en `pos_produc
 5. **Precio:** Se congela al agregar. Si el precio cambia después, se notifica al cliente antes de checkout
 6. **Abandono:** Carritos sin actividad por 7 días pasan a `ABANDONADO`. Se pueden enviar correos de recuperación
 
+#### 3.3.1 Estructura del Item en Carrito (localStorage)
+
+El carrito se persiste en `localStorage` bajo la clave `kubit_carrito` como un array JSON. Cada item tiene la siguiente estructura:
+
+```json
+{
+  "productoId": "uuid-del-producto",
+  "detalleId": "uuid-del-detalle-variante",
+  "nombre": "Nombre del producto",
+  "variante": "Negro / M",
+  "codigo": "AL048-Negro",
+  "precio": 50000,
+  "imagen": "https://...",
+  "cantidad": 2
+}
+```
+
+**Campos:**
+| Campo | Tipo | Descripción |
+|---|---|---|
+| `productoId` | string | UUID de `pos_productos` |
+| `detalleId` | string\|null | UUID de `pos_productos_detalle` (variante). `null` si el producto no tiene variantes |
+| `nombre` | string | Nombre del producto (congelado al agregar) |
+| `variante` | string\|null | Nombre de la variante (ej: "Negro / M"). `null` en productos sin variantes |
+| `codigo` | string\|null | Código interno de la variante (SKU). `null` si no tiene |
+| `precio` | number | Precio de venta (congelado al agregar) |
+| `imagen` | string | URL de la imagen principal |
+| `cantidad` | number | Cantidad de unidades |
+
+**Reglas de duplicados:** Dos items se consideran el mismo si `productoId` y `detalleId` son iguales. Esto permite tener la misma camiseta en Negro y Blanco como items separados en el carrito.
+
+**Display UI:**
+- En el carrito (`carrito.js::renderItemRow()`): el nombre del producto en `text-sm font-medium`, la variante debajo en `text-xs text-slate-500`, el SKU en `text-[10px] font-mono text-slate-400`
+- En el checkout (`checkout.js::renderizarResumen()`): mismo patrón de jerarquía tipográfica
+
 ### 3.4 Checkout
 
 1. Se requiere al menos: dirección de envío, método de pago y aceptación de términos

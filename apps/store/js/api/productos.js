@@ -65,10 +65,22 @@ function mapearProducto(row) {
 
   if (detalles.length > 1) {
     variantes = detalles.map(function(d) {
+      var nombreVariante = 'Unico';
+      if (d.atributos) {
+        var vals = Object.values(d.atributos).filter(function(v) { return v && typeof v === 'string'; });
+        if (vals.length > 0) {
+          nombreVariante = vals.join(' / ');
+        } else if (d.codigo_interno) {
+          nombreVariante = d.codigo_interno;
+        }
+      } else if (d.codigo_interno) {
+        nombreVariante = d.codigo_interno;
+      }
       return {
         id: d.id,
-        nombre: (d.atributos && d.atributos.nombre) || d.codigo_interno || 'Único',
-        stock: d.stock_actual || 0
+        nombre: nombreVariante,
+        stock: d.stock_actual || 0,
+        codigo_interno: d.codigo_interno || ''
       };
     });
   }
@@ -76,6 +88,8 @@ function mapearProducto(row) {
   return {
     id: row.id,
     nombre: row.nombre,
+    detalleId: primerDetalle.id || null,
+    codigo_interno: primerDetalle.codigo_interno || '',
     slug: slug,
     descripcion_corta: _extraerDescripcionCorta(row.descripcion),
     descripcion_larga: row.descripcion || '',

@@ -91,6 +91,8 @@ function renderizarResumen(items) {
         </div>\
         <div class="flex-1 min-w-0">\
           <p class="text-sm text-slate-900 truncate">' + (item.nombre || 'Producto') + '</p>\
+          ' + (item.variante ? '<p class="text-xs text-slate-500 truncate">' + item.variante + '</p>' : '') + '\
+          ' + (item.codigo ? '<p class="text-[10px] font-mono text-slate-400 truncate">SKU: ' + item.codigo + '</p>' : '') + '\
           <p class="text-xs text-slate-400">' + cant + ' × ' + formatearMoneda(precio) + '</p>\
         </div>\
         <p class="text-sm font-medium text-slate-900">' + formatearMoneda(subtotal) + '</p>\

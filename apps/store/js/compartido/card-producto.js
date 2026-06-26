@@ -93,7 +93,8 @@ function CardProducto(producto) {
   return $div;
 }
 
-function agregarAlCarrito(producto) {
+function agregarAlCarrito(producto, opts) {
+  opts = opts || {};
   const tieneVariantes = (producto.variantes || []).length > 0;
   const stockTotal = tieneVariantes
     ? (producto.variantes || []).reduce(function(s, v) { return s + (v.stock || 0); }, 0)
@@ -114,15 +115,24 @@ function agregarAlCarrito(producto) {
     return;
   }
 
+  const detalleId = opts.detalleId || producto.detalleId || null;
+  const variante = opts.variante || null;
+  const codigo = opts.codigo || producto.codigo_interno || null;
+
   const carrito = JSON.parse(localStorage.getItem('kubit_carrito') || '[]');
-  const existente = carrito.find(item => item.productoId === producto.id);
+  const existente = carrito.find(function(item) {
+    return item.productoId === producto.id && (detalleId ? item.detalleId === detalleId : true);
+  });
 
   if (existente) {
     existente.cantidad += 1;
   } else {
     carrito.push({
       productoId: producto.id,
+      detalleId: detalleId,
       nombre: producto.nombre,
+      variante: variante,
+      codigo: codigo,
       precio: producto.precio,
       imagen: producto.imagen,
       cantidad: 1
@@ -139,6 +149,7 @@ function agregarAlCarrito(producto) {
         <img src="${producto.imagen}" alt="${producto.nombre}" class="w-14 h-14 rounded-lg object-cover bg-gray-100">
         <div>
           <p class="text-sm font-medium text-slate-900">${producto.nombre}</p>
+          ${variante ? '<p class="text-xs text-slate-400">' + variante + '</p>' : ''}
           <p class="text-sm text-slate-500">${formatearMoneda(producto.precio)}</p>
         </div>
       </div>

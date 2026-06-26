@@ -52,12 +52,14 @@ function renderItemRow(item) {
   var subtotal = (item.precio || 0) * (item.cantidad || 1);
   return '\
     <div class="flex flex-col sm:grid sm:grid-cols-12 gap-3 sm:gap-4 px-4 sm:px-6 py-4" data-id="' + item.productoId + '">\
-      <div class="sm:col-span-6 flex items-center gap-3">\
+        <div class="sm:col-span-6 flex items-center gap-3">\
         <div class="w-16 h-16 rounded-lg bg-gray-100 overflow-hidden shrink-0">\
           <img src="' + (item.imagen || '') + '" alt="' + (item.nombre || '') + '" class="w-full h-full object-cover" loading="lazy">\
         </div>\
-        <div>\
-          <p class="text-sm font-medium text-slate-900">' + (item.nombre || 'Producto') + '</p>\
+        <div class="min-w-0">\
+          <p class="text-sm font-medium text-slate-900 truncate">' + (item.nombre || 'Producto') + '</p>\
+          ' + (item.variante ? '<p class="text-xs text-slate-500 truncate">' + item.variante + '</p>' : '') + '\
+          ' + (item.codigo ? '<p class="text-[10px] font-mono text-slate-400 truncate">SKU: ' + item.codigo + '</p>' : '') + '\
           <p class="text-xs text-slate-400">' + formatearMoneda(item.precio || 0) + ' c/u</p>\
         </div>\
       </div>\

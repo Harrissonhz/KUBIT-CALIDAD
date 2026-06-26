@@ -177,6 +177,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Migracion Fase 3: producto_detalle_id via subquery | Scripts 09 y 09c preservan UUIDs V1 como `pos_productos.id`. `pos_productos_detalle.producto_id` es FK directa. El mapping se resuelve con subquery `(SELECT pd.id FROM pos_productos_detalle pd WHERE pd.producto_id = d.producto_id::uuid LIMIT 1)`. |
 | Migracion Fase 3: INSERT...SELECT con casts | Los scripts 10, 11, 12 usan `INSERT INTO ... SELECT ... FROM (VALUES ...)`. Todas las columnas UUID y timestamptz requieren cast explicito (`::uuid`, `::timestamptz`) porque Postgres no hace coercion implicita de texto a estos tipos en una proyeccion SELECT. |
 | Migracion Fase 3: 08b sin temp table | `08b-relink-ventas-gastos.sql` se regenero con CTE `WITH gasto_venta_map (gasto_id, venta_id) AS (VALUES ...)` usando los 298 pares hardcodeados. Ya no depende de la tabla temporal `_v1_gasto_venta_map` (que era session-scoped y se perdia). |
+| Variant naming in Store API | `mapearProducto()` extrae valores reales de `d.atributos` via `Object.values().join(' / ')` en vez de buscar `d.atributos.nombre` (propiedad inexistente). Fallback: `codigo_interno` → `'Unico'`. |
+| Cart item almacena variante y codigo | `agregarAlCarrito()` acepta 2do param `opts` con `{variante, codigo, detalleId}`. Matching de duplicados por `productoId + detalleId` para separar items de distinta variante. Display en carrito y checkout con `text-xs text-slate-500` debajo del nombre. |
 
 ---
 
@@ -427,6 +429,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `panel.html` — Barra de filtros (canal, mes, ano) + graficos Chart.js (ventas mensuales + comparativa anual) + KPIs expandidos (8 financieros, 8 operativos/inventario)
 - [x] `panel.js` — Logica reactiva de filtros, 2 instancias Chart.js con cleanup, top 5 filtrable por periodo/canal con % del total, valor de inventario, productos agotados
 - [x] Filtro Canal: cuando "Todos" usa `finanzasMensuales` (pre-agregado), cuando canal especifico usa `estadisticasDelPeriodo` (en vivo solo para ventas)
+- [x] `npm test` → 102 passed, 0 failures
+
+#### Módulo Store — Fase 22: Variant Name Fix + Cart Variant Display
+- [x] `productos.js` — `mapearProducto()` usa `Object.values(d.atributos).join(' / ')` en vez de `d.atributos.nombre`; agregado `codigo_interno` al objeto variante y `detalleId`/`codigo_interno` a nivel de producto
+- [x] `card-producto.js` — `agregarAlCarrito()` acepta 2do param `opts` con `{variante, codigo, detalleId}`; matching de duplicados por `productoId + detalleId`
+- [x] `producto.js` — Pasa `variante`, `codigo_interno` y `detalleId` de la variante seleccionada al agregar al carrito
+- [x] `carrito.js` — `renderItemRow()` muestra variante y SKU debajo del nombre del producto
+- [x] `checkout.js` — `renderizarResumen()` muestra variante y SKU en resumen del pedido
 - [x] `npm test` → 102 passed, 0 failures
 
 ### 7.4 Próximo Paso Recomendado
@@ -1021,8 +1031,25 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Productos agotados KPI | `#kpi-inv-agotados`, `stock_actual <= 0` |
 | Ticket promedio periodo | `#kpi-mes-ticket`, nuevo 8vo KPI financiero |
 | Filtros reactivos | `bindearFiltros()`, `change` event → `cargarTodo()`, recarga completa del dashboard |
+| Store variant naming | `mapearProducto()` `Object.values(d.atributos).join(' / ')`, fallback `codigo_interno` → `'Unico'` |
+| Cart variant data | `agregarAlCarrito()` 2do param `opts` con `{variante, codigo, detalleId}`, match por `productoId + detalleId` |
+| Cart display variante | `renderItemRow()`, `item.variante` `item.codigo`, `text-xs text-slate-500` debajo del nombre |
+| Checkout display variante | `renderizarResumen()`, `item.variante` `item.codigo`, resumen del pedido |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-06-26 — Store Variant Name Fix + Cart Variant Display (Fase 22)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/store/js/api/productos.js` | `mapearProducto()` usa `Object.values(d.atributos).join(' / ')` en vez de `d.atributos.nombre`; agregado `codigo_interno` al objeto variante y `detalleId`/`codigo_interno` a nivel de producto |
+| `apps/store/js/compartido/card-producto.js` | `agregarAlCarrito()` acepta 2do param `opts` con `{variante, codigo, detalleId}`; matching de duplicados por `productoId + detalleId`; modal post-agregado muestra variante |
+| `apps/store/js/paginas/producto.js` | Pasa `variante`, `codigo_interno` y `detalleId` de la variante seleccionada al agregar al carrito |
+| `apps/store/js/paginas/carrito.js` | `renderItemRow()` muestra variante (`item.variante`) y SKU (`item.codigo`) debajo del nombre |
+| `apps/store/js/paginas/checkout.js` | `renderizarResumen()` muestra variante y SKU en resumen del pedido |
+| `AGENTS.md` | Seccion 5: 2 nuevas decisiones (variant naming, cart variant). Seccion 7.2: Fase 22. Seccion 11: 4 nuevas keywords. Seccion 13: changelog. |
+| `specs/04-store-spec.md` | Nueva subseccion 3.3.1 documentando estructura de datos del carrito y display de variante |
+| **Tests** | `npm test` → 102 passed, 0 failures |
 
 ### 2026-06-26 — Panel Dinamico con Filtros y Graficos (Fase 21)
 

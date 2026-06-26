@@ -128,7 +128,13 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (agotado) { agregarAlCarrito(producto); return; }
         var selVariant = producto.variantes.find(function(v) { return v.id === seleccionada; });
         if (selVariant && selVariant.stock <= 0) { agregarAlCarrito(producto); return; }
-        agregarAlCarrito(producto);
+        var opts = {};
+        if (selVariant) {
+          opts.variante = selVariant.nombre;
+          opts.codigo = selVariant.codigo_interno;
+          opts.detalleId = selVariant.id;
+        }
+        agregarAlCarrito(producto, opts);
       });
     } else {
       document.getElementById('btn-agregar').addEventListener('click', function() {
