@@ -347,6 +347,10 @@
       if (!VENTA_ACTUAL) return;
       window.open('factura-print?id=' + VENTA_ACTUAL.id, '_blank');
     });
+    $('btn-cuenta-cobro').addEventListener('click', function () {
+      if (!VENTA_ACTUAL) return;
+      window.open('cuenta-cobro-print?id=' + VENTA_ACTUAL.id, '_blank');
+    });
   }
 
   document.addEventListener('DOMContentLoaded', init);

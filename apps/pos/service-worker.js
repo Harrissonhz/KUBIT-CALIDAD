@@ -19,6 +19,7 @@ var ASSETS = [
   'configuracion.html',
   'reportes.html',
   'factura-print.html',
+  'cuenta-cobro-print.html',
   'css/estilo.css',
   'js/config.js',
   'js/supabase.js',
