@@ -912,7 +912,84 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 
 ---
 
-## 10. Enlace a Tienda Virtual desde el POS
+## 10. Factura de Venta Imprimible (factura-print.html)
+
+### 10.1 Propósito
+Pagina standalone de impresión que renderiza una factura de venta en formato A4, optimizada para impresión y exportación a PDF. Se accede via `factura-print?id=<venta_uuid>` desde los módulos de Ventas (`ventas.js:992`) e Historial (`ventas-historial.js:348`). No depende de Tailwind CDN — usa CSS plano nativo para compatibilidad en entornos de impresión.
+
+### 10.2 Diseño Visual — DIAN-Style Clásico
+La factura sigue el formato tradicional colombiano de factura de venta, con las siguientes características estéticas:
+
+| Elemento | Descripción |
+|---|---|
+| **Tono** | Refined Professional — documento oficial colombiano con elegancia tipográfica |
+| **Fondo pantalla** | `#f5f4f0` (tipo papel reciclado sutil) |
+| **Fondo impresión** | Blanco puro, sin sombras ni bordes redondeados |
+| **Card invoice** | Borde `1px solid #d1d5db`, `border-radius: 10px`, padding `36px 32px` |
+| **Tipografía título** | `Georgia, 'Times New Roman', serif` — peso autoritario, `letter-spacing: 1.5px`, `text-transform: uppercase` |
+| **Tipografía cuerpo** | `'Segoe UI', system-ui, -apple-system, sans-serif` — limpia y legible |
+| **Tipografía códigos** | `'Consolas', 'Courier New', monospace` — look técnico/warehouse |
+| **Header empresa** | Doble línea inferior (2px + 1px) estilo documento oficial. Logo (60px height) + nombre + NIT + dirección + teléfono + email |
+| **Info boxes** | Cards con borde `1px solid #e2e8f0`, fondo `#fafafa`, etiquetas uppercase, padding 14px 16px |
+| **Tabla** | Bordes completos (`border-collapse: collapse`), header con fondo `#f1f5f9` y borde inferior `2px solid #0f172a`, filas alternadas (`:nth-child(even)` fondo `#fafafa`) |
+| **Totales** | Alineados a la derecha (`max-width: 280px; margin-left: auto`), borde doble en TOTAL |
+| **Footer** | "Forma de pago: X" + mensaje legal + "Generado por Kubit POS" + timestamp |
+
+### 10.3 Estructura de la Tabla (7 columnas)
+
+| # | Columna | Clase CSS | Ancho | Alineación | Fuente de Datos |
+|---|---|---|---|---|---|
+| 1 | `#` | `.col-num` | 28px | Centro | Índice secuencial (`i + 1` en `map()`) |
+| 2 | `Código` | `.col-codigo` | 100px | Izquierda | `d.detalle.codigo_interno` (monospace gris) |
+| 3 | `Producto` | (default) | Auto | Izquierda | `d.detalle.producto.nombre` (fallback: `codigo_interno` o UUID) |
+| 4 | `Cant.` | `.col-cant` | 56px | Centro | `d.cantidad` |
+| 5 | `Precio U.` | `.col-precio` | 110px | Derecha | `d.precio_unitario` |
+| 6 | `IVA` | `.col-iva` | 85px | Derecha | `d.impuesto \|\| 0` |
+| 7 | `Total` | `.col-total` | 120px | Derecha | `d.total` (negrita) |
+
+**Numeración automática:** Los items se numeran secuencialmente (1, 2, 3...) via el índice del `Array.map()`.
+
+### 10.4 Datos Disponibles
+
+La función `DB.ventas.obtener(id)` retorna un objeto venta con las siguientes relaciones anidadas utilizadas en la factura:
+
+```javascript
+/* Estructura del objeto venta (v) */
+v.cliente        // → pos_clientes (primer_nombre, segundo_nombre, primer_apellido, segundo_apellido, tipo_id, numero_id, direccion, celular, telefono, email)
+v.usuario        // → pos_usuarios (nombre_completo)
+v.canal          // → pos_canales_venta (nombre)
+v.detalles[]     // → pos_ventas_detalle (cantidad, precio_unitario, impuesto, total)
+  d.detalle      // → pos_productos_detalle (codigo_interno)
+    d.producto   // → pos_productos (nombre)
+```
+
+El `codigo_interno` se obtiene via `d.detalle.codigo_interno` gracias al `*` wildcard en la join `detalle:producto_detalle_id(*,producto:producto_id(nombre))` en `database.js:348`.
+
+### 10.5 Comportamiento
+
+| Aspecto | Detalle |
+|---|---|
+| **Carga** | Muestra spinner `#loading` mientras se resuelven `Promise.all([DB.ventas.obtener(), DB.configuracionEmpresa.obtener()])` |
+| **Error** | Muestra `#error-msg` con botón "Cerrar" si falta `id`, falla la API o no hay datos |
+| **Auto-print** | Tras renderizar, espera 500ms y ejecuta `window.print()` automáticamente |
+| **Responsive** | En ≤600px: header se apila vertical, info boxes en columna única, tabla se comprime (anchuras reducidas) |
+| **Print** | `@page { size: A4; margin: 12mm 15mm }`. Sin sombras, sin bordes redondeados, `thead { display: table-header-group }` para repetir encabezado en páginas múltiples, `page-break-inside: avoid` en filas |
+
+### 10.6 Decisiones de Diseño (No Reabrir)
+
+| Decisión | Valor |
+|---|---|
+| **Sin Tailwind CDN** | `factura-print.html` es una página standalone de impresión. Todo el CSS es nativo, sin dependencia de Tailwind CDN. Esto garantiza que la impresión funcione incluso sin conexión (cacheado por el Service Worker) |
+| **IVA por producto** | Se muestra el IVA individual por cada ítem en la columna "IVA" y también se totaliza al final como "IVA". La suma de `d.impuesto` de cada fila debe coincidir con `v.impuesto` |
+| **Código interno como columna independiente** | No se muestra como subtexto ni prefijo del nombre. Es una columna visible siempre, con fuente monospace y color gris para diferenciarse del nombre del producto |
+| **Numeración secuencial** | Los ítems se numeran 1, 2, 3... en la columna `#`. Esto facilita la referencia cruzada en documentos fiscales |
+| **Sin Resolución DIAN** | El bloque de resolución DIAN se eliminó del diseño por simplicidad. Los datos de resolución (`config.resolucion_dian`) se mantienen en la DB para cumplimiento futuro pero no se renderizan en la factura |
+| **Forma de pago en footer** | Se muestra como línea destacada en el footer ("Forma de pago: Efectivo") para cumplir con requisitos de documentación de venta |
+| **Auto-print con delay** | `setTimeout(window.print, 500)` permite que las fuentes y el layout se rendericen antes de abrir el diálogo de impresión. Sin este delay, algunos navegadores muestran la factura incompleta |
+
+---
+
+## 11. Enlace a Tienda Virtual desde el POS
 
 ### 10.1 Store URL
 La URL de la tienda virtual se configura en `pos_configuracion_empresa.store_url` y se edita desde `configuracion.html` (campo `#campo-store-url`).
@@ -940,7 +1017,7 @@ El bloque autoejecutable `cargarLinkTienda()` al final de `database.js` busca `#
 
 ---
 
-## 11. Glosario
+## 12. Glosario
 
 | Término | Definición |
 |---|---|

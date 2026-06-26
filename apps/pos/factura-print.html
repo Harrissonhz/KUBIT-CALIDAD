@@ -15,30 +15,31 @@
   <script src="js/supabase.js" charset="UTF-8"></script>
   <script src="js/compartido/database.js" charset="UTF-8"></script>
   <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
+    /* ════════════════════════════════════════════════════════════
+       RESET & BASE
+       ════════════════════════════════════════════════════════════ */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: #f1f5f9;
-      color: #0f172a;
+      background: #f5f4f0;
+      color: #1e293b;
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 20px;
+      padding: 28px 16px;
       min-height: 100vh;
     }
 
-    /* ─── Loading ─── */
+    /* ════════════════════════════════════════════════════════════
+       LOADING
+       ════════════════════════════════════════════════════════════ */
     #loading {
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 12px;
+      gap: 14px;
       min-height: 40vh;
     }
 
@@ -52,12 +53,12 @@
     }
 
     @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
+      to { transform: rotate(360deg); }
     }
 
-    /* ─── Invoice ─── */
+    /* ════════════════════════════════════════════════════════════
+       INVOICE CONTAINER & CARD
+       ════════════════════════════════════════════════════════════ */
     #invoice-container {
       display: none;
       width: 100%;
@@ -66,176 +67,272 @@
 
     .invoice {
       background: #fff;
-      padding: 40px 35px;
-      box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
-      border-radius: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 10px;
+      padding: 36px 32px;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, .06);
     }
 
-    /* Header */
+    /* ════════════════════════════════════════════════════════════
+       HEADER — Brand left + Title right
+       ════════════════════════════════════════════════════════════ */
     .inv-header {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
-      padding-bottom: 24px;
+      padding-bottom: 20px;
       border-bottom: 2px solid #0f172a;
-      margin-bottom: 24px;
+      margin-bottom: 4px;
     }
 
-    .inv-brand h2 {
-      font-size: 20px;
-      font-weight: 700;
-      color: #0f172a;
-      letter-spacing: -.3px;
+    .inv-header:after {
+      content: '';
+      display: block;
+      height: 1px;
+      background: #cbd5e1;
+      margin-top: 4px;
     }
 
-    .inv-brand p {
-      font-size: 12px;
-      color: #64748b;
-      margin-top: 2px;
-      line-height: 1.5;
+    .inv-brand {
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    .inv-brand-top {
+      display: flex;
+      align-items: center;
+      gap: 10px;
     }
 
     .inv-logo {
-      height: 70px;
+      height: 60px;
       width: auto;
-      display: inline-block;
-      vertical-align: middle;
-      margin-right: 8px;
       object-fit: contain;
+      border-radius: 4px;
+    }
+
+    .inv-brand h2 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #0f172a;
+      letter-spacing: -.3px;
+      line-height: 1.2;
+    }
+
+    .inv-datos {
+      font-size: 11px;
+      color: #64748b;
+      line-height: 1.55;
+      margin-top: 3px;
+    }
+
+    .inv-datos span {
+      display: inline-block;
+      margin-right: 16px;
     }
 
     .inv-title {
       text-align: right;
+      flex-shrink: 0;
     }
 
     .inv-title h1 {
+      font-family: Georgia, 'Times New Roman', serif;
       font-size: 22px;
       font-weight: 800;
       color: #0f172a;
-      letter-spacing: -.5px;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
     }
 
-    .inv-title p {
+    .inv-title .inv-numero {
       font-size: 13px;
-      color: #64748b;
-      margin-top: 2px;
+      font-weight: 600;
+      color: #334155;
+      margin-top: 3px;
     }
 
-    /* Info blocks */
+    .inv-title .inv-fecha {
+      font-size: 12px;
+      color: #64748b;
+      margin-top: 1px;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       INFO BOXES — Cliente left / Venta right
+       ════════════════════════════════════════════════════════════ */
     .inv-info {
       display: flex;
-      justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 28px;
+      gap: 20px;
+      margin-bottom: 22px;
     }
 
     .inv-info-box {
       flex: 1;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 14px 16px;
+      background: #fafafa;
     }
 
     .inv-info-box h3 {
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
+      letter-spacing: .6px;
       color: #64748b;
-      margin-bottom: 6px;
+      border-bottom: 1px solid #e2e8f0;
+      padding-bottom: 6px;
+      margin-bottom: 8px;
     }
 
     .inv-info-box p {
-      font-size: 13px;
+      font-size: 12px;
       line-height: 1.55;
-      color: #0f172a;
+      color: #1e293b;
     }
 
-    /* Table */
+    .inv-info-box .info-label {
+      font-size: 10px;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: .3px;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TABLE
+       ════════════════════════════════════════════════════════════ */
     .inv-table {
       width: 100%;
       border-collapse: collapse;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
+      font-size: 12px;
     }
 
     .inv-table thead th {
-      font-size: 11px;
-      font-weight: 600;
+      font-size: 10px;
+      font-weight: 700;
       text-transform: uppercase;
-      letter-spacing: .5px;
-      color: #64748b;
-      padding: 8px 6px 8px 0;
-      border-bottom: 1.5px solid #e2e8f0;
+      letter-spacing: .4px;
+      color: #475569;
+      background: #f1f5f9;
+      padding: 9px 8px;
+      border-bottom: 2px solid #0f172a;
       text-align: left;
-    }
-
-    .inv-table thead th:last-child,
-    .inv-table tbody td:last-child {
-      padding-right: 0;
-      text-align: right;
-    }
-
-    .inv-table thead th:nth-child(2),
-    .inv-table tbody td:nth-child(2) {
-      text-align: center;
-    }
-
-    .inv-table thead th:nth-child(3),
-    .inv-table tbody td:nth-child(3) {
-      text-align: right;
-    }
-
-    .inv-table thead th:nth-child(4),
-    .inv-table tbody td:nth-child(4) {
-      text-align: right;
+      white-space: nowrap;
     }
 
     .inv-table tbody td {
-      font-size: 13px;
-      padding: 8px 6px 8px 0;
+      padding: 8px 8px;
       border-bottom: 1px solid #e2e8f0;
-      color: #0f172a;
+      color: #1e293b;
+      vertical-align: top;
+    }
+
+    .inv-table tbody tr:nth-child(even) td {
+      background: #fafafa;
     }
 
     .inv-table tbody tr:last-child td {
       border-bottom: none;
     }
 
-    /* Totals */
+    /* Column-specific alignment */
+    .col-num {
+      width: 28px;
+      text-align: center;
+      color: #94a3b8;
+      font-size: 11px;
+    }
+    .col-codigo {
+      width: 100px;
+      font-family: 'Consolas', 'Courier New', monospace;
+      font-size: 11px;
+      color: #64748b;
+    }
+    .col-cant {
+      width: 56px;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+    .col-precio {
+      width: 110px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .col-iva {
+      width: 85px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .col-total {
+      width: 120px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      font-weight: 600;
+    }
+
+    .empty-row {
+      text-align: center;
+      color: #94a3b8;
+      padding: 20px 0 !important;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       TOTALS
+       ════════════════════════════════════════════════════════════ */
     .inv-totals {
-      border-top: 1.5px solid #e2e8f0;
-      padding-top: 14px;
-      margin-bottom: 24px;
+      border-top: 2px solid #0f172a;
+      padding-top: 12px;
+      margin-bottom: 20px;
+      max-width: 280px;
+      margin-left: auto;
     }
 
     .inv-totals-row {
       display: flex;
       justify-content: space-between;
       font-size: 13px;
-      padding: 3px 0;
+      padding: 4px 0;
       color: #475569;
+      font-variant-numeric: tabular-nums;
     }
 
     .inv-totals-row.total {
-      font-size: 16px;
-      font-weight: 700;
+      font-size: 17px;
+      font-weight: 800;
       color: #0f172a;
-      padding-top: 8px;
-      margin-top: 6px;
-      border-top: 1.5px solid #0f172a;
+      padding-top: 10px;
+      margin-top: 8px;
+      border-top: 2px double #0f172a;
     }
 
-    /* Footer */
+    /* ════════════════════════════════════════════════════════════
+       FOOTER
+       ════════════════════════════════════════════════════════════ */
     .inv-footer {
-      border-top: 1px solid #e2e8f0;
-      padding-top: 16px;
+      border-top: 1px solid #d1d5db;
+      padding-top: 14px;
       text-align: center;
     }
 
-    .inv-footer p {
-      font-size: 11px;
-      color: #94a3b8;
-      line-height: 1.5;
+    .inv-footer .inv-pago-line {
+      font-size: 12px;
+      color: #334155;
+      margin-bottom: 8px;
+      font-weight: 500;
     }
 
-    /* ─── Actions (hidden in print) ─── */
+    .inv-footer p {
+      font-size: 10px;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       ACTION BUTTONS
+       ════════════════════════════════════════════════════════════ */
     .actions {
       display: flex;
       gap: 10px;
@@ -257,21 +354,17 @@
       background: #0f172a;
       color: #fff;
     }
-
-    .btn-print:hover {
-      background: #1e293b;
-    }
+    .btn-print:hover { background: #1e293b; }
 
     .btn-close {
       background: #e2e8f0;
       color: #475569;
     }
+    .btn-close:hover { background: #cbd5e1; }
 
-    .btn-close:hover {
-      background: #cbd5e1;
-    }
-
-    /* ─── Error ─── */
+    /* ════════════════════════════════════════════════════════════
+       ERROR MESSAGE
+       ════════════════════════════════════════════════════════════ */
     #error-msg {
       display: none;
       text-align: center;
@@ -289,10 +382,12 @@
       color: #64748b;
     }
 
-    /* ─── PRINT ─── */
+    /* ════════════════════════════════════════════════════════════
+       PRINT
+       ════════════════════════════════════════════════════════════ */
     @page {
       size: A4;
-      margin: 15mm 18mm;
+      margin: 12mm 15mm;
     }
 
     @media print {
@@ -302,13 +397,8 @@
         min-height: auto;
       }
 
-      #loading {
-        display: none !important;
-      }
-
-      .actions {
-        display: none !important;
-      }
+      #loading { display: none !important; }
+      .actions { display: none !important; }
 
       #invoice-container {
         display: block !important;
@@ -317,16 +407,66 @@
       .invoice {
         box-shadow: none;
         border-radius: 0;
+        border: none;
         padding: 0;
       }
 
-      .inv-header {
-        border-bottom-color: #000;
+      .inv-header:after { display: none; }
+
+      .inv-info-box {
+        background: none;
+        border-color: #d1d5db;
+      }
+
+      .inv-table thead th {
+        background: #f1f5f9;
+      }
+
+      .inv-table tbody tr:nth-child(even) td {
+        background: #fafafa;
       }
 
       .inv-totals-row.total {
         border-top-color: #000;
       }
+
+      /* Repeat table header on multipage */
+      .inv-table thead {
+        display: table-header-group;
+      }
+
+      /* Avoid page breaks inside rows */
+      .inv-table tbody tr {
+        page-break-inside: avoid;
+      }
+    }
+
+    /* ════════════════════════════════════════════════════════════
+       RESPONSIVE — Small screens
+       ════════════════════════════════════════════════════════════ */
+    @media (max-width: 600px) {
+      body { padding: 12px 8px; }
+
+      .invoice { padding: 20px 14px; }
+
+      .inv-header {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .inv-title { text-align: left; }
+
+      .inv-info {
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .inv-totals { max-width: 100%; }
+
+      .col-codigo { width: 80px; font-size: 10px; }
+      .col-precio { width: 90px; }
+      .col-iva { width: 70px; }
+      .col-total { width: 100px; }
     }
   </style>
 </head>
@@ -419,7 +559,6 @@
           $('loading').style.display = 'none';
           $('invoice-container').style.display = 'block';
 
-          // Auto-print after a brief delay to let fonts render
           setTimeout(function () { window.print(); }, 500);
 
         } catch (e) {
@@ -435,6 +574,7 @@
       }
 
       function renderizarFactura(v, config) {
+        /* ─── Datos de empresa ─── */
         var empresaNombre = config ? config.nombre_empresa : 'Mi Empresa';
         var empresaNit = config ? config.nit : '';
         var empresaDir = config ? config.direccion : '';
@@ -443,8 +583,8 @@
         var empresaLogo = config ? config.logo_url : '';
         var mensajeLegal = config ? config.mensaje_legal : '';
         var prefijo = config ? config.prefijo_facturacion : '';
-        var resolucion = config ? config.resolucion_dian : '';
 
+        /* ─── Datos del cliente ─── */
         var clienteNombre = 'Consumidor Final';
         var clienteDoc = '';
         var clienteDir = '';
@@ -461,6 +601,7 @@
           clienteEmail = c.email || '';
         }
 
+        /* ─── Datos de la venta ─── */
         var metodoPago = v.metodo_pago || '—';
         var metodoLabel = {
           'transferencia': 'Transferencia',
@@ -472,99 +613,136 @@
         var canalNombre = v.canal ? v.canal.nombre : '—';
         var vendedorNombre = v.usuario ? v.usuario.nombre_completo : '—';
         var referencia = v.referencia_externa || '';
+        var numeroVenta = v.numero_venta || '—';
+        if (prefijo && numeroVenta !== '—') {
+          numeroVenta = prefijo + '-' + numeroVenta;
+        }
 
+        /* ─── Tabla de productos ─── */
         var itemsHtml = '';
         if (v.detalles && v.detalles.length) {
-          itemsHtml = v.detalles.map(function (d) {
+          itemsHtml = v.detalles.map(function (d, i) {
             var prodName = 'Producto';
             if (d.detalle && d.detalle.producto) {
               prodName = d.detalle.producto.nombre;
             } else if (d.detalle) {
               prodName = d.detalle.codigo_interno || d.producto_detalle_id;
             }
+
+            var codigoInterno = (d.detalle && d.detalle.codigo_interno) || '';
+
             return '<tr>' +
-              '<td>' + escaparHTML(prodName) + '</td>' +
-              '<td>' + d.cantidad + '</td>' +
-              '<td>' + formatearMoneda(d.precio_unitario) + '</td>' +
-              '<td>' + formatearMoneda(d.impuesto || 0) + '</td>' +
-              '<td>' + formatearMoneda(d.total) + '</td>' +
+              '<td class="col-num">' + (i + 1) + '</td>' +
+              '<td class="col-codigo">' + escaparHTML(codigoInterno) + '</td>' +
+              '<td class="col-producto">' + escaparHTML(prodName) + '</td>' +
+              '<td class="col-cant">' + d.cantidad + '</td>' +
+                '<td class="col-precio">' + formatearMoneda(d.precio_unitario) + '</td>' +
+                '<td class="col-iva">' + formatearMoneda(d.impuesto || 0) + '</td>' +
+                '<td class="col-total">' + formatearMoneda(d.total) + '</td>' +
               '</tr>';
           }).join('');
         } else {
-          itemsHtml = '<tr><td colspan="5" style="text-align:center;color:#94a3b8;padding:20px 0;">Sin detalle de productos</td></tr>';
+          itemsHtml = '<tr><td class="empty-row" colspan="7">Sin detalle de productos</td></tr>';
         }
 
+        /* ─── Info venta (lado derecho) ─── */
+        var infoVentaHtml =
+          '<p><span class="info-label">Metodo de pago</span><br>' + metodoLabel + '</p>' +
+          '<p style="margin-top:6px;"><span class="info-label">Canal</span><br>' + escaparHTML(canalNombre) + '</p>' +
+          '<p style="margin-top:6px;"><span class="info-label">Vendedor</span><br>' + escaparHTML(vendedorNombre) + '</p>';
+
+        if (referencia) {
+          infoVentaHtml += '<p style="margin-top:6px;"><span class="info-label">Referencia</span><br>' + escaparHTML(referencia) + '</p>';
+        }
+
+        /* ─── Totals ─── */
+        var descuentoHtml = '';
+        if (v.descuento > 0) {
+          descuentoHtml = '<div class="inv-totals-row"><span>Descuento</span><span>- ' + formatearMoneda(v.descuento) + '</span></div>';
+        }
+
+        /* ─── Footer: forma de pago ─── */
+        var pagoLabelCapitalizado = metodoLabel;
+
+        /* ─── Render ─── */
         $('invoice-content').innerHTML =
+          /* ── Header ── */
           '<div class="inv-header">' +
-          '<div class="inv-brand">' +
-          (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="inv-logo" onerror="this.style.display=\'none\'">' : '') +
-          '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
-          (empresaNit ? '<p>NIT: ' + escaparHTML(empresaNit) + '</p>' : '') +
-          (empresaDir ? '<p>' + escaparHTML(empresaDir) + '</p>' : '') +
-          (empresaTel ? '<p>Tel: ' + escaparHTML(empresaTel) + '</p>' : '') +
-          (empresaEmail ? '<p>' + escaparHTML(empresaEmail) + '</p>' : '') +
-          '</div>' +
-          '<div class="inv-title">' +
-          '<h1>FACTURA DE VENTA</h1>' +
-          '<p>No. ' + escaparHTML(v.numero_venta || '—') + '</p>' +
-          '<p>' + formatearFechaCorta(v.fecha_venta) + '</p>' +
-          '</div>' +
+            '<div class="inv-brand">' +
+              '<div class="inv-brand-top">' +
+                (empresaLogo ? '<img src="' + escaparHTML(empresaLogo) + '" alt="Logo" class="inv-logo" onerror="this.style.display=\'none\'">' : '') +
+                '<div>' +
+                  '<h2>' + escaparHTML(empresaNombre) + '</h2>' +
+                  '<div class="inv-datos">' +
+                    (empresaNit ? '<span>NIT ' + escaparHTML(empresaNit) + '</span>' : '') +
+                    (empresaDir ? '<span>' + escaparHTML(empresaDir) + '</span>' : '') +
+                    (empresaTel ? '<span>Tel ' + escaparHTML(empresaTel) + '</span>' : '') +
+                    (empresaEmail ? '<span>' + escaparHTML(empresaEmail) + '</span>' : '') +
+                  '</div>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<div class="inv-title">' +
+              '<h1>Factura de Venta</h1>' +
+              '<div class="inv-numero">No. ' + escaparHTML(numeroVenta) + '</div>' +
+              '<div class="inv-fecha">' + formatearFechaCorta(v.fecha_venta) + '</div>' +
+            '</div>' +
           '</div>' +
 
+          /* ── Info boxes ── */
           '<div class="inv-info">' +
-          '<div class="inv-info-box">' +
-          '<h3>Cliente</h3>' +
-          '<p>' + escaparHTML(clienteNombre) + '</p>' +
-          (clienteDoc ? '<p>' + escaparHTML(clienteDoc) + '</p>' : '') +
-          (clienteDir ? '<p>' + escaparHTML(clienteDir) + '</p>' : '') +
-          (clienteTel ? '<p>Tel: ' + escaparHTML(clienteTel) + '</p>' : '') +
-          (clienteEmail ? '<p>' + escaparHTML(clienteEmail) + '</p>' : '') +
-          '</div>' +
-          '<div class="inv-info-box" style="text-align:right;">' +
-          '<h3>Informacion de Venta</h3>' +
-          '<p>Metodo de pago: ' + metodoLabel + '</p>' +
-          '<p>Canal: ' + escaparHTML(canalNombre) + '</p>' +
-          '<p>Vendedor: ' + escaparHTML(vendedorNombre) + '</p>' +
-          (referencia ? '<p>Ref: ' + escaparHTML(referencia) + '</p>' : '') +
-          '</div>' +
+            '<div class="inv-info-box">' +
+              '<h3>Cliente</h3>' +
+              '<p>' + escaparHTML(clienteNombre) + '</p>' +
+              (clienteDoc ? '<p style="margin-top:4px;font-size:11px;color:#64748b;">' + escaparHTML(clienteDoc) + '</p>' : '') +
+              (clienteDir ? '<p style="margin-top:4px;font-size:11px;color:#64748b;">' + escaparHTML(clienteDir) + '</p>' : '') +
+              (clienteTel ? '<p style="margin-top:4px;font-size:11px;color:#64748b;">Tel: ' + escaparHTML(clienteTel) + '</p>' : '') +
+              (clienteEmail ? '<p style="margin-top:4px;font-size:11px;color:#64748b;">' + escaparHTML(clienteEmail) + '</p>' : '') +
+            '</div>' +
+            '<div class="inv-info-box">' +
+              '<h3>Informacion de Venta</h3>' +
+              infoVentaHtml +
+            '</div>' +
           '</div>' +
 
+          /* ── Table ── */
           '<table class="inv-table">' +
-          '<thead>' +
-          '<tr>' +
-          '<th>Producto</th>' +
-          '<th style="text-align:center;">Cant</th>' +
-          '<th style="text-align:right;">Precio U.</th>' +
-          '<th style="text-align:right;">Impuesto</th>' +
-          '<th style="text-align:right;">Total</th>' +
-          '</tr>' +
-          '</thead>' +
-          '<tbody>' + itemsHtml + '</tbody>' +
+            '<thead>' +
+              '<tr>' +
+                '<th class="col-num">#</th>' +
+                '<th class="col-codigo">Codigo</th>' +
+                '<th>Producto</th>' +
+                '<th class="col-cant">Cant</th>' +
+                '<th class="col-precio">Precio U.</th>' +
+                '<th class="col-iva">IVA</th>' +
+                '<th class="col-total">Total</th>' +
+              '</tr>' +
+            '</thead>' +
+            '<tbody>' + itemsHtml + '</tbody>' +
           '</table>' +
 
+          /* ── Totals ── */
           '<div class="inv-totals">' +
-          '<div class="inv-totals-row">' +
-          '<span>Subtotal</span>' +
-          '<span>' + formatearMoneda(v.subtotal) + '</span>' +
-          '</div>' +
-          (v.descuento > 0 ? '<div class="inv-totals-row"><span>Descuento</span><span>- ' + formatearMoneda(v.descuento) + '</span></div>' : '') +
-          '<div class="inv-totals-row">' +
-          '<span>IVA</span>' +
-          '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
-          '</div>' +
-          '<div class="inv-totals-row total">' +
-          '<span>TOTAL</span>' +
-          '<span>' + formatearMoneda(v.total) + '</span>' +
-          '</div>' +
+            '<div class="inv-totals-row">' +
+              '<span>Subtotal</span>' +
+              '<span>' + formatearMoneda(v.subtotal) + '</span>' +
+            '</div>' +
+            descuentoHtml +
+            '<div class="inv-totals-row">' +
+              '<span>IVA</span>' +
+              '<span>' + formatearMoneda(v.impuesto || 0) + '</span>' +
+            '</div>' +
+            '<div class="inv-totals-row total">' +
+              '<span>Total</span>' +
+              '<span>' + formatearMoneda(v.total) + '</span>' +
+            '</div>' +
           '</div>' +
 
-          (resolucion ? '<div style="font-size:10px;color:#94a3b8;text-align:center;margin-bottom:16px;line-height:1.4;">' +
-            'Resolucion DIAN: ' + escaparHTML(resolucion) +
-            '</div>' : '') +
-
+          /* ── Footer ── */
           '<div class="inv-footer">' +
-          (mensajeLegal ? '<p>' + escaparHTML(mensajeLegal) + '</p>' : '') +
-          '<p style="margin-top:4px;">Generado por Kubit POS — ' + formatearFecha(new Date().toISOString()) + '</p>' +
+            '<div class="inv-pago-line">Forma de pago: ' + pagoLabelCapitalizado + '</div>' +
+            (mensajeLegal ? '<p>' + escaparHTML(mensajeLegal) + '</p>' : '') +
+            '<p style="margin-top:4px;">Generado por Kubit POS — ' + formatearFecha(new Date().toISOString()) + '</p>' +
           '</div>';
       }
 

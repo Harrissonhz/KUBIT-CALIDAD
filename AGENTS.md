@@ -402,6 +402,17 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `database.test.js` — 3 nuevos tests: suma correcta (100000+129572=229572), array vacio retorna 0, error de red retorna 0.
 - [x] `npm test` → 102 passed, 0 failures (99→102, +3 tests totalDelMes)
 
+#### Módulo POS — Fase 19: Factura Print Redesign (DIAN-style)
+- [x] `factura-print.html` — CSS completamente redisenado: layout DIAN-style clasico con tipografia Georgia (titulo) + monospace (codigos), borde doble en header, cards info con bordes, tabla de 7 columnas con filas alternadas, fondos warm paper-like para pantalla y blanco puro para print
+- [x] `factura-print.html` — Columna `#` (numeracion secuencial de items) como primera columna
+- [x] `factura-print.html` — Columna `Codigo` con `d.detalle.codigo_interno` en monospace gris, visible siempre (ya no solo como fallback)
+- [x] `factura-print.html` — Columna `IVA` por producto, mostrando `d.impuesto || 0` por fila
+- [x] `factura-print.html` — Bloque de Resolucion DIAN eliminado del diseno (campo `resolucion_dian` permanece en DB para uso futuro)
+- [x] `factura-print.html` — Print optimizado: `@page A4`, `thead { display: table-header-group }` para multi-pagina, `page-break-inside: avoid`
+- [x] `specs/03-pos-spec.md` — Nueva seccion 10 documentando factura-print: diseno, tabla de 7 columnas, datos disponibles, comportamiento, decisiones de diseno
+- [x] `AGENTS.md` — Decision de diseno documentada en seccion 5, keywords agregadas en seccion 11, Fase 19 en seccion 7.2
+- [x] `npm test` → 102 passed, 0 failures (sin cambios en JS de logica de negocio)
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -860,6 +871,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Paginas legales con indice grid 2 columnas:** Las 3 paginas (terminos, privacidad, FAQ) usan el mismo patron de indice: tarjeta blanca con `<div class="grid grid-cols-1 sm:grid-cols-2">` y links `text-sky-600`. Sin listas `<ul>`, sin chips `rounded-full`. Consistencia visual garantizada.
 - **Contenido legal migrado de pre-line a HTML semantico:** Tanto `terminos-condiciones.html` como `politica-privacidad.html` migraron de `white-space: pre-line` (un solo div de texto plano) a secciones HTML con `<section>`, `id` para anclajes, `scroll-mt-20` para navegacion suave, y estructura `<h3>` + `<ul>`/`<ol>` + `<p>`. Esto es esencial para escalabilidad, SEO y accesibilidad.
 - **Compras del Mes en tiempo real en el Panel:** El KPI "Compras" del Dashboard (`panel.html`) no debe leer `pos_finanzas_mensuales.compras_total` (dato estatico que se desactualiza). En su lugar usa `DB.compras.totalDelMes()` que suma `pos_compras.total` del mes actual via PostgREST. Sin cache, filtro por `estado IN (RECIBIDA,PENDIENTE)`, soft-delete excluido. Usa `api.get()` directo (no `select()` helper) porque los operadores `in.()` e `is.null` no son compatibles con el query builder de `database.js`.
+- **Factura Print DIAN-Style:** La pagina `factura-print.html` usa diseño clasico colombiano DIAN-style con CSS plano nativo (sin Tailwind CDN). Tabla de 7 columnas: `#` | Codigo | Producto | Cant | Precio U. | IVA | Total. El `codigo_interno` se muestra como columna independiente en monospace gris. La resolucion DIAN no se renderiza (el campo `resolucion_dian` se mantiene en DB para uso futuro). IVA se muestra por producto y totalizado. El bloque de resolucion DIAN se elimino del diseño -- no confundir: los datos existen en DB pero no se muestran en la factura.
 
 ---
 
@@ -967,8 +979,28 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Transformacion impuesto | `impuesto_default /100`, `19.00 → 0.19` |
 | UUID admin V1 | `497a2c95-d707-4d5b-8b01-34257f3b0224` |
 | Compras del Mes en tiempo real | `database.js::DB.compras.totalDelMes()`, `panel.js::cargarKpisMes()`, query en vivo a `pos_compras`, sin cache, filtro `estado IN (RECIBIDA,PENDIENTE)` |
+| Factura Print DIAN-style | `factura-print.html`, CSS nativo sin Tailwind, tabla 7 columnas (#, Codigo, Producto, Cant, Precio U., IVA, Total) |
+| Columna Codigo en factura | `factura-print.html::col-codigo`, `d.detalle.codigo_interno`, monospace gris, visible siempre |
+| Columna IVA por producto | `factura-print.html::col-iva`, `d.impuesto \|\| 0`, por fila + totalizado en Totals |
+| Numeracion items factura | `factura-print.html::col-num`, indice secuencial `i+1` en `map()` |
+| Resolucion DIAN | Campo `pos_configuracion_empresa.resolucion_dian`, almacenado en DB pero no renderizado en factura-print |
+| Factura print optimizada | `@page A4`, `thead { display: table-header-group }`, `page-break-inside: avoid`, margenes 12mm 15mm |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-06-26 — Factura Print Redesign (DIAN-style) + Columna Codigo Interno + IVA por producto
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/factura-print.html` | CSS redisenado a DIAN-style clasico: tipografia Georgia (titulo) + monospace (codigos), borde doble header, cards info, tabla 7 columnas, filas alternadas, fondo warm paper-like |
+| `apps/pos/factura-print.html` | Nueva columna `Codigo`: `d.detalle.codigo_interno` como columna independiente visible siempre (antes solo fallback) |
+| `apps/pos/factura-print.html` | Nueva columna `IVA`: `d.impuesto \|\| 0` por fila en tabla (columna independiente de 85px) |
+| `apps/pos/factura-print.html` | Nueva columna `#`: numeracion secuencial de items (1, 2, 3...) como primera columna |
+| `apps/pos/factura-print.html` | Bloque Resolucion DIAN eliminado del diseno (datos en DB se conservan para uso futuro) |
+| `apps/pos/factura-print.html` | Print optimizado: `@page A4`, `thead table-header-group`, `page-break-inside: avoid`, responsive mobile (≤600px) |
+| `specs/03-pos-spec.md` | Nueva seccion 10 completa: Factura de Venta Imprimible con diseño, tabla 7 columnas, datos disponibles, comportamiento, decisiones de diseño |
+| `AGENTS.md` | Seccion 5: decision de diseno DIAN-style. Seccion 7.2: Fase 19. Seccion 11: 6 nuevas keywords. |
+| **Tests** | `npm test` → 102 passed, 0 failures (sin cambios en logica de negocio) |
 
 ### 2026-06-22 — Panel Compras en Tiempo Real (Fase 18)
 
