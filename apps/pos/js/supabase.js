@@ -13,6 +13,7 @@ if (typeof CONFIG === 'undefined') {
 (function() {
   var URL = CONFIG?.supabaseUrl || SUPABASE_URL;
   var KEY = CONFIG?.supabaseAnonKey || SUPABASE_ANON_KEY;
+  var SERVICE_KEY = CONFIG?.supabaseServiceKey || SUPABASE_SERVICE_KEY;
 
   var AUTH_TOKEN = null;
 
@@ -44,12 +45,42 @@ if (typeof CONFIG === 'undefined') {
     return res.json();
   }
 
+  function _authHeaders() {
+    return {
+      'apikey': SERVICE_KEY,
+      'Authorization': 'Bearer ' + SERVICE_KEY,
+      'Content-Type': 'application/json'
+    };
+  }
+
+  function _authFetch(path, opts) {
+    return fetch(URL + '/auth/v1/' + path, {
+      method: opts.method || 'GET',
+      headers: Object.assign(_authHeaders(), opts.headers || {}),
+      body: opts.body
+    });
+  }
+
   window.__supabase = {
     get supabaseUrl() { return URL; },
     get supabaseKey() { return KEY; },
 
     setAuth: function(token) { AUTH_TOKEN = token; },
     clearAuth: function() { AUTH_TOKEN = null; },
+
+    authPost: function(path, body) {
+      return _authFetch(path, {
+        method: 'POST',
+        body: JSON.stringify(body)
+      });
+    },
+
+    authPut: function(path, body) {
+      return _authFetch(path, {
+        method: 'PUT',
+        body: JSON.stringify(body)
+      });
+    },
 
     get: function(path, extra) {
       return _fetch(path, Object.assign({ method: 'GET' }, extra || {}));

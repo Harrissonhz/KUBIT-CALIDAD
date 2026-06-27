@@ -150,8 +150,11 @@ create table public.pos_roles (
   nombre text not null,
   descripcion text,
   created_at timestamptz default now(),
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  deleted_at timestamptz
 );
+
+create index idx_pos_roles_deleted_at on public.pos_roles(deleted_at);
 
 create trigger trg_pos_roles_updated_at
   before update on public.pos_roles

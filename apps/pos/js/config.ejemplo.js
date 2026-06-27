@@ -18,10 +18,12 @@ const CONFIG = {
   development: {
     supabaseUrl: 'https://TU_PROYECTO_DEV.supabase.co',
     supabaseAnonKey: 'tu-anon-key-de-desarrollo',
+    supabaseServiceKey: 'tu-service-role-key-de-desarrollo',
   },
   production: {
     supabaseUrl: 'https://TU_PROYECTO_PROD.supabase.co',
     supabaseAnonKey: 'tu-anon-key-de-produccion',
+    supabaseServiceKey: 'tu-service-role-key-de-produccion',
   }
 };
 
@@ -30,3 +32,4 @@ const CONFIG = {
 // ============================================
 const SUPABASE_URL = CONFIG[ENTORNO].supabaseUrl;
 const SUPABASE_ANON_KEY = CONFIG[ENTORNO].supabaseAnonKey;
+const SUPABASE_SERVICE_KEY = CONFIG[ENTORNO].supabaseServiceKey;

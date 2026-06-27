@@ -179,6 +179,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Migracion Fase 3: 08b sin temp table | `08b-relink-ventas-gastos.sql` se regenero con CTE `WITH gasto_venta_map (gasto_id, venta_id) AS (VALUES ...)` usando los 298 pares hardcodeados. Ya no depende de la tabla temporal `_v1_gasto_venta_map` (que era session-scoped y se perdia). |
 | Variant naming in Store API | `mapearProducto()` extrae valores reales de `d.atributos` via `Object.values().join(' / ')` en vez de buscar `d.atributos.nombre` (propiedad inexistente). Fallback: `codigo_interno` → `'Unico'`. |
 | Cart item almacena variante y codigo | `agregarAlCarrito()` acepta 2do param `opts` con `{variante, codigo, detalleId}`. Matching de duplicados por `productoId + detalleId` para separar items de distinta variante. Display en carrito y checkout con `text-xs text-slate-500` debajo del nombre. |
+| Soft-delete en pos_roles | `pos_roles` se creo originalmente sin `deleted_at` (por ser catalogo de referencia). Para consistencia con las otras 34 tablas, se agrego via ALTER TABLE + actualizacion de `specs/01-schema.sql`. Ningun script de migracion depende de esta columna. |
+| Validacion por permiso, no por nombre de rol | `usuarios.js` no compara `rolNombre !== 'Administrador'`. Usa `tienePermiso('pos.usuarios.*')`. Esto permite que roles con nombre distinto a 'Administrador' (ej: el rol migrado 'admin') puedan gestionar usuarios si tienen el permiso asignado. Mas granular y consistente con el sistema de `data-permiso` del sidebar. |
+| Rol admin duplicado eliminado | El rol `admin` (UUID `00000000-0000-0000-0000-000000000001`) se creo en la migracion V1 como copia del seed `Administrador`. Todos sus usuarios se migraron al rol `Administrador` real (UUID `6442e6cd-...`). Luego se elimino el rol y sus `pos_rol_permisos`. Ahora solo existe 1 rol de administracion. |
 
 ---
 
@@ -422,6 +425,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `service-worker.js` — `'cuenta-cobro-print.html'` agregado al precache de assets criticos
 - [x] `specs/03-pos-spec.md` — Nueva seccion 11 documentando cuenta-cobro: diseno, tabla 5 columnas, decisiones de diseno, acceso desde historial
 - [x] `AGENTS.md` — Decision de diseno en seccion 5, keywords en seccion 11, Fase 20 en seccion 7.2
+- [x] `npm test` → 102 passed, 0 failures
+
+#### Módulo POS — Fase CRUD Usuarios: Autenticacion real + Gestion de Usuarios
+- [x] `config.js` — `SUPABASE_SERVICE_KEY` agregada para Admin API de Supabase Auth
+- [x] `supabase.js` — `authPost()` y `authPut()` para crear/actualizar usuarios en Auth via Service Role Key
+- [x] `database.js` — `DB.roles` y `DB.usuarios` (listar, crear, obtener, actualizar, eliminar, crearConAuth, actualizarPassword)
+- [x] `usuarios.html` — Pagina CRUD con formulario, tabla, busqueda, paginacion, icon-actions
+- [x] `usuarios.js` — Logica completa con validacion de solo Administradores, toggle contrasena en edicion
+- [x] `service-worker.js` — `usuarios.html` y `usuarios.js` agregados al precache
+- [x] 18 paginas `.html` — Sidebar actualizado con enlace Usuarios + `data-permiso="pos.usuarios.*"`
+- [x] `specs/01-schema.sql` — `deleted_at` agregado a `pos_roles` para consistencia soft-delete
+- [x] `usuarios.js` — Validacion por permiso `pos.usuarios.*` en vez de comparacion de nombre de rol
 - [x] `npm test` → 102 passed, 0 failures
 
 #### Módulo POS — Fase 21: Panel Dinamico con Filtros y Graficos
@@ -1035,6 +1050,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Cart variant data | `agregarAlCarrito()` 2do param `opts` con `{variante, codigo, detalleId}`, match por `productoId + detalleId` |
 | Cart display variante | `renderItemRow()`, `item.variante` `item.codigo`, `text-xs text-slate-500` debajo del nombre |
 | Checkout display variante | `renderizarResumen()`, `item.variante` `item.codigo`, resumen del pedido |
+| CRUD Usuarios POS | `usuarios.html`, `usuarios.js`, `DB.usuarios`, `DB.roles` |
+| Crear usuario en Auth | `supabase.js::authPost()`, `DB.usuarios.crearConAuth()`, Service Role Key |
+| Roles del sistema | `pos_roles`, `DB.roles.listar()`, dropdown `#campo-rol` |
+| Validacion por permiso | `tienePermiso('pos.usuarios.*')` en `usuarios.js`, no comparar nombre de rol |
+| Rol admin consolidado | Rol `admin` (UUID `00000000-...`) eliminado. Solo existe `Administrador` (UUID `6442e6cd-...`) |
+| Sidebar Usuarios faltante | `panel.html`, `herramientas.html`, `herramientas/renombrar-archivos.html` no tenian enlace Usuarios |
+| data-permiso en Usuarios | `data-permiso="pos.usuarios.*"` en enlace Usuarios del sidebar (18 paginas) |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1175,3 +1197,31 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09-migrate-productos-pos.sql` | Nuevo: migra 128 productos desde CSV V1 (productos_rows.csv) a pos_productos + pos_productos_detalle. UUIDs V1 preservados. tipo_producto='Fisico' (excepto CV001='Digital'). tasa_impuesto/100. precio_compra=0 si vacio. margen_ganancia=NULL si vacio (no recalcular). Sin multimedia en esta fase. |
 | `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09b-update-store-data.sql` | Nuevo: para 110 productos comunes (CSV+JSON): UPDATE descripcion desde JSON + INSERT multimedia (1068 imagenes + 110 videos) desde JSON.imagenes[] y JSON.video. Tipo 'imagen' con orden secuencial, tipo 'video' con orden=999. Requisito: 09 ejecutado primero. |
 | `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/09c-migrate-productos-digitales.sql` | Nuevo: migra 203 productos digitales (cursos CV-prefix + PooBasico + ProductoDigitalPremium) 100% desde JSON. CTE para INSERT pos_productos + pos_productos_detalle con UUID consistente. Categoria fija: Cursos Virtuales. Tipo Digital, tasa_impuesto=0, stock=999 simbolico. Multimedia: 1819 imagenes + 203 videos. Tabla temporal _v1_prod_digital_map para mapeo nombre→UUID. precio_venta pendiente de actualizar manualmente. |
+
+### 2026-06-27 — Fase CRUD Usuarios: Autenticacion real + Gestion de Usuarios
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/config.js` | `SUPABASE_SERVICE_KEY` agregada para Admin API de Supabase Auth |
+| `apps/pos/js/supabase.js` | `authPost()` y `authPut()` para crear/actualizar usuarios en Auth via Service Role Key |
+| `apps/pos/js/compartido/database.js` | `DB.roles` y `DB.usuarios` (listar, crear, obtener, actualizar, eliminar, crearConAuth, actualizarPassword) |
+| `apps/pos/usuarios.html` | Pagina CRUD con formulario, tabla, busqueda, paginacion, icon-actions |
+| `apps/pos/js/paginas/usuarios.js` | Logica completa con validacion de solo Administradores, toggle contrasena en edicion |
+| `apps/pos/service-worker.js` | `usuarios.html` y `usuarios.js` agregados al precache |
+| 18 paginas `.html` | Sidebar actualizado con enlace Usuarios + `data-permiso="pos.usuarios.*"` |
+| `specs/01-schema.sql` | `deleted_at` agregado a `pos_roles` para consistencia soft-delete |
+| `usuarios.js` | Validacion por permiso `pos.usuarios.*` en vez de comparacion de nombre de rol |
+| `npm test` | 102 passed, 0 failures |
+
+### 2026-06-27 — Fix Sidebar Usuarios + Schema pos_roles + Consolidacion roles
+
+| Archivo | Cambio |
+|---|---|
+| `specs/01-schema.sql` | Agregada columna `deleted_at timestamptz` + indice a `pos_roles` para alinear con convencion de soft-delete del proyecto |
+| `panel.html` | Agregado enlace Usuarios faltante en grupo Administracion del sidebar |
+| `herramientas.html` | Agregado enlace Usuarios faltante en grupo Administracion del sidebar |
+| `herramientas/renombrar-archivos.html` | Agregado enlace Usuarios faltante en grupo Administracion del sidebar |
+| 18 paginas `*.html` | Agregado `data-permiso="pos.usuarios.*"` al enlace Usuarios en el sidebar para control de permisos consistente |
+| SQL (ejecutado por usuario) | UPDATE `pos_usuarios` migrando usuarios del rol `admin` (`00000000-...`) al rol `Administrador` (`6442e6cd-...`). DELETE del rol `admin` duplicado y sus `pos_rol_permisos`. |
+| `AGENTS.md` | Seccion 5: decision de diseno documentada (`pos_roles.deleted_at` agregado por consistencia con soft-delete). Seccion 7.2: Fase CRUD Usuarios completada. Seccion 13: changelog. |
+| `npm test` | 102 passed, 0 failures |

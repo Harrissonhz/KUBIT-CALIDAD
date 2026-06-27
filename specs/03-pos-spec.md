@@ -373,6 +373,7 @@ erDiagram
         string descripcion
         timestamp created_at
         timestamp updated_at
+        timestamp deleted_at
     }
 
     pos_rol_permisos {

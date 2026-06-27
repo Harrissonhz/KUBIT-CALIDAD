@@ -1081,6 +1081,112 @@ window.DB = (function () {
   };
 
   /* ════════════════════════════════════════════════════════════
+      ENTITY: ROLES
+      ════════════════════════════════════════════════════════════ */
+  var roles = {
+    listar: async function () {
+      var cacheKey = 'roles_listar';
+      var cached = _cacheGet(cacheKey);
+      if (cached) return cached;
+
+      var res = await select('pos_roles', {
+        orderBy: 'nombre'
+      });
+
+      _cacheSet(cacheKey, res, 60000);
+      return res;
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
+      ENTITY: USUARIOS
+      ════════════════════════════════════════════════════════════ */
+  var usuarios = {
+    listar: async function (opts) {
+      return select('pos_usuarios', Object.assign({
+        select: '*,rol:rol_id(id,nombre)',
+        orderBy: 'nombre_completo',
+        searchFields: ['nombre_completo', 'usuario', 'email', 'documento']
+      }, opts || {}));
+    },
+
+    obtener: async function (id) {
+      var res = await select('pos_usuarios', {
+        select: '*,rol:rol_id(id,nombre)',
+        filters: [{ col: 'id', val: id }],
+        limit: 1
+      });
+      return { data: res.data && res.data[0] || null, error: res.error };
+    },
+
+    crear: async function (data) { return insert('pos_usuarios', data); },
+    actualizar: async function (id, data) { return update('pos_usuarios', id, data); },
+    eliminar: async function (id) { return softDelete('pos_usuarios', id); },
+
+    crearConAuth: async function (datosUsuario, password) {
+      try {
+        // 1. Crear usuario en Supabase Auth via Admin API
+        var authRes = await window.__supabase.authPost('admin/users', {
+          email: datosUsuario.email,
+          password: password,
+          email_confirm: true,
+          user_metadata: { full_name: datosUsuario.nombre_completo }
+        });
+
+        if (!authRes.ok) {
+          var errText = await authRes.text();
+          return { data: null, error: 'Error creando usuario en Auth: ' + errText };
+        }
+
+        var authUser = await authRes.json();
+
+        // 2. Insertar en pos_usuarios con el mismo UUID de Auth
+        var usuarioData = {
+          id: authUser.id,
+          nombre_completo: datosUsuario.nombre_completo,
+          usuario: datosUsuario.usuario,
+          email: datosUsuario.email,
+          telefono: datosUsuario.telefono || null,
+          documento: datosUsuario.documento || null,
+          fecha_nacimiento: datosUsuario.fecha_nacimiento || null,
+          direccion: datosUsuario.direccion || null,
+          rol_id: datosUsuario.rol_id,
+          activo: datosUsuario.activo !== false,
+          password_hash: ''
+        };
+
+        var dbRes = await insert('pos_usuarios', usuarioData);
+        if (dbRes.error) {
+          return { data: null, error: dbRes.error };
+        }
+
+        return { data: usuarioData, error: null };
+      } catch (e) {
+        console.error('[DB] usuarios.crearConAuth error:', e);
+        return { data: null, error: e.message };
+      }
+    },
+
+    actualizarPassword: async function (userId, newPassword) {
+      try {
+        var authRes = await window.__supabase.authPut('admin/users/' + userId, {
+          password: newPassword
+        });
+
+        if (!authRes.ok) {
+          var errText = await authRes.text();
+          return { error: 'Error actualizando password en Auth: ' + errText };
+        }
+
+        return { error: null };
+      } catch (e) {
+        console.error('[DB] usuarios.actualizarPassword error:', e);
+        return { error: e.message };
+      }
+    }
+  };
+
+  /* ════════════════════════════════════════════════════════════
       API PUBLICA
       ════════════════════════════════════════════════════════════ */
   return {
@@ -1111,7 +1217,9 @@ window.DB = (function () {
     gastos: gastos,
     gastoCategorias: gastoCategorias,
     finanzasMensuales: finanzasMensuales,
-    configuracionEmpresa: configuracionEmpresa
+    configuracionEmpresa: configuracionEmpresa,
+    roles: roles,
+    usuarios: usuarios
   };
 })();
 
