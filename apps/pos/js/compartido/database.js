@@ -516,25 +516,29 @@ window.DB = (function () {
 
     estadisticasDelPeriodo: async function (anio, mes, canalId) {
       var m = String(mes).padStart(2, '0');
-      var desde = anio + '-' + m + '-01T00:00:00';
-      var lFin = new Date(anio, mes, 0).getDate();
-      var hasta = anio + '-' + m + '-' + String(lFin).padStart(2, '0') + 'T23:59:59';
-      var qs = 'select=count,sum_total:sum:total,avg_total:avg:total,sum_costos:sum:costos&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
-      if (canalId) {
-        qs += '&canal_id=eq.' + encodeURIComponent(canalId);
-      }
+      var sigMes = mes === 12 ? 1 : mes + 1;
+      var sigAnio = mes === 12 ? anio + 1 : anio;
+      var desde = anio + '-' + m + '-01T05:00:00';
+      var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
+      var qs = 'select=total,costo_cargo_venta,costo_impuestos,costo_envios&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
+      if (canalId) qs += '&canal_id=eq.' + encodeURIComponent(canalId);
       try {
-        var res = await api.get('pos_ventas?' + qs);
-        var row = (res || [])[0] || {};
-        return { count: row.count || 0, total: row.sum_total || 0, promedio: row.avg_total || 0, costos: row.sum_costos || 0, error: null };
+        var rows = await api.get('pos_ventas?' + qs) || [];
+        var count = rows.length;
+        var total = rows.reduce(function (s, r) { return s + (r.total || 0); }, 0);
+        var promedio = count > 0 ? total / count : 0;
+        var costos = rows.reduce(function (s, r) {
+          return s + (r.costo_cargo_venta || 0) + (r.costo_impuestos || 0) + (r.costo_envios || 0);
+        }, 0);
+        return { count: count, total: total, promedio: promedio, costos: costos, error: null };
       } catch (e) {
         return { count: 0, total: 0, promedio: 0, costos: 0, error: e.message };
       }
     },
 
     porMes: async function (anio, canalId) {
-      var desde = anio + '-01-01T00:00:00';
-      var hasta = anio + '-12-31T23:59:59';
+      var desde = anio + '-01-01T05:00:00';
+      var hasta = (anio + 1) + '-01-01T05:00:00';
       var qs = 'select=total,fecha_venta&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
       if (canalId) {
         qs += '&canal_id=eq.' + encodeURIComponent(canalId);
@@ -800,8 +804,10 @@ window.DB = (function () {
       try {
         var a = anio || new Date().getFullYear();
         var m = mes || (new Date().getMonth() + 1);
-        var desde = a + '-' + String(m).padStart(2, '0') + '-01';
-        var hasta = (m === 12 ? a + 1 : a) + '-' + String((m % 12) + 1).padStart(2, '0') + '-01';
+        var sigMes = m === 12 ? 1 : m + 1;
+        var sigAnio = m === 12 ? a + 1 : a;
+        var desde = a + '-' + String(m).padStart(2, '0') + '-01T05:00:00';
+        var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
         var data = await api.get('pos_compras?select=total' +
           '&estado=in.(RECIBIDA,PENDIENTE)' +
           '&deleted_at=is.null' +

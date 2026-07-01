@@ -113,7 +113,7 @@
             Productos
           </a>
           <a href="categorias.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm transition-colors">
-            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 019.568 3z"/><path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6z"/></svg>
             Categorias
           </a>
           <a href="inventario.html" class="flex items-center gap-3 px-3 py-2 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 text-sm transition-colors">
@@ -252,38 +252,43 @@
       </div>
 
       <!-- KPIs del Periodo -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="kpis-mes">
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ventas Brutas</span>
-          <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-mes-ventas">---</span>
+      <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 sm:p-5">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-sm font-semibold text-slate-950 dark:text-white uppercase tracking-wider">Rentabilidad del Periodo</h3>
         </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ventas Netas</span>
-          <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-ventas-netas">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Compras</span>
-          <span class="text-lg font-bold text-red-500 block" id="kpi-mes-compras">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Comisiones</span>
-          <span class="text-lg font-bold text-amber-500 block" id="kpi-mes-comisiones">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Gastos</span>
-          <span class="text-lg font-bold text-red-500 block" id="kpi-mes-gastos">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Utilidad Neta</span>
-          <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-utilidad">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Margen</span>
-          <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-margen">---</span>
-        </div>
-        <div class="bg-white dark:bg-slate-900 border border-slate-200/60 dark:border-slate-800 rounded-xl p-4 space-y-1">
-          <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ticket Prom.</span>
-          <span class="text-lg font-bold text-sky-500 block" id="kpi-mes-ticket">---</span>
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4" id="kpis-mes">
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ventas Brutas</span>
+            <span class="text-lg font-bold text-slate-950 dark:text-white block" id="kpi-mes-ventas">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Comisiones</span>
+            <span class="text-lg font-bold text-amber-500 block" id="kpi-mes-comisiones">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ventas Netas</span>
+            <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-ventas-netas">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Ticket Prom.</span>
+            <span class="text-lg font-bold text-sky-500 block" id="kpi-mes-ticket">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Compras</span>
+            <span class="text-lg font-bold text-red-500 block" id="kpi-mes-compras">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Gastos</span>
+            <span class="text-lg font-bold text-red-500 block" id="kpi-mes-gastos">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Utilidad Neta</span>
+            <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-utilidad">---</span>
+          </div>
+          <div class="space-y-0.5">
+            <span class="text-xs font-medium uppercase tracking-wider text-slate-400">Margen</span>
+            <span class="text-lg font-bold text-emerald-500 block" id="kpi-mes-margen">---</span>
+          </div>
         </div>
       </div>
 

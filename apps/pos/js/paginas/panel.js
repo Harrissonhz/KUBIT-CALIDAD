@@ -128,9 +128,10 @@
         descuentos = d.descuentos || 0;
         comisiones = d.costos_comision_total || 0;
         gastos = d.gastos_operativos_total || 0;
-        utilidadNeta = d.utilidad_neta || 0;
         compras = await DB.compras.totalDelMes(f.anio, f.mes);
       }
+      var estGlobal = await DB.ventas.estadisticasDelPeriodo(f.anio, f.mes);
+      countVentas = estGlobal.count || 0;
     } else {
       var est = await DB.ventas.estadisticasDelPeriodo(f.anio, f.mes, f.canalId);
       ventasBrutas = est.total || 0;
@@ -139,12 +140,12 @@
       var resG = await DB.finanzasMensuales.obtenerPorPeriodo(f.anio, f.mes);
       gastos = (resG.data && resG.data.gastos_operativos_total) || 0;
       compras = await DB.compras.totalDelMes(f.anio, f.mes);
-      utilidadNeta = ventasBrutas - comisiones - (resG.data && resG.data.gastos_operativos_total || 0) - compras;
     }
 
     var ventasNetas = ventasBrutas - comisiones - devoluciones - descuentos;
+    utilidadNeta = ventasBrutas - comisiones - devoluciones - descuentos - gastos - compras;
     var margen = ventasBrutas > 0 ? Math.round((utilidadNeta / ventasBrutas) * 100) : 0;
-    ticketProm = countVentas > 0 ? ventasBrutas / countVentas : (est && est.count > 0 ? est.total / est.count : 0);
+    ticketProm = countVentas > 0 ? ventasBrutas / countVentas : 0;
 
     $('kpi-mes-ventas').textContent = formatCOP(ventasBrutas);
     $('kpi-mes-ventas-netas').textContent = formatCOP(ventasNetas);
@@ -201,9 +202,10 @@
     if (!container) return;
     var f = getFiltros();
     var m = String(f.mes).padStart(2, '0');
-    var desde = f.anio + '-' + m + '-01T00:00:00';
-    var lFin = new Date(f.anio, f.mes, 0).getDate();
-    var hasta = f.anio + '-' + m + '-' + String(lFin).padStart(2, '0') + 'T23:59:59';
+    var sigMes = f.mes === 12 ? 1 : f.mes + 1;
+    var sigAnio = f.mes === 12 ? f.anio + 1 : f.anio;
+    var desde = f.anio + '-' + m + '-01T05:00:00';
+    var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
 
     var qs = 'select=producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug))&created_at=gte.' + desde + '&created_at=lte.' + hasta;
     if (f.canalId) {
