@@ -9,6 +9,9 @@
 --   - updated_at automatico via trigger
 --   - CHECK constraints para campos de estado (sin ENUMs)
 --   - RLS + Grants obligatorios (post May 30, 2026)
+--   - Zona horaria: America/Bogota (UTC-5)
+--     Configurada via ALTER DATABASE postgres SET timezone = 'America/Bogota'
+--     Ver ScriptMigracionDB/13-migrate-timezone.sql
 -- ============================================================
 
 -- Extension requerida por la funcion slugify() en pos_productos

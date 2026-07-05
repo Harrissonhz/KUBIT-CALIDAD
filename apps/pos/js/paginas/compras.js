@@ -26,7 +26,8 @@
     await Promise.all([cargarProveedores(), cargarCatalogo(), cargarCompras()]);
     await generarNumeroOrden();
     bindearEventos();
-    $('campo-fecha-compra').value = new Date().toISOString().slice(0, 10);
+    var _now = new Date();
+    $('campo-fecha-compra').value = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
   }
 
   async function generarNumeroOrden() {
@@ -516,7 +517,8 @@
     $('campo-proveedor').value = '';
     await generarNumeroOrden();
     $('campo-estado').value = 'PENDIENTE';
-    $('campo-fecha-compra').value = new Date().toISOString().slice(0, 10);
+    var _now = new Date();
+    $('campo-fecha-compra').value = _now.getFullYear() + '-' + String(_now.getMonth() + 1).padStart(2, '0') + '-' + String(_now.getDate()).padStart(2, '0');
     $('campo-fecha-entrega').value = '';
     $('campo-notas').value = '';
     $('campo-descuento').value = '';

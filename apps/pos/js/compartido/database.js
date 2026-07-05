@@ -13,6 +13,14 @@ window.DB = (function () {
   }
 
   /* ════════════════════════════════════════════════════════════
+     UTILIDAD: Fecha Colombia (UTC-5)
+     ════════════════════════════════════════════════════════════ */
+  function hoyColombia() {
+    var a = new Date();
+    return a.getFullYear() + '-' + String(a.getMonth() + 1).padStart(2, '0') + '-' + String(a.getDate()).padStart(2, '0');
+  }
+
+  /* ════════════════════════════════════════════════════════════
      CACHE
      ════════════════════════════════════════════════════════════ */
   var _cache = new Map();
@@ -518,8 +526,8 @@ window.DB = (function () {
       var m = String(mes).padStart(2, '0');
       var sigMes = mes === 12 ? 1 : mes + 1;
       var sigAnio = mes === 12 ? anio + 1 : anio;
-      var desde = anio + '-' + m + '-01T05:00:00';
-      var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
+      var desde = anio + '-' + m + '-01T00:00:00';
+      var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T00:00:00';
       var qs = 'select=total,costo_cargo_venta,costo_impuestos,costo_envios&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
       if (canalId) qs += '&canal_id=eq.' + encodeURIComponent(canalId);
       try {
@@ -537,8 +545,8 @@ window.DB = (function () {
     },
 
     porMes: async function (anio, canalId) {
-      var desde = anio + '-01-01T05:00:00';
-      var hasta = (anio + 1) + '-01-01T05:00:00';
+      var desde = anio + '-01-01T00:00:00';
+      var hasta = (anio + 1) + '-01-01T00:00:00';
       var qs = 'select=total,fecha_venta&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
       if (canalId) {
         qs += '&canal_id=eq.' + encodeURIComponent(canalId);
@@ -806,8 +814,8 @@ window.DB = (function () {
         var m = mes || (new Date().getMonth() + 1);
         var sigMes = m === 12 ? 1 : m + 1;
         var sigAnio = m === 12 ? a + 1 : a;
-        var desde = a + '-' + String(m).padStart(2, '0') + '-01T05:00:00';
-        var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
+        var desde = a + '-' + String(m).padStart(2, '0') + '-01T00:00:00';
+        var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T00:00:00';
         var data = await api.get('pos_compras?select=total' +
           '&estado=in.(RECIBIDA,PENDIENTE)' +
           '&deleted_at=is.null' +

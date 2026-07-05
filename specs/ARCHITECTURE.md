@@ -184,7 +184,8 @@
 
 ### 2.6 Testing
 - vitest + jsdom para tests unitarios y de integración
-- 102 tests en 5 suites (database, auth, compras, caja, productos)
+- 102 tests en 5 suites (database: 62, auth: 8, compras: 12, caja: 10, productos: 10)
+- Zona horaria: America/Bogota (UTC-5) via `ALTER DATABASE SET timezone`
 - Mocks de `window.__supabase`, `window.KubitAuth`, `localStorage` en `tests/setup.js`
 
 ## 3. Stack Tecnológico

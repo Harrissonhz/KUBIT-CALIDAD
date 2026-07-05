@@ -245,7 +245,7 @@ async function confirmarPedido(items) {
       canal_id: canalId,
       direccion_envio_id: direccionId,
       direccion_facturacion_id: direccionId,
-      fecha_pedido: ahora.toISOString().split('T')[0],
+      fecha_pedido: ahora.getFullYear() + '-' + String(ahora.getMonth() + 1).padStart(2, '0') + '-' + String(ahora.getDate()).padStart(2, '0'),
       estado: 'PENDIENTE',
       subtotal: totalSubtotal,
       descuento: 0,

@@ -182,6 +182,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Soft-delete en pos_roles | `pos_roles` se creo originalmente sin `deleted_at` (por ser catalogo de referencia). Para consistencia con las otras 34 tablas, se agrego via ALTER TABLE + actualizacion de `specs/01-schema.sql`. Ningun script de migracion depende de esta columna. |
 | Validacion por permiso, no por nombre de rol | `usuarios.js` no compara `rolNombre !== 'Administrador'`. Usa `tienePermiso('pos.usuarios.*')`. Esto permite que roles con nombre distinto a 'Administrador' (ej: el rol migrado 'admin') puedan gestionar usuarios si tienen el permiso asignado. Mas granular y consistente con el sistema de `data-permiso` del sidebar. |
 | Rol admin duplicado eliminado | El rol `admin` (UUID `00000000-0000-0000-0000-000000000001`) se creo en la migracion V1 como copia del seed `Administrador`. Todos sus usuarios se migraron al rol `Administrador` real (UUID `6442e6cd-...`). Luego se elimino el rol y sus `pos_rol_permisos`. Ahora solo existe 1 rol de administracion. |
+| Zona horaria Colombia | La base de datos usa `America/Bogota` (UTC-5). Configurado via `ALTER DATABASE postgres SET timezone = 'America/Bogota'`. Esto permite que strings de fecha sin timezone (ej. `2026-07-05T00:00:00`) se interpreten como hora Colombia. Las columnas `timestamptz` siguen almacenando UTC internamente. No migra datos existentes. El script `13-migrate-timezone.sql` contiene este cambio para despliegue en produccion. |
 
 ---
 
@@ -452,6 +453,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `producto.js` — Pasa `variante`, `codigo_interno` y `detalleId` de la variante seleccionada al agregar al carrito
 - [x] `carrito.js` — `renderItemRow()` muestra variante y SKU debajo del nombre del producto
 - [x] `checkout.js` — `renderizarResumen()` muestra variante y SKU en resumen del pedido
+- [x] `npm test` → 102 passed, 0 failures
+
+#### Fix Zona Horaria Colombia (UTC-5) — Julio 2026
+- [x] **SQL:** `ALTER DATABASE postgres SET timezone = 'America/Bogota'` — configurado en Supabase QA
+- [x] **database.js:** 6 lineas `T05:00:00` → `T00:00:00` (estadisticasDelPeriodo, porMes, totalDelMes)
+- [x] **panel.js:** 2 lineas `T05:00:00` → `T00:00:00` (cargarTopProductos)
+- [x] **database.js:** Nueva funcion `hoyColombia()` para obtener fecha actual en hora Colombia
+- [x] **store/checkout.js:** `fecha_pedido` corregido de UTC a hora Colombia
+- [x] **compras.js:** Default `fecha_compra` corregido de UTC a hora Colombia
+- [x] Script de migracion: `13-migrate-timezone.sql` creado para despliegue en produccion
 - [x] `npm test` → 102 passed, 0 failures
 
 ### 7.4 Próximo Paso Recomendado
@@ -1057,6 +1068,8 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Rol admin consolidado | Rol `admin` (UUID `00000000-...`) eliminado. Solo existe `Administrador` (UUID `6442e6cd-...`) |
 | Sidebar Usuarios faltante | `panel.html`, `herramientas.html`, `herramientas/renombrar-archivos.html` no tenian enlace Usuarios |
 | data-permiso en Usuarios | `data-permiso="pos.usuarios.*"` en enlace Usuarios del sidebar (18 paginas) |
+| Zona horaria Colombia | `ALTER DATABASE postgres SET timezone = 'America/Bogota'`, `13-migrate-timezone.sql`, America/Bogota UTC-5 |
+| `hoyColombia()` | Funcion utilitaria en `database.js`, devuelve YYYY-MM-DD en hora Colombia |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1224,4 +1237,18 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | 18 paginas `*.html` | Agregado `data-permiso="pos.usuarios.*"` al enlace Usuarios en el sidebar para control de permisos consistente |
 | SQL (ejecutado por usuario) | UPDATE `pos_usuarios` migrando usuarios del rol `admin` (`00000000-...`) al rol `Administrador` (`6442e6cd-...`). DELETE del rol `admin` duplicado y sus `pos_rol_permisos`. |
 | `AGENTS.md` | Seccion 5: decision de diseno documentada (`pos_roles.deleted_at` agregado por consistencia con soft-delete). Seccion 7.2: Fase CRUD Usuarios completada. Seccion 13: changelog. |
+| `npm test` | 102 passed, 0 failures |
+
+### 2026-07-05 — Fix Zona Horaria Colombia (UTC-5)
+
+| Archivo | Cambio |
+|---|---|
+| `specs/01-schema.sql` | Comentario de zona horaria agregado en cabecera del schema |
+| `ArchivosInformativos/DespliegueProduccion/ScriptMigracionDB/13-migrate-timezone.sql` | Nuevo: script de migracion con `ALTER DATABASE SET timezone = 'America/Bogota'` |
+| `apps/pos/js/compartido/database.js` | 6x `T05:00:00` → `T00:00:00` en `estadisticasDelPeriodo()`, `porMes()`, `totalDelMes()`. Nueva funcion `hoyColombia()`. |
+| `apps/pos/js/paginas/panel.js` | 2x `T05:00:00` → `T00:00:00` en `cargarTopProductos()` |
+| `apps/store/js/paginas/checkout.js` | `fecha_pedido` corregido: `.toISOString().split('T')[0]` → componentes `getFullYear/getMonth/getDate` locales |
+| `apps/pos/js/paginas/compras.js` | 2x default `fecha_compra` corregido: `.toISOString().slice(0,10)` → componentes locales |
+| `AGENTS.md` | Seccion 5: decision de diseno zona horaria. Seccion 7.2: fix completado. Seccion 11: 2 nuevas keywords. Seccion 13: changelog. |
+| **SQL (ejecutado por usuario)** | `ALTER DATABASE postgres SET timezone = 'America/Bogota'` en Supabase QA. En produccion ejecutar `ScriptMigracionDB/13-migrate-timezone.sql`. |
 | `npm test` | 102 passed, 0 failures |

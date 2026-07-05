@@ -204,8 +204,8 @@
     var m = String(f.mes).padStart(2, '0');
     var sigMes = f.mes === 12 ? 1 : f.mes + 1;
     var sigAnio = f.mes === 12 ? f.anio + 1 : f.anio;
-    var desde = f.anio + '-' + m + '-01T05:00:00';
-    var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T05:00:00';
+    var desde = f.anio + '-' + m + '-01T00:00:00';
+    var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T00:00:00';
 
     var qs = 'select=producto_detalle_id,cantidad,precio_unitario,detalle:producto_detalle_id(*,producto:producto_id(nombre,slug))&created_at=gte.' + desde + '&created_at=lte.' + hasta;
     if (f.canalId) {
