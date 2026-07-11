@@ -127,7 +127,7 @@
         devoluciones = d.devoluciones || 0;
         descuentos = d.descuentos || 0;
         comisiones = d.costos_comision_total || 0;
-        gastos = d.gastos_operativos_total || 0;
+        gastos = await DB.gastos.totalDelMes(f.anio, f.mes);
         compras = await DB.compras.totalDelMes(f.anio, f.mes);
       }
       var estGlobal = await DB.ventas.estadisticasDelPeriodo(f.anio, f.mes);
@@ -137,8 +137,7 @@
       ventasBrutas = est.total || 0;
       comisiones = est.costos || 0;
       countVentas = est.count || 0;
-      var resG = await DB.finanzasMensuales.obtenerPorPeriodo(f.anio, f.mes);
-      gastos = (resG.data && resG.data.gastos_operativos_total) || 0;
+      gastos = await DB.gastos.totalDelMes(f.anio, f.mes);
       compras = await DB.compras.totalDelMes(f.anio, f.mes);
     }
 
@@ -158,9 +157,10 @@
   }
 
   async function cargarKpisOperativos() {
-    var [estHoy, resProductos] = await Promise.all([
+    var [estHoy, resProductos, prodHoy] = await Promise.all([
       DB.ventas.estadisticasHoy(),
-      DB.productos.listarConDetalle({ skipCache: true })
+      DB.productos.listarConDetalle({ skipCache: true }),
+      DB.ventas.productosVendidosHoy()
     ]);
 
     $('kpi-op-ventas-hoy').textContent = estHoy.count || 0;
@@ -176,16 +176,13 @@
           totalProductos++;
         }
         var stock = d.stock_actual != null ? d.stock_actual : 0;
-        var precio = d.precio_venta || 0;
+        var costo = (d.precio_compra > 0) ? d.precio_compra : ((d.precio_venta || 0) / 1.30);
         if (stock <= 0) {
           agotados++;
         } else if (stock <= (d.stock_min || 2)) {
           stockBajo++;
         }
-        if (!vistos[d.producto_id + '_val']) {
-          vistos[d.producto_id + '_val'] = true;
-          valorInventario += stock * precio;
-        }
+        valorInventario += stock * costo;
       });
     }
 
@@ -194,7 +191,7 @@
     $('kpi-inv-agotados').textContent = agotados;
     $('kpi-inv-valor').textContent = formatCOP(valorInventario);
 
-    $('kpi-op-prod-hoy').textContent = '—';
+    $('kpi-op-prod-hoy').textContent = prodHoy;
   }
 
   async function cargarTopProductos() {

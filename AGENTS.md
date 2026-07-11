@@ -183,6 +183,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Validacion por permiso, no por nombre de rol | `usuarios.js` no compara `rolNombre !== 'Administrador'`. Usa `tienePermiso('pos.usuarios.*')`. Esto permite que roles con nombre distinto a 'Administrador' (ej: el rol migrado 'admin') puedan gestionar usuarios si tienen el permiso asignado. Mas granular y consistente con el sistema de `data-permiso` del sidebar. |
 | Rol admin duplicado eliminado | El rol `admin` (UUID `00000000-0000-0000-0000-000000000001`) se creo en la migracion V1 como copia del seed `Administrador`. Todos sus usuarios se migraron al rol `Administrador` real (UUID `6442e6cd-...`). Luego se elimino el rol y sus `pos_rol_permisos`. Ahora solo existe 1 rol de administracion. |
 | Zona horaria Colombia | La base de datos usa `America/Bogota` (UTC-5). Configurado via `ALTER DATABASE postgres SET timezone = 'America/Bogota'`. Esto permite que strings de fecha sin timezone (ej. `2026-07-05T00:00:00`) se interpreten como hora Colombia. Las columnas `timestamptz` siguen almacenando UTC internamente. No migra datos existentes. El script `13-migrate-timezone.sql` contiene este cambio para despliegue en produccion. |
+| Gastos en vivo desde detalle | El KPI "Gastos" del Panel Dashboard NO debe leer `pos_finanzas_mensuales.gastos_operativos_total` (tabla pre-agregada que nunca se actualiza al crear/editar gastos). En su lugar usa `DB.gastos.totalDelMes()` que suma `monto` en vivo desde `pos_gastos_mensuales_detalle` via PostgREST, mismo patron que `DB.compras.totalDelMes()`. |
+| Valor Inventario con precio_compra + estimacion | El KPI "Valor Inventario" se calcula como `sum(stock_actual * costo_unitario)` para TODAS las variantes (sin dedup). `costo_unitario = precio_compra` si existe (`> 0`), sino se estima como `precio_venta / 1.30` (margen default 30%). Esto evita inflar con margenes no realizados y funciona con datos historicos incompletos de V1. |
+| Productos Vendidos Hoy | Nuevo KPI operativo que suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADA del dia actual, via `DB.ventas.productosVendidosHoy()` usando PostgREST join embed `pos_ventas -> pos_ventas_detalle`. |
 
 ---
 
@@ -464,6 +467,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] **compras.js:** Default `fecha_compra` corregido de UTC a hora Colombia
 - [x] Script de migracion: `13-migrate-timezone.sql` creado para despliegue en produccion
 - [x] `npm test` → 102 passed, 0 failures
+
+#### Modulo POS — Fase 23: Fix Gastos Panel + Valor Inventario + Prod. Hoy
+- [x] `database.js` — Nuevo metodo `DB.gastos.totalDelMes(anio, mes)` que suma `monto` en vivo desde `pos_gastos_mensuales_detalle` via PostgREST, excluyendo soft-delete. Mismo patron que `DB.compras.totalDelMes()`.
+- [x] `panel.js` — `cargarKpisMes()` reemplaza lectura de `pos_finanzas_mensuales.gastos_operativos_total` por `DB.gastos.totalDelMes()` en ambas ramas (con/sin filtro canal). Los gastos ahora reflejan datos reales inmediatamente.
+- [x] `panel.js` — `cargarKpisOperativos()`: Valor Inventario cambiado de `stock * precio_venta` a `stock * costo_unitario` donde `costo_unitario = precio_compra > 0 ? precio_compra : precio_venta / 1.30`. Eliminada dedup de variantes — ahora TODAS las variantes contribuyen al valor.
+- [x] `database.js` — Nuevo metodo `DB.ventas.productosVendidosHoy()` que suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADA del dia actual via PostgREST join embed `pos_ventas -> pos_ventas_detalle`.
+- [x] `panel.js` — `cargarKpisOperativos()` ahora llama `DB.ventas.productosVendidosHoy()` en `Promise.all` y asigna resultado a `kpi-op-prod-hoy`. Eliminado hardcodeo `'—'`.
+- [x] `npm test` → 105 passed, 0 failures (102 + 3 tests gastos.totalDelMes)
 
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
@@ -1070,6 +1081,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | data-permiso en Usuarios | `data-permiso="pos.usuarios.*"` en enlace Usuarios del sidebar (18 paginas) |
 | Zona horaria Colombia | `ALTER DATABASE postgres SET timezone = 'America/Bogota'`, `13-migrate-timezone.sql`, America/Bogota UTC-5 |
 | `hoyColombia()` | Funcion utilitaria en `database.js`, devuelve YYYY-MM-DD en hora Colombia |
+| Gastos en vivo desde detalle | `DB.gastos.totalDelMes()`, `pos_gastos_mensuales_detalle`, suma `monto` en vivo, excluye soft-delete |
+| Valor Inventario KPI | `cargarKpisOperativos()`, `precio_compra > 0 ? precio_compra : precio_venta / 1.30`, sin dedup de variantes |
+| Productos Vendidos Hoy | `DB.ventas.productosVendidosHoy()`, `kpi-op-prod-hoy`, join embed `pos_ventas -> pos_ventas_detalle` |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1252,3 +1266,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `AGENTS.md` | Seccion 5: decision de diseno zona horaria. Seccion 7.2: fix completado. Seccion 11: 2 nuevas keywords. Seccion 13: changelog. |
 | **SQL (ejecutado por usuario)** | `ALTER DATABASE postgres SET timezone = 'America/Bogota'` en Supabase QA. En produccion ejecutar `ScriptMigracionDB/13-migrate-timezone.sql`. |
 | `npm test` | 102 passed, 0 failures |
+
+### 2026-07-11 — Fix Gastos Panel + Valor Inventario + Prod. Hoy (Fase 23)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `DB.gastos.totalDelMes()`: suma `monto` de gastos del mes en vivo desde `pos_gastos_mensuales_detalle` via PostgREST. Excluye soft-delete. Nuevo metodo `DB.ventas.productosVendidosHoy()`: suma cantidad de detalle via join embed. |
+| `apps/pos/js/paginas/panel.js` | `cargarKpisMes()` reemplaza `pos_finanzas_mensuales.gastos_operativos_total` por `DB.gastos.totalDelMes()` (ambas ramas de filtro). `cargarKpisOperativos()` usa `precio_compra` (o `precio_venta / 1.30`) para Valor Inventario, elimina dedup de variantes. Agrega `DB.ventas.productosVendidosHoy()` en `Promise.all`, elimina hardcodeo `'—'`. |
+| `tests/compartido/database.test.js` | 3 nuevos tests para `DB.gastos.totalDelMes()`: suma correcta, array vacio retorna 0, error de red retorna 0. |
+| `AGENTS.md` | Seccion 5: 3 nuevas decisiones (gastos en vivo, valor inventario, prod. hoy). Seccion 7.2: Fase 23. Seccion 11: 3 nuevas keywords. |
+| `npm test` | 105 passed, 0 failures (102 → 105, +3 tests totalDelMes) |

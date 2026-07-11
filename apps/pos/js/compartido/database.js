@@ -494,6 +494,33 @@ window.DB = (function () {
       return { count: count, total: total, promedio: promedio, error: null };
     },
 
+    productosVendidosHoy: async function () {
+      try {
+        var hoy = new Date();
+        var y = hoy.getFullYear();
+        var m = String(hoy.getMonth() + 1).padStart(2, '0');
+        var d = String(hoy.getDate()).padStart(2, '0');
+        var desde = y + '-' + m + '-' + d + 'T00:00:00';
+        var hasta = y + '-' + m + '-' + d + 'T23:59:59';
+        var data = await api.get('pos_ventas?select=detalles:pos_ventas_detalle!venta_id(cantidad)' +
+          '&estado=eq.CONFIRMADA' +
+          '&deleted_at=is.null' +
+          '&fecha_venta=gte.' + desde +
+          '&fecha_venta=lte.' + hasta);
+        if (!data || !data.length) return 0;
+        var total = 0;
+        data.forEach(function (v) {
+          if (v.detalles) {
+            v.detalles.forEach(function (d) { total += d.cantidad || 0; });
+          }
+        });
+        return total;
+      } catch (e) {
+        console.error('[DB] ventas.productosVendidosHoy error:', e);
+        return 0;
+      }
+    },
+
     topProductos: async function (limite) {
       limite = limite || 5;
       var hoy = new Date();
@@ -997,7 +1024,27 @@ window.DB = (function () {
 
     crear: async function (data) { return insert('pos_gastos_mensuales_detalle', data); },
     actualizar: async function (id, data) { return update('pos_gastos_mensuales_detalle', id, data); },
-    eliminar: async function (id) { return softDelete('pos_gastos_mensuales_detalle', id); }
+    eliminar: async function (id) { return softDelete('pos_gastos_mensuales_detalle', id); },
+
+    totalDelMes: async function (anio, mes) {
+      try {
+        var a = anio || new Date().getFullYear();
+        var m = mes || (new Date().getMonth() + 1);
+        var sigMes = m === 12 ? 1 : m + 1;
+        var sigAnio = m === 12 ? a + 1 : a;
+        var desde = a + '-' + String(m).padStart(2, '0') + '-01T00:00:00';
+        var hasta = sigAnio + '-' + String(sigMes).padStart(2, '0') + '-01T00:00:00';
+        var data = await api.get('pos_gastos_mensuales_detalle?select=monto' +
+          '&deleted_at=is.null' +
+          '&created_at=gte.' + desde +
+          '&created_at=lt.' + hasta);
+        if (!data || !data.length) return 0;
+        return data.reduce(function (s, r) { return s + (r.monto || 0); }, 0);
+      } catch (e) {
+        console.error('[DB] gastos.totalDelMes error:', e);
+        return 0;
+      }
+    }
   };
 
   /* ════════════════════════════════════════════════════════════

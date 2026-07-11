@@ -964,3 +964,42 @@ describe('DB.compras.totalDelMes', function () {
   });
 
 });
+
+// ═══════════════════════════════════════════════════════════════
+// DB.gastos — totalDelMes
+// ═══════════════════════════════════════════════════════════════
+describe('DB.gastos.totalDelMes', function () {
+
+  it('suma montos de gastos del mes excluyendo soft-delete', async function () {
+    window.__supabase.get.mockResolvedValue([
+      { monto: 50000 },
+      { monto: 75000 },
+      { monto: 25000 }
+    ]);
+
+    var resultado = await DB.gastos.totalDelMes(2026, 7);
+
+    expect(resultado).toBe(150000);
+    var url = decodeURIComponent(window.__supabase.get.mock.calls[0][0]);
+    expect(url).toContain('deleted_at=is.null');
+    expect(url).toContain('created_at=gte.2026-07-01');
+    expect(url).toContain('created_at=lt.2026-08-01');
+  });
+
+  it('retorna 0 cuando no hay gastos en el mes', async function () {
+    window.__supabase.get.mockResolvedValue([]);
+
+    var resultado = await DB.gastos.totalDelMes(2025, 2);
+
+    expect(resultado).toBe(0);
+  });
+
+  it('retorna 0 cuando el API falla', async function () {
+    window.__supabase.get.mockRejectedValue(new Error('Network error'));
+
+    var resultado = await DB.gastos.totalDelMes(2026, 7);
+
+    expect(resultado).toBe(0);
+  });
+
+});
