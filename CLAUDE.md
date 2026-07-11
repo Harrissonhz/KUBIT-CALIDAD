@@ -186,6 +186,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Gastos en vivo desde detalle | El KPI "Gastos" del Panel Dashboard NO debe leer `pos_finanzas_mensuales.gastos_operativos_total` (tabla pre-agregada que nunca se actualiza al crear/editar gastos). En su lugar usa `DB.gastos.totalDelMes()` que suma `monto` en vivo desde `pos_gastos_mensuales_detalle` via PostgREST, mismo patron que `DB.compras.totalDelMes()`. |
 | Valor Inventario con precio_compra + estimacion | El KPI "Valor Inventario" se calcula como `sum(stock_actual * costo_unitario)` para TODAS las variantes (sin dedup). `costo_unitario = precio_compra` si existe (`> 0`), sino se estima como `precio_venta / 1.30` (margen default 30%). Esto evita inflar con margenes no realizados y funciona con datos historicos incompletos de V1. |
 | Productos Vendidos Hoy | Nuevo KPI operativo que suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADA del dia actual, via `DB.ventas.productosVendidosHoy()` usando PostgREST join embed `pos_ventas -> pos_ventas_detalle`. |
+| Datos historicos en ventas_netas | `pos_finanzas_mensuales.ventas_brutas` migro desde V1 solo a partir de Nov 2025. Meses anteriores (Sep 2023-Oct 2025) tienen `ventas_brutas=0` y datos reales en `ventas_netas`. `porMes()` y `cargarKpisMes()` usan `ventas_brutas || ventas_netas || 0` como fallback. |
+| Tendencia de Ventas (multi-year line chart) | El grafico "Tendencia de Ventas" usa `DB.ventas.todosLosAnios()` que consulta `pos_finanzas_mensuales` completo. Una linea por ano con `spanGaps:false` (null en meses sin datos). Paleta progresiva slate (mas antiguo) → sky → emerald (mas reciente). Tabla resumen con total, crecimiento %, promedio mensual y barra visual. |
+| Rango de anos en dropdowns | `filtro-anio`, `chart-anio`, `comp-anio1`, `comp-anio2` generados con `for (a = anioAct + 1; a >= 2023; a--)`. Incluye 2023 porque hay datos desde Sep 2023. |
 
 ---
 
@@ -475,6 +478,17 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] `database.js` — Nuevo metodo `DB.ventas.productosVendidosHoy()` que suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADA del dia actual via PostgREST join embed `pos_ventas -> pos_ventas_detalle`.
 - [x] `panel.js` — `cargarKpisOperativos()` ahora llama `DB.ventas.productosVendidosHoy()` en `Promise.all` y asigna resultado a `kpi-op-prod-hoy`. Eliminado hardcodeo `'—'`.
 - [x] `npm test` → 105 passed, 0 failures (102 + 3 tests gastos.totalDelMes)
+
+#### Modulo POS — Fase 24: Tendencia de Ventas + Fix Datos Historicos
+- [x] `database.js` — Fix `porMes()`: `f.ventas_brutas || 0` → `f.ventas_brutas || f.ventas_netas || 0` para usar datos historicos de V0 (Excel) almacenados en `ventas_netas`
+- [x] `panel.js` — Fix `cargarKpisMes()`: `d.ventas_brutas || 0` → `d.ventas_brutas || d.ventas_netas || 0` para KPIs correctos en meses historicos
+- [x] `panel.js` — Fix `poblarSelectores()`: rango de anos `2024` → `2023` para incluir datos desde Sep 2023
+- [x] `database.js` — Nuevo metodo `DB.ventas.todosLosAnios()`: query unico a `pos_finanzas_mensuales` ordenado por anio/mes, con fallback `ventas_brutas || ventas_netas || 0`
+- [x] `panel.html` — Nueva card "Tendencia de Ventas" entre Comparativa Anual y Accesos Rapidos con canvas 300px + tabla resumen
+- [x] `panel.js` — Nueva funcion `cargarTendencia()`: Chart.js multi-year line chart (una linea por ano, spanGaps:false para anos parciales, paleta slate→sky→emerald) + tabla anual con total, crecimiento %, promedio y barra visual
+- [x] `panel.js` — `cargarTodo()` actualizado para llamar `cargarTendencia()`
+- [x] Orden de graficos reorganizado: Ventas Mensuales → Comparativa+Top5 → Tendencia → Accesos Rapidos
+- [x] `npm test` → 105 passed, 0 failures
 
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
@@ -1084,6 +1098,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Gastos en vivo desde detalle | `DB.gastos.totalDelMes()`, `pos_gastos_mensuales_detalle`, suma `monto` en vivo, excluye soft-delete |
 | Valor Inventario KPI | `cargarKpisOperativos()`, `precio_compra > 0 ? precio_compra : precio_venta / 1.30`, sin dedup de variantes |
 | Productos Vendidos Hoy | `DB.ventas.productosVendidosHoy()`, `kpi-op-prod-hoy`, join embed `pos_ventas -> pos_ventas_detalle` |
+| Datos historicos en ventas_netas | `pos_finanzas_mensuales.ventas_netas`, fallback `ventas_brutas \|\| ventas_netas \|\| 0` en `porMes()` y `cargarKpisMes()` |
+| Rango dropdowns 2023 | `poblarSelectores()`, `for (a = anioAct + 1; a >= 2023; a--)` en `panel.js` |
+| Tendencia de Ventas | `cargarTendencia()`, `DB.ventas.todosLosAnios()`, Chart.js multi-year line chart, tabla resumen anual |
+| todosLosAnios | `DB.ventas.todosLosAnios()`, `pos_finanzas_mensuales`, `ventas_brutas \|\| ventas_netas` |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1276,3 +1294,13 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `tests/compartido/database.test.js` | 3 nuevos tests para `DB.gastos.totalDelMes()`: suma correcta, array vacio retorna 0, error de red retorna 0. |
 | `AGENTS.md` | Seccion 5: 3 nuevas decisiones (gastos en vivo, valor inventario, prod. hoy). Seccion 7.2: Fase 23. Seccion 11: 3 nuevas keywords. |
 | `npm test` | 105 passed, 0 failures (102 → 105, +3 tests totalDelMes) |
+
+### 2026-07-11 — Fix Datos Historicos ventas_netas + Tendencia de Ventas (Fase 24)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Fix `porMes()`: `f.ventas_brutas \|\| 0` → `f.ventas_brutas \|\| f.ventas_netas \|\| 0`. Nuevo metodo `DB.ventas.todosLosAnios()`: query a `pos_finanzas_mensuales` completo ordenado por anio/mes. |
+| `apps/pos/js/paginas/panel.js` | Fix `cargarKpisMes()`: `d.ventas_brutas \|\| 0` → `d.ventas_brutas \|\| d.ventas_netas \|\| 0`. Fix `poblarSelectores()`: rango `2024` → `2023`. Nueva funcion `cargarTendencia()`: Chart.js multi-year line chart (una linea por ano con spanGaps:false, paleta slate→sky→emerald) + tabla anual (total, crecimiento %, promedio, barra visual). `cargarTodo()` llama `cargarTendencia()`. Variables auxiliares `formatNum()` y `formatPct()`. |
+| `apps/pos/panel.html` | Nueva card "Tendencia de Ventas" con canvas 300px + contenedor tabla resumen. Reordenada entre Comparativa+Top5 y Accesos Rapidos. |
+| `AGENTS.md` | Seccion 5: 3 nuevas decisiones (datos historicos ventas_netas, tendencia multi-year, rango dropdowns 2023). Seccion 7.2: Fase 24. Seccion 11: 4 nuevas keywords. |
+| `npm test` | 105 passed, 0 failures |

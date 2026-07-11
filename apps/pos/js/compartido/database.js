@@ -572,22 +572,70 @@ window.DB = (function () {
     },
 
     porMes: async function (anio, canalId) {
-      var desde = anio + '-01-01T00:00:00';
-      var hasta = (anio + 1) + '-01-01T00:00:00';
-      var qs = 'select=total,fecha_venta&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
-      if (canalId) {
-        qs += '&canal_id=eq.' + encodeURIComponent(canalId);
-      }
       try {
-        var res = await api.get('pos_ventas?' + qs);
         var meses = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        (res || []).forEach(function (v) {
+        var ahora = new Date();
+        var mesActual = ahora.getMonth() + 1;
+        var anioActual = ahora.getFullYear();
+
+        if (!canalId) {
+          // Sin filtro de canal: usar pos_finanzas_mensuales (pre-agregado)
+          // Solo para meses historicos (NO el mes corriente)
+          var finanzas = await select('pos_finanzas_mensuales', {
+            filters: [
+              { col: 'anio', val: anio },
+              { col: 'mes', op: 'gte', val: 1 },
+              { col: 'mes', op: 'lte', val: 12 }
+            ],
+            orderBy: 'mes'
+          });
+          var mesesConDato = {};
+          (finanzas.data || []).forEach(function (f) {
+            if (f.mes >= 1 && f.mes <= 12) {
+              var esMesCorriente = (anio === anioActual && f.mes === mesActual);
+              if (!esMesCorriente) {
+                meses[f.mes - 1] = f.ventas_brutas || f.ventas_netas || 0;
+                mesesConDato[f.mes] = true;
+              }
+            }
+          });
+        }
+
+        // Suplementar meses sin dato en finanzas con ventas en vivo
+        var desde = anio + '-01-01T00:00:00';
+        var hasta = (anio + 1) + '-01-01T00:00:00';
+        var qs = 'select=total,fecha_venta&estado=eq.CONFIRMADA&deleted_at=is.null&fecha_venta=gte.' + desde + '&fecha_venta=lte.' + hasta;
+        if (canalId) {
+          qs += '&canal_id=eq.' + encodeURIComponent(canalId);
+        }
+        var ventasVivo = await api.get('pos_ventas?' + qs);
+        (ventasVivo || []).forEach(function (v) {
           var d = new Date(v.fecha_venta);
+          var mesNum = d.getMonth() + 1;
+          if (!canalId && mesesConDato && mesesConDato[mesNum]) return;
           meses[d.getMonth()] += (v.total || 0);
         });
+
         return { data: meses, error: null };
       } catch (e) {
         return { data: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], error: e.message };
+      }
+    },
+
+    todosLosAnios: async function () {
+      try {
+        var rows = await api.get('pos_finanzas_mensuales?select=anio,mes,ventas_brutas,ventas_netas&order=anio.asc,mes.asc&deleted_at=is.null');
+        if (!rows || !Array.isArray(rows)) return { data: [], error: 'Sin datos' };
+        var mapped = rows.map(function (f) {
+          return {
+            anio: f.anio,
+            mes: f.mes,
+            ventas: f.ventas_brutas || f.ventas_netas || 0
+          };
+        });
+        return { data: mapped, error: null };
+      } catch (e) {
+        return { data: [], error: e.message };
       }
     }
   };

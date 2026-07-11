@@ -5,6 +5,7 @@
   var html = document.documentElement;
   var chartVentas = null;
   var chartComparativa = null;
+  var chartTendencia = null;
 
   function formatCOP(val) {
     if (val == null || isNaN(val)) return '$0';
@@ -71,7 +72,7 @@
       var sel = $(pair[0]);
       if (!sel) return;
       sel.innerHTML = '';
-      for (var a = anioAct + 1; a >= 2024; a--) {
+      for (var a = anioAct + 1; a >= 2023; a--) {
         var opt = document.createElement('option');
         opt.value = a;
         opt.textContent = a;
@@ -110,7 +111,8 @@
       cargarKpisOperativos(),
       cargarTopProductos(),
       cargarVentasMensuales(),
-      cargarComparativaAnual()
+      cargarComparativaAnual(),
+      cargarTendencia()
     ]);
   }
 
@@ -123,7 +125,7 @@
       var res = await DB.finanzasMensuales.obtenerPorPeriodo(f.anio, f.mes);
       if (!res.error && res.data) {
         var d = res.data;
-        ventasBrutas = d.ventas_brutas || 0;
+        ventasBrutas = d.ventas_brutas || d.ventas_netas || 0;
         devoluciones = d.devoluciones || 0;
         descuentos = d.descuentos || 0;
         comisiones = d.costos_comision_total || 0;
@@ -313,6 +315,199 @@
         }
       }
     });
+  }
+
+  function formatNum(val) {
+    if (val == null || isNaN(val)) return 0;
+    return Math.round(val);
+  }
+
+  function formatPct(val) {
+    if (val == null || isNaN(val) || !isFinite(val)) return '—';
+    var v = val.toFixed(1);
+    return (val >= 0 ? '▲ +' : '▼ ') + v + '%';
+  }
+
+  async function cargarTendencia() {
+    var canvas = $('tendenciaChart');
+    var tabla = $('tabla-tendencia');
+    if (!canvas || !tabla) return;
+
+    var res = await DB.ventas.todosLosAnios();
+    if (res.error || !res.data || !res.data.length) {
+      tabla.innerHTML = '<p class="text-xs text-slate-400">Sin datos historicos</p>';
+      return;
+    }
+
+    var data = res.data;
+    var years = {};
+    data.forEach(function (d) {
+      if (!years[d.anio]) years[d.anio] = [];
+      years[d.anio].push(d);
+    });
+    var anios = Object.keys(years).sort();
+    var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+
+    var palette = [
+      { border: '#94a3b8', bg: '#94a3b820' },
+      { border: '#64748b', bg: '#64748b20' },
+      { border: '#475569', bg: '#47556920' },
+      { border: '#0284c7', bg: '#0284c720' },
+      { border: '#059669', bg: '#05966920' },
+      { border: '#d97706', bg: '#d9770620' }
+    ];
+
+    var datasets = anios.map(function (anio, i) {
+      var mesesData = Array(12).fill(null);
+      (years[anio] || []).forEach(function (d) {
+        if (d.mes >= 1 && d.mes <= 12) {
+          mesesData[d.mes - 1] = d.ventas;
+        }
+      });
+      var p = palette[i % palette.length];
+      return {
+        label: String(anio),
+        data: mesesData,
+        borderColor: p.border,
+        backgroundColor: p.bg,
+        borderWidth: anio === parseInt(anios[anios.length - 1]) ? 3 : 2,
+        pointRadius: anio === parseInt(anios[anios.length - 1]) ? 4 : 2.5,
+        pointHoverRadius: 5,
+        pointBackgroundColor: p.border,
+        tension: 0.35,
+        spanGaps: false
+      };
+    });
+
+    if (chartTendencia) { chartTendencia.destroy(); chartTendencia = null; }
+
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    chartTendencia = new Chart(ctx, {
+      type: 'line',
+      data: { labels: meses, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: {
+              color: '#94a3b8',
+              font: { size: 11 },
+              boxWidth: 14,
+              padding: 14,
+              usePointStyle: true
+            }
+          },
+          tooltip: {
+            callbacks: {
+              title: function (items) { return items[0].label; },
+              label: function (ctx) {
+                if (ctx.parsed.y === null || ctx.parsed.y === undefined) return null;
+                return ctx.dataset.label + ': ' + formatCOP(ctx.parsed.y);
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (v) { return v >= 1000000 ? '$' + (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'K' : '$' + v; },
+              color: '#94a3b8',
+              font: { size: 10 }
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+          },
+          x: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
+
+    // Tabla resumen anual
+    var ultimoAnio = parseInt(anios[anios.length - 1]);
+    var totalesAnuales = {};
+    var mesesPorAnio = {};
+    anios.forEach(function (a) {
+      var total = 0;
+      (years[a] || []).forEach(function (d) { total += d.ventas; });
+      totalesAnuales[a] = total;
+      mesesPorAnio[a] = (years[a] || []).length;
+    });
+    var maxTotal = Math.max.apply(null, Object.keys(totalesAnuales).map(function (k) { return totalesAnuales[k]; }));
+
+    var html = '<table class="w-full text-xs">' +
+      '<thead>' +
+        '<tr class="text-slate-400 uppercase tracking-wider border-b border-slate-200/60 dark:border-slate-700">' +
+          '<th class="text-left py-2 pr-3 font-medium">Ano</th>' +
+          '<th class="text-right py-2 px-3 font-medium">Total</th>' +
+          '<th class="text-right py-2 px-3 font-medium">Crecimiento</th>' +
+          '<th class="text-right py-2 px-3 font-medium">Promedio</th>' +
+          '<th class="text-left py-2 pl-3 font-medium hidden sm:table-cell">Barra</th>' +
+        '</tr>' +
+      '</thead>' +
+      '<tbody>';
+
+    anios.forEach(function (a, idx) {
+      var anioInt = parseInt(a);
+      var total = totalesAnuales[a];
+      var mesesCount = mesesPorAnio[a];
+      var prom = mesesCount > 0 ? total / mesesCount : 0;
+      var barWidth = maxTotal > 0 ? (total / maxTotal * 100) : 0;
+      var p = palette[idx % palette.length];
+
+      // Calcular crecimiento vs ano anterior comparable
+      var crecimiento = null;
+      if (idx > 0) {
+        var prev = parseInt(anios[idx - 1]);
+        var prevTotal = totalesAnuales[prev];
+        var prevMeses = mesesPorAnio[prev];
+        if (prevTotal && prevTotal > 0 && mesesCount === prevMeses) {
+          crecimiento = ((total - prevTotal) / prevTotal) * 100;
+        } else if (prevTotal && prevTotal > 0) {
+          // Distinto numero de meses: comparar promedios
+          var prevProm = prevTotal / prevMeses;
+          crecimiento = ((prom - prevProm) / prevProm) * 100;
+        }
+      }
+
+      var parcial = (anioInt === parseInt(anios[0]) || anioInt === ultimoAnio) && mesesCount < 12 ? true : false;
+
+      html += '<tr class="border-b border-slate-100 dark:border-slate-800/50">' +
+        '<td class="py-2 pr-3 text-slate-700 dark:text-slate-300 font-medium">' + a + (parcial ? '<span class="text-slate-400 font-normal">*</span>' : '') + '</td>' +
+        '<td class="py-2 px-3 text-right text-slate-950 dark:text-white font-medium">' + formatCOP(total) + '</td>' +
+        '<td class="py-2 px-3 text-right ' + (crecimiento !== null && crecimiento >= 0 ? 'text-emerald-500' : crecimiento !== null ? 'text-red-500' : 'text-slate-400') + ' font-medium">' +
+          (crecimiento !== null ? formatPct(crecimiento) : '—') +
+        '</td>' +
+        '<td class="py-2 px-3 text-right text-slate-600 dark:text-slate-400">' + formatCOP(prom) + '</td>' +
+        '<td class="py-2 pl-3 hidden sm:table-cell">' +
+          '<div class="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2.5">' +
+            '<div class="h-2.5 rounded-full" style="width:' + barWidth + '%;background:' + p.border + '"></div>' +
+          '</div>' +
+        '</td>' +
+      '</tr>';
+    });
+
+    html += '</tbody></table>';
+
+    var parcialNote = '';
+    if (parseInt(anios[0]) < anios[anios.length - 1]) {
+      var primerAnio = parseInt(anios[0]);
+      if (mesesPorAnio[primerAnio] < 12) parcialNote += ' *' + primerAnio + ': parcial (' + mesesPorAnio[primerAnio] + ' meses)';
+    }
+    if (mesesPorAnio[anios[anios.length - 1]] < 12) {
+      parcialNote += (parcialNote ? '. ' : ' *') + anios[anios.length - 1] + ': parcial (' + mesesPorAnio[anios[anios.length - 1]] + ' meses)';
+    }
+    if (parcialNote) {
+      html += '<p class="text-xs text-slate-400 mt-2">' + parcialNote.trim() + '</p>';
+    }
+
+    tabla.innerHTML = html;
   }
 
   async function cargarComparativaAnual() {

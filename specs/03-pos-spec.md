@@ -879,7 +879,7 @@ Ubicada en el header de la pagina, sticky, debajo del header fixed del POS. Cont
 |---|---|---|---|
 | Canal | `#filtro-canal` | `pos_canales_venta` (activos) via `DB.select()` | Opcion "Todos los canales" (vacio) + canales activos desde DB |
 | Mes | `#filtro-mes` | Generado en JS (Enero-Diciembre) | Default: mes actual |
-| Año | `#filtro-anio` | Generado en JS (2024-2027) | Default: año actual |
+| Año | `#filtro-anio` | Generado en JS (2023-2027) | Default: año actual |
 | Actualizar | `#btn-actualizar` | — | Recarga todos los KPIs y graficos |
 
 Al cambiar cualquier filtro, se recarga automaticamente todo el dashboard via `cargarTodo()`.
@@ -893,7 +893,7 @@ Fuente: cuando `canalId` = vacio ("Todos"), se usa `DB.finanzasMensuales.obtener
 | Ventas Netas | `#kpi-mes-ventas-netas` | emerald-500 | `brutas - comisiones - devoluciones - descuentos` | `brutas - comisiones` |
 | Compras | `#kpi-mes-compras` | red-500 | `DB.compras.totalDelMes()` (en vivo) | mismo (compras globales) |
 | Comisiones | `#kpi-mes-comisiones` | amber-500 | `finanzas.costos_comision_total` | `estadisticas.costos` |
-| Gastos | `#kpi-mes-gastos` | red-500 | `finanzas.gastos_operativos_total` | mismo (gastos globales) |
+| Gastos | `#kpi-mes-gastos` | red-500 | `DB.gastos.totalDelMes()` (en vivo) | mismo (gastos globales) |
 | Utilidad Neta | `#kpi-mes-utilidad` | emerald-500 | `finanzas.utilidad_neta` | `brutas - comisiones - gastos - compras` |
 | Margen | `#kpi-mes-margen` | emerald-500 | `utilidad / brutas * 100` | mismo calculo |
 | Ticket Prom. | `#kpi-mes-ticket` | sky-500 | `brutas / count(ventas)` | `estadisticas.total / estadisticas.count` |
@@ -906,11 +906,11 @@ Grid 8-columnas responsive (`grid-cols-2 sm:grid-cols-4 lg:grid-cols-8`). Sin fi
 | Ventas Hoy | `#kpi-op-ventas-hoy` | `DB.ventas.estadisticasHoy().count` | Numero de ventas CONFIRMADAS hoy |
 | $ Hoy | `#kpi-op-total-hoy` | `DB.ventas.estadisticasHoy().total` | Total en dinero vendido hoy |
 | Ticket Prom. Hoy | `#kpi-op-ticket-prom` | `DB.ventas.estadisticasHoy().promedio` | Venta promedio del dia |
-| Prod. Hoy | `#kpi-op-prod-hoy` | (no implementado, muestra '—') | Unidades vendidas hoy |
+| Prod. Hoy | `#kpi-op-prod-hoy` | `DB.ventas.productosVendidosHoy()` via join embed `pos_ventas -> pos_ventas_detalle` | Unidades vendidas hoy (cantidad total de items) |
 | Total Productos | `#kpi-inv-total` | `DB.productos.listarConDetalle()` (conteo unico por `producto_id`) | Cantidad de productos distintos en catalogo |
 | Stock Bajo | `#kpi-inv-stock-bajo` | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= stock_min` (default 2) y stock > 0 |
 | Agotados | `#kpi-inv-agotados` | `DB.productos.listarConDetalle()` | Detalles con `stock_actual <= 0` |
-| Valor Inventario | `#kpi-inv-valor` | `DB.productos.listarConDetalle()` (suma `stock_actual * precio_venta`) | Valor total del inventario a precio de venta |
+| Valor Inventario | `#kpi-inv-valor` | `DB.productos.listarConDetalle()` (suma `stock_actual * costo_unitario` donde `costo_unitario = precio_compra > 0 ? precio_compra : precio_venta / 1.30`) | Valor total del inventario a costo estimado |
 
 ### 9.5 Top 5 Productos del Periodo (con filtros)
 Agrega `pos_ventas_detalle` del periodo filtrado (mes/año + canal opcional), agrupando por `producto_detalle_id` y ordenando por cantidad descendente. Reside en `panel.js::cargarTopProductos()` — NO usa `DB.ventas.topProductos()` (que es solo para mes actual sin filtro de canal). El ranking visual usa medallas de posicion:
@@ -941,6 +941,17 @@ Se usa Chart.js v4.4.7 via CDN (`chart.umd.min.js`). Los graficos se destruyen y
 - Colores: slate-500 (año 1), sky-500 (año 2)
 - Comportamiento: si ambos años son iguales, se incrementa automaticamente anio2
 
+#### 9.6.3 Tendencia de Ventas (`#tendenciaChart`)
+- Tipo: Linea multiple (un dataset por año)
+- Eje X: Meses (Ene-Dic)
+- Eje Y: Total de ventas en COP (millones)
+- Fuente: `DB.ventas.todosLosAnios()` — consulta completa de `pos_finanzas_mensuales` ordenado por año/mes
+- `spanGaps: false` — años con datos parciales (2023) muestran null en meses sin datos (linea discontinua)
+- Paleta progresiva: slate-400 (año mas antiguo) → sky-500 → emerald-500 (año mas reciente)
+- Año actual: linea mas gruesa (`borderWidth: 3`) y puntos mas grandes (`pointRadius: 5`)
+- Tooltip con formato COP + nombre del año
+- Tabla resumen debajo del canvas: total anual, crecimiento % vs año anterior, promedio mensual, barra visual de proporcion
+
 ### 9.7 Accesos Rapidos
 Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 - Nueva Venta, Mostrador, Caja, Productos, Compras, Reportes
@@ -948,11 +959,13 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 ### 9.8 Arquitectura
 - `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration. Dependencia externa: Chart.js CDN
 - `panel.js` — IIFE con `init()` async que: carga canales → puebla selectores → bindea eventos → `cargarTodo()`
-- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual()])`
-- 2 instancias globales de Chart.js (`chartVentas`, `chartComparativa`) con cleanup automatico via `.destroy()` antes de recrear
+- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual(), cargarTendencia()])`
+- 3 instancias globales de Chart.js (`chartVentas`, `chartComparativa`, `chartTendencia`) con cleanup automatico via `.destroy()` antes de recrear
 - Filtros reactivos: `change` event en canal/mes/anio dispara `cargarTodo()`. Selectores de anio de graficos disparan solo recarga de graficos
 - El subtitulo del header muestra la fecha actual en formato local (`toLocaleDateString('es-CO')`)
 - Formato moneda: `formatCOP()` — redondea a entero, separador de miles con punto
+- Formato numero: `formatNum()` — con punto de miles
+- Formato porcentaje: `formatPct()` — 2 decimales + sufijo %
 - `getFiltros()` — funcion helper que lee los 3 filtros y devuelve objeto `{ canalId, mes, anio }`
 - Cuando `canalId` = '' (Todos): KPIs via `DB.finanzasMensuales` (pre-agregado, rapido). Cuando hay canal especifico: via `DB.ventas.estadisticasDelPeriodo()` (en vivo, solo afecta ventas/comisiones)
 
@@ -961,7 +974,11 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 | Método | Firma | Descripción |
 |---|---|---|
 | `DB.ventas.estadisticasDelPeriodo` | `(anio, mes, canalId)` | Devuelve `{ count, total, promedio, costos, error }`. Usa `api.get()` directo con agregados PostgREST `select=count,sum_total:sum:total,avg_total:avg:total,sum_costos:sum:costos`. Sin cache. |
-| `DB.ventas.porMes` | `(anio, canalId)` | Devuelve `{ data: [12 números], error }`. Consulta todas las ventas CONFIRMADAS del año, agrupa por mes client-side via `forEach`. Sin cache. |
+| `DB.ventas.porMes` | `(anio, canalId)` | Devuelve `{ data: [12 números], error }`. Consulta todas las ventas CONFIRMADAS del año, agrupa por mes client-side via `forEach`. Data historica pre-Nov 2025 usa fallback `ventas_netas` desde `pos_finanzas_mensuales`. Sin cache. |
+| `DB.ventas.todosLosAnios` | `()` | Devuelve `{ data: [{anio, mes, ventas}], error }`. Query unico a `pos_finanzas_mensuales` ordenado por anio/mes. Cada venta usa `ventas_brutas || ventas_netas || 0`. Usado exclusivamente por el grafico de Tendencia de Ventas. |
+| `DB.compras.totalDelMes` | `(anio, mes)` | Suma en vivo `pos_compras.total` del mes. Filtra `estado IN (RECIBIDA,PENDIENTE)`, excluye soft-delete. Usa `api.get()` directo. |
+| `DB.gastos.totalDelMes` | `(anio, mes)` | Suma en vivo `pos_gastos_mensuales_detalle.monto` del mes. Excluye soft-delete. Usa `api.get()` directo. |
+| `DB.ventas.productosVendidosHoy` | `()` | Suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADAS del dia actual via join embed. |
 
 ---
 
