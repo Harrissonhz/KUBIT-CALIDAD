@@ -1,4 +1,4 @@
-var CACHE = 'kubit-pos-20260619-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
+var CACHE = 'kubit-pos-20260713-01'; // Bump: YYYYMMDD-NN (incrementar NN por cada deploy del mismo dia)
 var ES_LOCAL = self.location.hostname === 'localhost' || self.location.hostname === '127.0.0.1';
 
 var ASSETS = [
@@ -21,6 +21,7 @@ var ASSETS = [
   'usuarios.html',
   'factura-print.html',
   'cuenta-cobro-print.html',
+  'panel.html',
   'css/estilo.css',
   'js/config.js',
   'js/supabase.js',
@@ -38,6 +39,7 @@ var ASSETS = [
   'js/paginas/gastos.js',
   'js/paginas/configuracion.js',
   'js/paginas/reportes.js',
+  'js/paginas/panel.js',
   'js/paginas/usuarios.js',
   'js/paginas/login.js',
   'js/paginas/ventas-historial.js',

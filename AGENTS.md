@@ -490,6 +490,14 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Orden de graficos reorganizado: Ventas Mensuales → Comparativa+Top5 → Tendencia → Accesos Rapidos
 - [x] `npm test` → 105 passed, 0 failures
 
+#### Modulo POS — Fase 25: Grafico Ingresos vs Gastos (Panel Dashboard)
+- [x] `database.js` — Nuevo metodo `DB.finanzasMensuales.obtenerIngresosVsGastos(anio)`: query a `pos_finanzas_mensuales` por ano, retorna 12 meses con `ingresos`, `gastos` (CMV + gastos operativos + comisiones + compras + otros gastos) y `utilidad` (ingresos - gastos). Suplementa mes actual con datos en vivo desde `estadisticasDelPeriodo`, `totalDelMes` y `compras.totalDelMes`.
+- [x] `panel.html` — Nueva card "Ingresos vs Gastos" entre Comparativa Anual y Tendencia de Ventas con canvas `#ingresosVsGastosChart` 280px + selector de ano `#ivg-anio`.
+- [x] `panel.js` — Nueva funcion `cargarIngresosVsGastos()`: Chart.js grouped bar chart con 3 datasets (Ingresos esmeralda, Gastos+Costos rosa, Utilidad Neta sky). Variable `chartIngresosVsGastos`. Selector `#ivg-anio` populado via `poblarSelectores()`. Listener independiente en `bindearFiltros()`. Integrado en `cargarTodo()` via `Promise.all`.
+- [x] `service-worker.js` — Bump de cache version `kubit-pos-20260713-01`. Agregados `panel.html` y `js/paginas/panel.js` al precache ASSETS.
+- [x] Fix: Eliminada linea residual `labelAnio.textContent = anio` que borraba los `<option>` del `<select>` al asignar `.textContent` (reliquia de cuando `#ivg-anio` era un `<span>`).
+- [x] `npm test` → 105 passed, 0 failures
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -958,6 +966,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **KPIs de Inventario separados de Operativos:** Los indicadores de inventario (Total Productos, Stock Bajo, Agotados, Valor Inventario) estan en la misma fila que los Operativos del dia pero conceptualmente separados. Comparten la misma fuente de datos (`DB.productos.listarConDetalle`) para minimizar queries.
 - **Sin filtro de canal en KPIs de inventario:** El stock y valor de inventario son conceptos absolutos del negocio, no atribuibles a un canal de venta. Aplicarles filtro de canal daria informacion erronea o incompleta.
 - **`estadisticasDelPeriodo` usa `api.get()` directo:** A diferencia de otros metodos que usan el helper `select()`, `estadisticasDelPeriodo` y `porMes` usan `api.get()` directamente con querystring construido manualmente. Esto es necesario porque los agregados PostgREST (`sum:total`, `sum:costos`) y la notacion de alias (`sum_total:sum:total`) no son compatibles con el query builder de `database.js`.
+- **Grafico "Ingresos vs Gastos" (grouped bar):** Nueva card en panel.html entre Comparativa Anual y Tendencia de Ventas. Muestra 3 barras agrupadas por mes: Ingresos (esmeralda), Gastos+Costos (rosa), Utilidad Neta (sky). Los datos vienen de `pos_finanzas_mensuales` con suplemento en vivo para el mes actual. Selector de ano independiente (`#ivg-anio`) en el header de la card, mismo patron que Ventas Mensuales.
+- **Calculo de Gastos+Costos en Ingresos vs Gastos:** `gastos = costo_mercaderia_vendida + gastos_operativos_total + costos_comision_total + compras_total + otros_gastos`. `ingresos = ventas_brutas || ventas_netas`. `utilidad = ingresos - gastos`. Para el mes actual se usan `DB.gastos.totalDelMes()`, `DB.compras.totalDelMes()` y `DB.ventas.estadisticasDelPeriodo()`.
+- **No usar `.textContent` en `<select>`:** Asignar `.textContent` a un elemento `<select>` reemplaza todos los `<option>` hijos por un nodo de texto. Siempre manipular `<option>` via `document.createElement('option')` + `appendChild()`. Bug detectado en Fase 25 donde una linea residual de cuando `#ivg-anio` era `<span>` borraba las opciones del dropdown.
+- **Precacheados en SW: `panel.html` y `js/paginas/panel.js`:** Ambos archivos estaban ausentes del array ASSETS en `service-worker.js`, lo que causaba que el SW sirviera versiones viejas cacheadas en runtime. Se agregaron al precache junto con el bump de version.
 
 ---
 
@@ -1102,6 +1114,10 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Rango dropdowns 2023 | `poblarSelectores()`, `for (a = anioAct + 1; a >= 2023; a--)` en `panel.js` |
 | Tendencia de Ventas | `cargarTendencia()`, `DB.ventas.todosLosAnios()`, Chart.js multi-year line chart, tabla resumen anual |
 | todosLosAnios | `DB.ventas.todosLosAnios()`, `pos_finanzas_mensuales`, `ventas_brutas \|\| ventas_netas` |
+| Ingresos vs Gastos chart | `cargarIngresosVsGastos()`, `chartIngresosVsGastos`, `DB.finanzasMensuales.obtenerIngresosVsGastos()`, grouped bar chart con 3 datasets |
+| Selector ivg-anio | `#ivg-anio`, `<select>` en header de card Ingresos vs Gastos, populado via `poblarSelectores()`, independiente de `chart-anio` |
+| obtenerIngresosVsGastos | `DB.finanzasMensuales.obtenerIngresosVsGastos(anio)`, query `pos_finanzas_mensuales`, suplemento mes actual en vivo |
+| No usar textContent en select | Bug Fase 25: `.textContent` en `<select>` destruye `<option>` hijos. Usar `createElement('option')` + `appendChild()` |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1303,4 +1319,16 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/panel.js` | Fix `cargarKpisMes()`: `d.ventas_brutas \|\| 0` → `d.ventas_brutas \|\| d.ventas_netas \|\| 0`. Fix `poblarSelectores()`: rango `2024` → `2023`. Nueva funcion `cargarTendencia()`: Chart.js multi-year line chart (una linea por ano con spanGaps:false, paleta slate→sky→emerald) + tabla anual (total, crecimiento %, promedio, barra visual). `cargarTodo()` llama `cargarTendencia()`. Variables auxiliares `formatNum()` y `formatPct()`. |
 | `apps/pos/panel.html` | Nueva card "Tendencia de Ventas" con canvas 300px + contenedor tabla resumen. Reordenada entre Comparativa+Top5 y Accesos Rapidos. |
 | `AGENTS.md` | Seccion 5: 3 nuevas decisiones (datos historicos ventas_netas, tendencia multi-year, rango dropdowns 2023). Seccion 7.2: Fase 24. Seccion 11: 4 nuevas keywords. |
+| `npm test` | 105 passed, 0 failures |
+
+### 2026-07-13 — Grafico Ingresos vs Gastos + Fix SW Cache + Bug textContent en select (Fase 25)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `DB.finanzasMensuales.obtenerIngresosVsGastos(anio)`: query `pos_finanzas_mensuales` con suplemento en vivo para mes actual. Retorna 12 meses con `ingresos`, `gastos`, `utilidad`. |
+| `apps/pos/panel.html` | Nueva card "Ingresos vs Gastos" entre Comparativa Anual y Tendencia de Ventas. Canvas `#ingresosVsGastosChart` 280px. Selector `<select id="ivg-anio">` independiente. |
+| `apps/pos/js/paginas/panel.js` | Nueva variable `chartIngresosVsGastos`. Nueva funcion `cargarIngresosVsGastos()`: Chart.js grouped bar con 3 datasets (Ingresos esmeralda, Gastos+Costos rosa, Utilidad Neta sky). `ivg-anio` agregado a `poblarSelectores()`. Listener independiente en `bindearFiltros()`. Integrado en `cargarTodo()` via `Promise.all`. Listener `chart-anio` actualizado. |
+| `apps/pos/js/paginas/panel.js` | Fix critico: eliminada linea `labelAnio.textContent = anio` que borraba los `<option>` del `<select id="ivg-anio">` (reliquia de cuando era `<span>`). |
+| `apps/pos/service-worker.js` | Cache version bumped: `kubit-pos-20260619-01` → `kubit-pos-20260713-01`. `panel.html` y `js/paginas/panel.js` agregados al precache ASSETS. |
+| `AGENTS.md` | Seccion 5: 4 nuevas decisiones (grafico IVG, calculo gastos+costos, textContent en select, SW precache). Seccion 7.2: Fase 25. Seccion 11: 4 nuevas keywords. |
 | `npm test` | 105 passed, 0 failures |

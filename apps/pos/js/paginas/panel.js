@@ -5,6 +5,7 @@
   var html = document.documentElement;
   var chartVentas = null;
   var chartComparativa = null;
+  var chartIngresosVsGastos = null;
   var chartTendencia = null;
 
   function formatCOP(val) {
@@ -68,7 +69,7 @@
       });
     }
 
-    [['filtro-anio', anioAct], ['chart-anio', anioAct], ['comp-anio1', anioAct - 1], ['comp-anio2', anioAct]].forEach(function (pair) {
+    [['filtro-anio', anioAct], ['chart-anio', anioAct], ['ivg-anio', anioAct], ['comp-anio1', anioAct - 1], ['comp-anio2', anioAct]].forEach(function (pair) {
       var sel = $(pair[0]);
       if (!sel) return;
       sel.innerHTML = '';
@@ -96,6 +97,12 @@
       cargarVentasMensuales();
     });
 
+    var ivgAnio = $('ivg-anio');
+    if (ivgAnio) ivgAnio.addEventListener('change', function () {
+      if (chartIngresosVsGastos) { chartIngresosVsGastos.destroy(); chartIngresosVsGastos = null; }
+      cargarIngresosVsGastos();
+    });
+
     ['comp-anio1', 'comp-anio2'].forEach(function (id) {
       var el = $(id);
       if (el) el.addEventListener('change', function () {
@@ -112,6 +119,7 @@
       cargarTopProductos(),
       cargarVentasMensuales(),
       cargarComparativaAnual(),
+      cargarIngresosVsGastos(),
       cargarTendencia()
     ]);
   }
@@ -326,6 +334,92 @@
     if (val == null || isNaN(val) || !isFinite(val)) return '—';
     var v = val.toFixed(1);
     return (val >= 0 ? '▲ +' : '▼ ') + v + '%';
+  }
+
+  async function cargarIngresosVsGastos() {
+    var canvas = $('ingresosVsGastosChart');
+    if (!canvas) return;
+    var anio = parseInt($('ivg-anio') ? $('ivg-anio').value : new Date().getFullYear());
+
+    var res = await DB.finanzasMensuales.obtenerIngresosVsGastos(anio);
+    if (res.error || !res.data) return;
+
+    var d = res.data;
+    var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    var maxVal = Math.max.apply(null, d.ingresos.concat(d.gastos).concat(d.utilidad));
+    var minVal = Math.min.apply(null, d.utilidad);
+    var span = maxVal - minVal;
+
+    if (chartIngresosVsGastos) { chartIngresosVsGastos.destroy(); chartIngresosVsGastos = null; }
+
+    var labelAnio = $('ivg-anio');
+    if (labelAnio) labelAnio.textContent = anio;
+
+    var ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    chartIngresosVsGastos = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: meses,
+        datasets: [{
+          label: 'Ingresos',
+          data: d.ingresos,
+          backgroundColor: 'rgba(16, 185, 129, 0.6)',
+          borderColor: 'rgba(16, 185, 129, 1)',
+          borderWidth: 2,
+          borderRadius: 4
+        }, {
+          label: 'Gastos+Costos',
+          data: d.gastos,
+          backgroundColor: 'rgba(244, 63, 94, 0.6)',
+          borderColor: 'rgba(244, 63, 94, 1)',
+          borderWidth: 2,
+          borderRadius: 4
+        }, {
+          label: 'Utilidad Neta',
+          data: d.utilidad,
+          backgroundColor: 'rgba(14, 165, 233, 0.6)',
+          borderColor: 'rgba(14, 165, 233, 1)',
+          borderWidth: 2,
+          borderRadius: 4
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        plugins: {
+          legend: {
+            position: 'top',
+            labels: { color: '#94a3b8', font: { size: 11 }, boxWidth: 12, padding: 12 }
+          },
+          tooltip: {
+            callbacks: {
+              label: function (ctx) {
+                var val = ctx.parsed.y;
+                var prefix = val >= 0 ? '' : '-';
+                return ctx.dataset.label + ': ' + prefix + formatCOP(Math.abs(val));
+              }
+            }
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true,
+            ticks: {
+              callback: function (v) { return v >= 1000000 ? '$' + (v / 1000000).toFixed(1) + 'M' : v >= 1000 ? '$' + (v / 1000).toFixed(0) + 'K' : '$' + v; },
+              color: '#94a3b8',
+              font: { size: 10 }
+            },
+            grid: { color: 'rgba(148, 163, 184, 0.1)' }
+          },
+          x: {
+            ticks: { color: '#94a3b8', font: { size: 10 } },
+            grid: { display: false }
+          }
+        }
+      }
+    });
   }
 
   async function cargarTendencia() {

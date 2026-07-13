@@ -1150,6 +1150,70 @@ window.DB = (function () {
     crear: async function (data) { return insert('pos_finanzas_mensuales', data); },
     actualizar: async function (id, data) { return update('pos_finanzas_mensuales', id, data); },
     eliminar: async function (id) { return softDelete('pos_finanzas_mensuales', id); },
+
+    obtenerIngresosVsGastos: async function (anio) {
+      try {
+        var ahora = new Date();
+        var mesActual = ahora.getMonth() + 1;
+        var anioActual = ahora.getFullYear();
+
+        var ingresosArr = Array(12).fill(0);
+        var gastosArr = Array(12).fill(0);
+        var utilidadArr = Array(12).fill(0);
+
+        var res = await select('pos_finanzas_mensuales', {
+          filters: [
+            { col: 'anio', val: anio },
+            { col: 'mes', op: 'gte', val: 1 },
+            { col: 'mes', op: 'lte', val: 12 }
+          ],
+          orderBy: 'mes'
+        });
+
+        if (!res.error && res.data) {
+          res.data.forEach(function (f) {
+            if (f.mes >= 1 && f.mes <= 12) {
+              var idx = f.mes - 1;
+              if (anio === anioActual && f.mes === mesActual) return;
+
+              var ing = f.ventas_brutas || f.ventas_netas || 0;
+              var gas = (f.costo_mercaderia_vendida || 0)
+                      + (f.gastos_operativos_total || 0)
+                      + (f.costos_comision_total || 0)
+                      + (f.compras_total || 0)
+                      + (f.otros_gastos || 0);
+
+              ingresosArr[idx] = ing;
+              gastosArr[idx] = gas;
+              utilidadArr[idx] = ing - gas;
+            }
+          });
+        }
+
+        if (anio === anioActual) {
+          var idxAct = mesActual - 1;
+          var [estVentas, totalGastos, totalCompras] = await Promise.all([
+            DB.ventas.estadisticasDelPeriodo(anio, mesActual),
+            DB.gastos.totalDelMes(anio, mesActual),
+            DB.compras.totalDelMes(anio, mesActual)
+          ]);
+
+          var ingresosVivo = estVentas.total || 0;
+          var comisiones = estVentas.costos || 0;
+          var gastosVivo = totalGastos + totalCompras + comisiones;
+
+          ingresosArr[idxAct] = ingresosVivo;
+          gastosArr[idxAct] = gastosVivo;
+          utilidadArr[idxAct] = ingresosVivo - gastosVivo;
+        }
+
+        return { data: { ingresos: ingresosArr, gastos: gastosArr, utilidad: utilidadArr }, error: null };
+      } catch (e) {
+        console.error('[DB] finanzasMensuales.obtenerIngresosVsGastos error:', e);
+        return { data: null, error: e.message };
+      }
+    },
+
     actualizarPorVenta: async function (anio, mes, ventaBruta, descuento, costoComision, costoMercaderia) {
       try {
         await api.rpc('actualizar_finanzas_mensuales', {

@@ -952,6 +952,19 @@ Se usa Chart.js v4.4.7 via CDN (`chart.umd.min.js`). Los graficos se destruyen y
 - Tooltip con formato COP + nombre del año
 - Tabla resumen debajo del canvas: total anual, crecimiento % vs año anterior, promedio mensual, barra visual de proporcion
 
+#### 9.6.4 Ingresos vs Gastos (`#ingresosVsGastosChart`)
+- Tipo: Barra agrupada (3 datasets por mes)
+- Eje X: Meses (Ene-Dic)
+- Eje Y: Valores en COP (escala automatica, permite valores negativos)
+- Filtro: Selector de año independiente (`#ivg-anio`), mismo patron que Ventas Mensuales
+- Fuente: `DB.finanzasMensuales.obtenerIngresosVsGastos(anio)` — query a `pos_finanzas_mensuales` con suplemento en vivo para el mes actual
+- **Dataset 1 — Ingresos**: Esmeralda (`rgba(16, 185, 129, 0.6)`). `ventas_brutas || ventas_netas || 0`
+- **Dataset 2 — Gastos+Costos**: Rosa (`rgba(244, 63, 94, 0.6)`). Suma de `costo_mercaderia_vendida + gastos_operativos_total + costos_comision_total + compras_total + otros_gastos`
+- **Dataset 3 — Utilidad Neta**: Sky (`rgba(14, 165, 233, 0.6)`). `Ingresos - Gastos+Costos`. Puede ser negativa (barra bajo cero)
+- Mes actual: datos en vivo via `DB.ventas.estadisticasDelPeriodo()`, `DB.gastos.totalDelMes()` y `DB.compras.totalDelMes()`
+- Tooltip: formato COP con signo negativo si aplica
+- Legend: top, 3 items con boxWidth 12
+
 ### 9.7 Accesos Rapidos
 Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 - Nueva Venta, Mostrador, Caja, Productos, Compras, Reportes
@@ -959,8 +972,8 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 ### 9.8 Arquitectura
 - `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration. Dependencia externa: Chart.js CDN
 - `panel.js` — IIFE con `init()` async que: carga canales → puebla selectores → bindea eventos → `cargarTodo()`
-- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual(), cargarTendencia()])`
-- 3 instancias globales de Chart.js (`chartVentas`, `chartComparativa`, `chartTendencia`) con cleanup automatico via `.destroy()` antes de recrear
+- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual(), cargarIngresosVsGastos(), cargarTendencia()])`
+- 4 instancias globales de Chart.js (`chartVentas`, `chartComparativa`, `chartIngresosVsGastos`, `chartTendencia`) con cleanup automatico via `.destroy()` antes de recrear
 - Filtros reactivos: `change` event en canal/mes/anio dispara `cargarTodo()`. Selectores de anio de graficos disparan solo recarga de graficos
 - El subtitulo del header muestra la fecha actual en formato local (`toLocaleDateString('es-CO')`)
 - Formato moneda: `formatCOP()` — redondea a entero, separador de miles con punto
@@ -979,6 +992,7 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 | `DB.compras.totalDelMes` | `(anio, mes)` | Suma en vivo `pos_compras.total` del mes. Filtra `estado IN (RECIBIDA,PENDIENTE)`, excluye soft-delete. Usa `api.get()` directo. |
 | `DB.gastos.totalDelMes` | `(anio, mes)` | Suma en vivo `pos_gastos_mensuales_detalle.monto` del mes. Excluye soft-delete. Usa `api.get()` directo. |
 | `DB.ventas.productosVendidosHoy` | `()` | Suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADAS del dia actual via join embed. |
+| `DB.finanzasMensuales.obtenerIngresosVsGastos` | `(anio)` | Devuelve `{ data: { ingresos[], gastos[], utilidad[] }, error }`. 3 arrays de 12 meses cada uno. Usa `pos_finanzas_mensuales`. Para el mes actual del año corriente suplementa con datos en vivo: `estadisticasDelPeriodo.total` (ingresos), `gastos.totalDelMes + compras.totalDelMes + estadisticasDelPeriodo.costos` (gastos). Utilizado exclusivamente por el grafico Ingresos vs Gastos. |
 
 ---
 
