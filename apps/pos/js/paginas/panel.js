@@ -346,14 +346,8 @@
 
     var d = res.data;
     var meses = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
-    var maxVal = Math.max.apply(null, d.ingresos.concat(d.gastos).concat(d.utilidad));
-    var minVal = Math.min.apply(null, d.utilidad);
-    var span = maxVal - minVal;
 
     if (chartIngresosVsGastos) { chartIngresosVsGastos.destroy(); chartIngresosVsGastos = null; }
-
-    var labelAnio = $('ivg-anio');
-    if (labelAnio) labelAnio.textContent = anio;
 
     var ctx = canvas.getContext('2d');
     if (!ctx) return;
