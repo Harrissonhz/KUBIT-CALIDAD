@@ -240,8 +240,14 @@
     recalcular();
   }
 
-  function onEliminarDetalle(e) {
+  async function onEliminarDetalle(e) {
     var idx = parseInt(e.target.closest('button').dataset.idx);
+    var item = DETALLE[idx];
+    if (!item) return;
+    if (item._detalle_db_id) {
+      var res = await DB.comprasDetalle.eliminar(item._detalle_db_id);
+      if (res.error) { mostrarToast('Error al eliminar: ' + res.error); return; }
+    }
     DETALLE.splice(idx, 1);
     renderizarDetalle();
   }
