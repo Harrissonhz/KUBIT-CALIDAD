@@ -972,7 +972,7 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 ### 9.8 Arquitectura
 - `panel.html` — Pagina HTML standalone con sidebar POS completo, header, toast, SW registration. Dependencia externa: Chart.js CDN
 - `panel.js` — IIFE con `init()` async que: carga canales → puebla selectores → bindea eventos → `cargarTodo()`
-- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual(), cargarIngresosVsGastos(), cargarTendencia()])`
+- Flujo de carga: `Promise.all([cargarKpisMes(), cargarKpisOperativos(), cargarTopProductos(), cargarVentasMensuales(), cargarComparativaAnual(), cargarIngresosVsGastos(), cargarTendencia(), cargarKpisTotales()])`
 - 4 instancias globales de Chart.js (`chartVentas`, `chartComparativa`, `chartIngresosVsGastos`, `chartTendencia`) con cleanup automatico via `.destroy()` antes de recrear
 - Filtros reactivos: `change` event en canal/mes/anio dispara `cargarTodo()`. Selectores de anio de graficos disparan solo recarga de graficos
 - El subtitulo del header muestra la fecha actual en formato local (`toLocaleDateString('es-CO')`)
@@ -993,6 +993,71 @@ Grid de 6 cards (responsive: 2 cols mobile, 6 cols desktop) con enlaces a:
 | `DB.gastos.totalDelMes` | `(anio, mes)` | Suma en vivo `pos_gastos_mensuales_detalle.monto` del mes. Excluye soft-delete. Usa `api.get()` directo. |
 | `DB.ventas.productosVendidosHoy` | `()` | Suma `cantidad` de `pos_ventas_detalle` para ventas CONFIRMADAS del dia actual via join embed. |
 | `DB.finanzasMensuales.obtenerIngresosVsGastos` | `(anio)` | Devuelve `{ data: { ingresos[], gastos[], utilidad[] }, error }`. 3 arrays de 12 meses cada uno. Usa `pos_finanzas_mensuales`. Para el mes actual del año corriente suplementa con datos en vivo: `estadisticasDelPeriodo.total` (ingresos), `gastos.totalDelMes + compras.totalDelMes + estadisticasDelPeriodo.costos` (gastos). Utilizado exclusivamente por el grafico Ingresos vs Gastos. |
+| `DB.finanzasMensuales.obtenerTotalesHistoricos` | `()` | Devuelve `{ data: { ventas_brutas, cmv, gastos_comisiones }, error }`. Ejecuta 4 queries paralelas: ventas (SUM ventas_netas de finanzas_mensuales), CMV-gastos (SUM monto de 3 categorias), CMV-compras (SUM total de pos_compras excluyendo ANULADA), Gastos+Comisiones (SUM monto excluyendo 6 categorias de CMV e Inversion Inicial). Utilizado exclusivamente por Rentabilidad TOTAL. |
+
+### 9.10 Rentabilidad TOTAL (bloque en panel.html)
+Seccion de indicadores macro que agrega todo el historial del negocio, insertada antes de "Accesos Rapidos".
+
+#### 9.10.1 Layout
+Bloque de 8 KPIs en grid `grid-cols-2 sm:grid-cols-4`:
+
+```
+┌──────────────────┬──────────────────┬──────────────────┬──────────────────┐
+│ Ventas Brutas    │ CMV (Costo       │ Utilidad Bruta   │ % Margen Bruto   │
+│ $XX.XXX.XXX      │ Ventas)          │ $XX.XXX.XXX      │ XX%              │
+│ (historico total)│ $XX.XXX.XXX      │ (Ventas - CMV)   │ (Util/Ventas*100)│
+├──────────────────┼──────────────────┼──────────────────┼──────────────────┤
+│ Gastos+Comisiones│ Utilidad Neta    │ % Margen Neto    │ ROI              │
+│ $XX.XXX.XXX      │ $XX.XXX.XXX      │ XX%              │ XXX%             │
+│ (gastos no CMV   │ (Ventas - CMV    │                  │ (Ut.Neta /       │
+│  ni Inv.Inicial) │  - Gastos+Comis) │                  │  Inv.Inicial*100)│
+└──────────────────┴──────────────────┴──────────────────┴──────────────────┘
+```
+
+#### 9.10.2 Indicadores y Formulas
+
+| Indicador | ID | Color | Formula |
+|---|---|---|---|
+| Ventas Brutas | `kpi-total-ventas` | slate-950 | `SUM(ventas_netas)` de `pos_finanzas_mensuales` (todo el historial) |
+| Costo Ventas (CMV) | `kpi-total-cmv` | slate-950 | `SUM(monto)` de gastos detalle WHERE categoria IN (Pago Proveedores, Flete China-Colombia, Flete Bog-Med) + `SUM(total)` de pos_compras WHERE estado != 'ANULADA' |
+| Utilidad Bruta | `kpi-total-utilidad-bruta` | emerald-500 | `Ventas Brutas - CMV` |
+| % Margen Bruto | `kpi-total-margen-bruto` | sky-500 | `(Utilidad Bruta / Ventas Brutas) * 100` |
+| Gastos+Comisiones | `kpi-total-gastos` | slate-950 | `SUM(monto)` de gastos detalle WHERE categoria NOT IN (6: Pago Proveedores, Flete China-Colombia, Flete Bog-Med, Membresia Club Importadores, TiendaVirtual, Insumos Tecnologicos) |
+| Utilidad Neta | `kpi-total-utilidad-neta` | emerald-500 | `Ventas Brutas - CMV - Gastos+Comisiones` |
+| % Margen Neto | `kpi-total-margen-neto` | sky-500 | `(Utilidad Neta / Ventas Brutas) * 100` |
+| ROI | `kpi-total-roi` | purple-500 | `(Utilidad Neta / Inversion Inicial) * 100` |
+
+#### 9.10.3 Clasificacion de Categorias de Gasto
+
+Las 23 categorias de `pos_gasto_categorias` se clasifican en 3 grupos:
+
+| Grupo | Categorias | Destino |
+|---|---|---|
+| **CMV** (3) | Pago Proveedores, Flete China-Colombia, Flete Bog-Med | Se suman en CMV como costo directo de la mercancia |
+| **Inversion Inicial** (3) | Membresia Club Importadores, TiendaVirtual, Insumos Tecnologicos | Se usan solo para ROI, NO se restan de Utilidad Neta |
+| **Gastos+Comisiones** (17) | Las 17 restantes (Publicidad, Comisiones ML/LINIO/Exito/Alibaba/MercadoPAGO, Material Empaque, Mensajeria Masiva, Insumos Varios, Reembolso, Obsequios, Promociones, Tarjetas/Bolantes, Flete Por Devolucion) | Se restan de Utilidad Bruta para obtener Utilidad Neta |
+
+#### 9.10.4 Ventas_netas como Ventas Brutas historicas
+En la migracion V0→V1, los valores reales de ventas historicas se almacenaron en `pos_finanzas_mensuales.ventas_netas`. `ventas_brutas` es 0 para periodos Sep 2023-Oct 2025. Por lo tanto, `SUM(ventas_netas)` representa el total de Ventas Brutas historicas.
+
+#### 9.10.5 CMV: 2 fuentes complementarias
+- **V1 historico (2023-2025):** `pos_gastos_mensuales_detalle` con categoria Pago Proveedores, importado desde CSV de V1. Notas contienen "Carga CSV".
+- **V2 operativo (2026+):** `pos_compras` con ordenes de compra reales. Excluye estado `ANULADA` para evitar ordenes canceladas.
+No hay solapamiento entre ambas fuentes.
+
+#### 9.10.6 Tercera Fila: Indicadores Complementarios
+Fila adicional agregada debajo de las 2 filas principales, separada por un divider `border-t`. Contiene 4 indicadores derivados de datos ya disponibles (sin queries adicionales):
+
+| Indicador | ID | Color | Formula | Fuente |
+|---|---|---|---|---|
+| Inversion Inicial | `kpi-total-inversion` | slate-950 | `res.data.inversion_inicial` | 5ta query en `obtenerTotalesHistoricos()` |
+| % Gastos / Ventas | `kpi-total-gastos-pct` | sky-500 | `(Gastos+Comisiones / Ventas Brutas) * 100` | Derivado |
+| Relacion CMV / Ventas | `kpi-total-cmv-pct` | sky-500 | `(CMV / Ventas Brutas) * 100` | Derivado |
+| Break-even (meses) | `kpi-total-breakeven` | emerald-500 | `Inversion Inicial / (Utilidad Neta / Meses Operacion)`. Muestra `---` si Utilidad ≤ 0 | Derivado + `meses_operacion` |
+
+**Meses de operacion:** Se obtiene de `resVentas.data.length` — la cantidad de registros en `pos_finanzas_mensuales` (1 por mes desde Sep 2023). No requiere query adicional.
+
+**Break-even:** Representa en cuantos meses se recuperaria la inversion inicial asumiendo la utilidad promedio mensual actual. Si la utilidad neta es negativa (perdidas), muestra `---` porque nunca se ha generado ganancia.
 
 ---
 

@@ -498,6 +498,19 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - [x] Fix: Eliminada linea residual `labelAnio.textContent = anio` que borraba los `<option>` del `<select>` al asignar `.textContent` (reliquia de cuando `#ivg-anio` era un `<span>`).
 - [x] `npm test` → 105 passed, 0 failures
 
+#### Modulo POS — Fase 26: Rentabilidad TOTAL (Panel Dashboard)
+- [x] `panel.html` — Nuevo bloque "Rentabilidad TOTAL" insertado ANTES de Accesos Rapidos. 12 KPIs en 3 filas `grid-cols-2 sm:grid-cols-4`: Fila 1 (Ventas Brutas, CMV, Utilidad Bruta, % Margen Bruto), Fila 2 (Gastos+Comisiones, Utilidad Neta, % Margen Neto, ROI), Fila 3 (Inversion Inicial, % Gastos/Ventas, Relacion CMV/Ventas, Break-even). IDs: `kpi-total-*`.
+- [x] `database.js` — Nuevo metodo `DB.finanzasMensuales.obtenerTotalesHistoricos()`: ejecuta 5 queries en paralelo via `Promise.all`:
+  - `ventas_brutas`: SUM de `ventas_netas` de `pos_finanzas_mensuales` (todo el historial)
+  - `cmv_gastos`: SUM de `pos_gastos_mensuales_detalle` WHERE categoria IN (Pago Proveedores, Flete China-Colombia, Flete Bog-Med)
+  - `cmv_compras`: SUM de `pos_compras.total` WHERE estado != 'ANULADA'
+  - `gastos_comisiones`: SUM de `pos_gastos_mensuales_detalle` WHERE categoria NOT IN (6 categorias: 3 CMV + 3 Inversion Inicial)
+  - `inversion_inicial`: SUM de `pos_gastos_mensuales_detalle` WHERE categoria IN (Membresia Club Importadores, TiendaVirtual, Insumos Tecnologicos)
+  - Retorna: `{ ventas_brutas, cmv, gastos_comisiones, inversion_inicial, meses_operacion }`
+- [x] `panel.js` — Nueva funcion `cargarKpisTotales()`: calcula Utilidad Bruta, % Margen Bruto, Utilidad Neta, % Margen Neto, ROI, % Gastos/Ventas, Relacion CMV/Ventas, Break-even. Puebla los 12 KPIs. Integrada en `cargarTodo()` via `Promise.all`.
+- [x] `panel.js` — Break-even muestra `---` si Utilidad Neta ≤ 0 (no ha generado ganancia).
+- [x] `npm test` → 105 passed, 0 failures
+
 ### 7.4 Próximo Paso Recomendado
 **Despues del deploy:** Integración con MercadoLibre para sincronizar productos y pedidos.
 
@@ -970,6 +983,9 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 - **Calculo de Gastos+Costos en Ingresos vs Gastos:** `gastos = costo_mercaderia_vendida + gastos_operativos_total + costos_comision_total + compras_total + otros_gastos`. `ingresos = ventas_brutas || ventas_netas`. `utilidad = ingresos - gastos`. Para el mes actual se usan `DB.gastos.totalDelMes()`, `DB.compras.totalDelMes()` y `DB.ventas.estadisticasDelPeriodo()`.
 - **No usar `.textContent` en `<select>`:** Asignar `.textContent` a un elemento `<select>` reemplaza todos los `<option>` hijos por un nodo de texto. Siempre manipular `<option>` via `document.createElement('option')` + `appendChild()`. Bug detectado en Fase 25 donde una linea residual de cuando `#ivg-anio` era `<span>` borraba las opciones del dropdown.
 - **Precacheados en SW: `panel.html` y `js/paginas/panel.js`:** Ambos archivos estaban ausentes del array ASSETS en `service-worker.js`, lo que causaba que el SW sirviera versiones viejas cacheadas en runtime. Se agregaron al precache junto con el bump de version.
+- **Rentabilidad TOTAL con 4 queries paralelas:** `obtenerTotalesHistoricos()` ejecuta 4 queries via `Promise.all` en un solo metodo: ventas (finanzas_mensuales), CMV-gastos (3 categorias), CMV-compras (pos_compras excluyendo ANULADA), Gastos+Comisiones (todas las categorias excepto 6). Ventas Brutas no es el `SUM(ventas_brutas)` real sino `SUM(ventas_netas)` porque en la migracion V0→V1 los valores reales de ventas se almacenaron en `ventas_netas`. `ventas_brutas` en DB puede ser 0 en periodos historicos (Sep 2023-Oct 2025).
+- **CMV se compone de 2 fuentes complementarias:** Pago Proveedores + Fletes (gastos_detalle, datos V1 historicos 2023-2025) y `pos_compras.total` (datos V2 operativos 2026+). No hay solapamiento porque los rangos de fecha son distintos. `pos_compras` excluye `estado = 'ANULADA'` para evitar incluir ordenes canceladas.
+- **Gastos+Comisiones = todo lo que no es CMV ni Inversion Inicial:** Se usa `categoria_id=not.in.(6 UUIDs)` en PostgREST. Las 6 categorias excluidas son: Pago Proveedores, Flete China-Colombia, Flete Bog-Med (CMV) + Membresia Club Importadores, TiendaVirtual, Insumos Tecnologicos (Inversion Inicial). Las otras 17 categorias se consideran Gastos Operativos + Comisiones + Marketing + Devoluciones.
 
 ---
 
@@ -1118,6 +1134,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Selector ivg-anio | `#ivg-anio`, `<select>` en header de card Ingresos vs Gastos, populado via `poblarSelectores()`, independiente de `chart-anio` |
 | obtenerIngresosVsGastos | `DB.finanzasMensuales.obtenerIngresosVsGastos(anio)`, query `pos_finanzas_mensuales`, suplemento mes actual en vivo |
 | No usar textContent en select | Bug Fase 25: `.textContent` en `<select>` destruye `<option>` hijos. Usar `createElement('option')` + `appendChild()` |
+| Rentabilidad TOTAL | `obtenerTotalesHistoricos()`, `cargarKpisTotales()`, 12 KPIs, 3 filas `grid-cols-2 sm:grid-cols-4` |
+| 3ra fila Rentabilidad | Inversion Inicial, % Gastos/Ventas, Relacion CMV/Ventas, Break-even (meses). Derivados sin nuevas queries. `meses_operacion` = `resVentas.data.length` |
+| Ventas Brutas historicas | `SUM(ventas_netas)` de `pos_finanzas_mensuales`, NO `ventas_brutas` (herencia migracion V0→V1) |
+| CMV (Costo Ventas) formula | `SUM(monto) WHERE categoria IN (Pago Proveedores, Flete China-Colombia, Flete Bog-Med)` + `SUM(pos_compras.total) WHERE estado != 'ANULADA'` |
+| Gastos+Comisiones formula | `SUM(monto) WHERE categoria NOT IN (6 categorias de CMV + Inversion Inicial)` |
+| Inversion Inicial | 3 categorias: Membresia Club Importadores, TiendaVirtual, Insumos Tecnologicos. Se usa solo para calcular ROI, NO se resta de Utilidad Neta |
+| Pago Proveedores V1 vs pos_compras V2 | Complementarios. V1: gastos_detalle (2023-2025, notas "Carga CSV"). V2: pos_compras (2026+, exclude ANULADA). No se solapan |
+| Cadena de Rentabilidad | Ventas Brutas → CMV → Utilidad Bruta → % Margen Bruto → Gastos+Comisiones → Utilidad Neta → % Margen Neto → ROI |
+| 4 queries paralelas | `Promise.all` en `obtenerTotalesHistoricos()`: ventas, cmv_gastos, cmv_compras, gastos_comisiones |
 
 ## 13. Registro de Cambios (continuacion)
 
@@ -1331,4 +1356,15 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | `apps/pos/js/paginas/panel.js` | Fix critico: eliminada linea `labelAnio.textContent = anio` que borraba los `<option>` del `<select id="ivg-anio">` (reliquia de cuando era `<span>`). |
 | `apps/pos/service-worker.js` | Cache version bumped: `kubit-pos-20260619-01` → `kubit-pos-20260713-01`. `panel.html` y `js/paginas/panel.js` agregados al precache ASSETS. |
 | `AGENTS.md` | Seccion 5: 4 nuevas decisiones (grafico IVG, calculo gastos+costos, textContent en select, SW precache). Seccion 7.2: Fase 25. Seccion 11: 4 nuevas keywords. |
+| `npm test` | 105 passed, 0 failures |
+
+### 2026-07-20 — Rentabilidad TOTAL (Fase 26)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/panel.html` | Nuevo bloque "Rentabilidad TOTAL" con 12 KPIs en 3 filas `grid-cols-2 sm:grid-cols-4`: Fila 1 (Ventas Brutas, CMV, Utilidad Bruta, % Margen Bruto), Fila 2 (Gastos+Comisiones, Utilidad Neta, % Margen Neto, ROI), Fila 3 (Inversion Inicial, % Gastos/Ventas, Relacion CMV/Ventas, Break-even). IDs `kpi-total-*`. Insertado ANTES de Accesos Rapidos. |
+| `apps/pos/js/compartido/database.js` | Nuevo metodo `obtenerTotalesHistoricos()`: 5 queries paralelas via `Promise.all`. Ventas: SUM(ventas_netas) de finanzas_mensuales. CMV-gastos: SUM(monto) WHERE categoria IN (3 CMV). CMV-compras: SUM(total) FROM pos_compras WHERE estado != 'ANULADA'. Gastos+Comisiones: SUM(monto) WHERE categoria NOT IN (6: 3 CMV + 3 Inversion Inicial). Inversion Inicial: SUM(monto) WHERE categoria IN (3 inversion). Retorna `meses_operacion` desde `resVentas.data.length`. |
+| `apps/pos/js/paginas/panel.js` | Nueva funcion `cargarKpisTotales()`: calcula Utilidad Bruta, % Margen Bruto, Utilidad Neta, % Margen Neto, ROI, % Gastos/Ventas, Relacion CMV/Ventas, Break-even. Puebla los 12 KPIs. Integrada en `cargarTodo()` via `Promise.all`. Break-even muestra `---` si Utilidad Neta ≤ 0. |
+| `AGENTS.md` | Seccion 5: 3 nuevas decisiones (Rentabilidad TOTAL 4 queries, CMV 2 fuentes, Gastos+Comisiones exclusion). Seccion 7.2: Fase 26. Seccion 11: 9 nuevas keywords. |
+| `specs/03-pos-spec.md` | Nueva subseccion 9.10 documentando Rentabilidad TOTAL (diseno, formula, metodos DB). Subseccion 9.10.6 para 3ra fila de indicadores complementarios. |
 | `npm test` | 105 passed, 0 failures |

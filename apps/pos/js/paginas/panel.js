@@ -120,7 +120,8 @@
       cargarVentasMensuales(),
       cargarComparativaAnual(),
       cargarIngresosVsGastos(),
-      cargarTendencia()
+      cargarTendencia(),
+      cargarKpisTotales()
     ]);
   }
 
@@ -679,6 +680,43 @@
         }
       }
     });
+  }
+
+  async function cargarKpisTotales() {
+    var res = await DB.finanzasMensuales.obtenerTotalesHistoricos();
+    if (res.data) {
+      var vb = res.data.ventas_brutas;
+      var cmv = res.data.cmv;
+      var gc = res.data.gastos_comisiones;
+      var utilidadBruta = vb - cmv;
+      var margenBruto = vb > 0 ? Math.round((utilidadBruta / vb) * 100) : 0;
+      var utilidadNeta = vb - cmv - gc;
+      var margenNeto = vb > 0 ? Math.round((utilidadNeta / vb) * 100) : 0;
+      var ii = res.data.inversion_inicial;
+      var roi = ii > 0 ? Math.round((utilidadNeta / ii) * 100) : null;
+
+      $('kpi-total-ventas').textContent = formatCOP(vb);
+      $('kpi-total-cmv').textContent = formatCOP(cmv);
+      $('kpi-total-utilidad-bruta').textContent = formatCOP(utilidadBruta);
+      $('kpi-total-margen-bruto').textContent = margenBruto + '%';
+      $('kpi-total-gastos').textContent = formatCOP(gc);
+      $('kpi-total-utilidad-neta').textContent = formatCOP(utilidadNeta);
+      $('kpi-total-margen-neto').textContent = margenNeto + '%';
+      $('kpi-total-roi').textContent = roi !== null ? roi + '%' : '---';
+
+      var meses = res.data.meses_operacion;
+      var gastosPct = vb > 0 ? Math.round((gc / vb) * 100) : 0;
+      var cmvPct = vb > 0 ? Math.round((cmv / vb) * 100) : 0;
+      var utilidadPromedio = meses > 0 ? utilidadNeta / meses : 0;
+      var breakeven = ii > 0 && utilidadPromedio > 0
+        ? Math.round(ii / utilidadPromedio)
+        : null;
+
+      $('kpi-total-inversion').textContent = formatCOP(ii);
+      $('kpi-total-gastos-pct').textContent = gastosPct + '%';
+      $('kpi-total-cmv-pct').textContent = cmvPct + '%';
+      $('kpi-total-breakeven').textContent = breakeven !== null ? breakeven + ' meses' : '---';
+    }
   }
 
   if (document.readyState === 'loading') {

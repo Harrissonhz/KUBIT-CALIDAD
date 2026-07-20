@@ -1214,6 +1214,61 @@ window.DB = (function () {
       }
     },
 
+    obtenerTotalesHistoricos: async function () {
+      try {
+        var [resVentas, dataGastos, dataCompras, dataGastosCom, dataInvInicial] = await Promise.all([
+          select('pos_finanzas_mensuales', {
+            select: 'ventas_netas',
+            noCache: true
+          }),
+          api.get('pos_gastos_mensuales_detalle?select=monto' +
+            '&categoria_id=in.(75a007e7-76a1-4862-aea4-ff0a6d4f93c3,4fd3dd82-30b8-4ad2-997a-3dd31a5fd165,cc8832af-9c03-49e3-b5b3-bed57783fd2f)' +
+            '&deleted_at=is.null'),
+          api.get('pos_compras?select=total' +
+            '&deleted_at=is.null' +
+            '&estado=neq.ANULADA'),
+          api.get('pos_gastos_mensuales_detalle?select=monto' +
+            '&categoria_id=not.in.(75a007e7-76a1-4862-aea4-ff0a6d4f93c3,4fd3dd82-30b8-4ad2-997a-3dd31a5fd165,cc8832af-9c03-49e3-b5b3-bed57783fd2f,825d6c01-f9ea-490f-9a81-9eeb9a5bbddf,22508578-c881-43a9-9c9d-63149dd53e2b,98e57eb7-4a8b-4757-b5b1-381f75a8c0af)' +
+            '&deleted_at=is.null'),
+          api.get('pos_gastos_mensuales_detalle?select=monto' +
+            '&categoria_id=in.(825d6c01-f9ea-490f-9a81-9eeb9a5bbddf,22508578-c881-43a9-9c9d-63149dd53e2b,98e57eb7-4a8b-4757-b5b1-381f75a8c0af)' +
+            '&deleted_at=is.null')
+        ]);
+
+        if (resVentas.error) return { data: null, error: resVentas.error };
+
+        var ventasBrutas = (resVentas.data || []).reduce(function (sum, r) {
+          return sum + (r.ventas_netas || 0);
+        }, 0);
+
+        var cmvGastos = !dataGastos || !dataGastos.length ? 0
+          : dataGastos.reduce(function (s, r) { return s + (r.monto || 0); }, 0);
+
+        var cmvCompras = !dataCompras || !dataCompras.length ? 0
+          : dataCompras.reduce(function (s, r) { return s + (r.total || 0); }, 0);
+
+        var gastosComisiones = !dataGastosCom || !dataGastosCom.length ? 0
+          : dataGastosCom.reduce(function (s, r) { return s + (r.monto || 0); }, 0);
+
+        var inversionInicial = !dataInvInicial || !dataInvInicial.length ? 0
+          : dataInvInicial.reduce(function (s, r) { return s + (r.monto || 0); }, 0);
+
+        return {
+          data: {
+            ventas_brutas: ventasBrutas,
+            cmv: cmvGastos + cmvCompras,
+            gastos_comisiones: gastosComisiones,
+            inversion_inicial: inversionInicial,
+            meses_operacion: (resVentas.data || []).length
+          },
+          error: null
+        };
+      } catch (e) {
+        console.error('[DB] obtenerTotalesHistoricos error:', e);
+        return { data: null, error: e.message };
+      }
+    },
+
     actualizarPorVenta: async function (anio, mes, ventaBruta, descuento, costoComision, costoMercaderia) {
       try {
         await api.rpc('actualizar_finanzas_mensuales', {
