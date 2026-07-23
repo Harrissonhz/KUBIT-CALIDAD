@@ -960,7 +960,8 @@ window.DB = (function () {
 
         var detActual = await select('pos_productos_detalle', {
           filters: [{ col: 'id', val: detalle.producto_detalle_id }],
-          limit: 1
+          limit: 1,
+          incluirEliminados: true
         });
         if (detActual.data && detActual.data.length) {
           var stockActual = parseInt(detActual.data[0].stock_actual || 0);
@@ -988,6 +989,8 @@ window.DB = (function () {
           filters: [{ col: 'id', val: detalle.compra_id }],
           limit: 1
         });
+
+        _cacheClear('productos');
 
         return {
           data: {

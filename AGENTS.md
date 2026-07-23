@@ -189,6 +189,7 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Datos historicos en ventas_netas | `pos_finanzas_mensuales.ventas_brutas` migro desde V1 solo a partir de Nov 2025. Meses anteriores (Sep 2023-Oct 2025) tienen `ventas_brutas=0` y datos reales en `ventas_netas`. `porMes()` y `cargarKpisMes()` usan `ventas_brutas || ventas_netas || 0` como fallback. |
 | Tendencia de Ventas (multi-year line chart) | El grafico "Tendencia de Ventas" usa `DB.ventas.todosLosAnios()` que consulta `pos_finanzas_mensuales` completo. Una linea por ano con `spanGaps:false` (null en meses sin datos). Paleta progresiva slate (mas antiguo) → sky → emerald (mas reciente). Tabla resumen con total, crecimiento %, promedio mensual y barra visual. |
 | Rango de anos en dropdowns | `filtro-anio`, `chart-anio`, `comp-anio1`, `comp-anio2` generados con `for (a = anioAct + 1; a >= 2023; a--)`. Incluye 2023 porque hay datos desde Sep 2023. |
+| Recepcion de Compras solo via flujo recibir() | El estado "RECIBIDA" NO debe asignarse directamente via dropdown `campo-estado` + PATCH. El unico camino valido es mediante `DB.comprasDetalle.recibir()` que crea movimiento de inventario (`entrada_compra`), actualiza `stock_actual` en `pos_productos_detalle` y establece `cantidad_recibida`. Ver `compras.js::guardar()` que ahora detecta cambio a RECIBIDA y auto-ejecuta recibir() para cada item pendiente. |
 
 ---
 
@@ -509,6 +510,12 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
   - Retorna: `{ ventas_brutas, cmv, gastos_comisiones, inversion_inicial, meses_operacion }`
 - [x] `panel.js` — Nueva funcion `cargarKpisTotales()`: calcula Utilidad Bruta, % Margen Bruto, Utilidad Neta, % Margen Neto, ROI, % Gastos/Ventas, Relacion CMV/Ventas, Break-even. Puebla los 12 KPIs. Integrada en `cargarTodo()` via `Promise.all`.
 - [x] `panel.js` — Break-even muestra `---` si Utilidad Neta ≤ 0 (no ha generado ganancia).
+- [x] `npm test` → 105 passed, 0 failures
+
+#### Modulo POS — Fase 27: Fix Recepcion de Compras (Bug preventivo)
+- [x] **Bug #1 (Raiz):** `compras.js::guardar()` ahora detecta cuando `estado === 'RECIBIDA'` y ejecuta automaticamente `DB.comprasDetalle.recibir()` para cada item pendiente. Antes el dropdown `campo-estado` permitia marcar RECIBIDA via simple PATCH, saltandose la creacion de movimiento de inventario, actualizacion de `stock_actual` y asignacion de `cantidad_recibida`.
+- [x] **Bug #2:** `database.js::recibir()` agregado `incluirEliminados: true` en el query a `pos_productos_detalle`. Sin esto, si la variante estaba soft-deleted, el stock update se saltaba silenciosamente (el `select()` helper agrega `deleted_at=is.null` por defecto).
+- [x] **Bug #3:** `database.js::recibir()` agregado `_cacheClear('productos')` antes del return para que el cache de productos no quede con `stock_actual` desactualizado.
 - [x] `npm test` → 105 passed, 0 failures
 
 ### 7.4 Próximo Paso Recomendado
@@ -1143,8 +1150,23 @@ El proyecto incluye skills especializadas en `.opencode/skills/` y `.claude/skil
 | Pago Proveedores V1 vs pos_compras V2 | Complementarios. V1: gastos_detalle (2023-2025, notas "Carga CSV"). V2: pos_compras (2026+, exclude ANULADA). No se solapan |
 | Cadena de Rentabilidad | Ventas Brutas → CMV → Utilidad Bruta → % Margen Bruto → Gastos+Comisiones → Utilidad Neta → % Margen Neto → ROI |
 | 4 queries paralelas | `Promise.all` en `obtenerTotalesHistoricos()`: ventas, cmv_gastos, cmv_compras, gastos_comisiones |
+| Recepcion de Compras auto | `compras.js::guardar()` detecta estado RECIBIDA y auto-ejecuta `DB.comprasDetalle.recibir()` por item. No usar `campo-estado` + PATCH directo. |
+| incluirEliminados en recibir | `database.js::recibir()` usa `incluirEliminados: true` para encontrar variantes soft-deleted. Si se omite, `select()` helper agrega `deleted_at=is.null` y el stock update se salta. |
+| cacheClear post-recepcion | `database.js::recibir()` ahora hace `_cacheClear('productos')` para que el stock actualizado se refleje inmediatamente en el POS. |
+| Bug: estado RECIBIDA sin stock update | Si una orden de compra tiene `estado=RECIBIDA` pero `cantidad_recibida=0`, es porque se marco via dropdown saltando `recibir()`. Solucion: ejecutar "Recibir Todo" en la UI o editar y guardar con RECIBIDA (el fix auto-ejecuta recibir). |
 
 ## 13. Registro de Cambios (continuacion)
+
+### 2026-07-23 — Fix Recepcion de Compras (Fase 27)
+
+| Archivo | Cambio |
+|---|---|
+| `apps/pos/js/paginas/compras.js` | `guardar()` ahora detecta cuando `estado === 'RECIBIDA'` y auto-ejecuta `DB.comprasDetalle.recibir()` para cada item pendiente. Evita que el dropdown bypasse el flujo de recepcion. |
+| `apps/pos/js/compartido/database.js` | `recibir()` agregado `incluirEliminados: true` en query a `pos_productos_detalle` para que stock update no falle si la variante esta soft-deleted. |
+| `apps/pos/js/compartido/database.js` | `recibir()` agregado `_cacheClear('productos')` antes del return para que el stock actualizado se refleje inmediatamente. |
+| `AGENTS.md` | Seccion 5: decision Recepcion solo via recibir(). Seccion 7.2: Fase 27. Seccion 11: 4 nuevas keywords. |
+| `specs/03-pos-spec.md` | Nueva subseccion 3.4.3 documentando flujo de recepcion y bugs. |
+| `npm test` | 105 passed, 0 failures |
 
 ### 2026-06-26 — Store Variant Name Fix + Cart Variant Display (Fase 22)
 

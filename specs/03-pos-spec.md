@@ -661,6 +661,26 @@ PENDIENTE → CONFIRMADA → RECIBIDA → (opcional) ANULADA
 2. Al recibir una compra, se actualiza `precio_compra` en `pos_productos_detalle` si es diferente
 3. El `total` de la compra se distribuye proporcionalmente para actualizar el costo unitario de cada producto
 
+#### 3.4.3 Flujo de Recepcion
+
+| Paso | Accion | Tabla afectada |
+|---|---|---|
+| 1 | El usuario hace clic en "Recibir" (item individual) o "Recibir Todo" | — |
+| 2 | `DB.comprasDetalle.recibir()` actualiza `cantidad_recibida` y `estado_detalle` en `pos_compras_detalle` | `pos_compras_detalle` |
+| 3 | Crea movimiento de inventario tipo `entrada_compra` en `pos_movimientos_inventario` | `pos_movimientos_inventario` |
+| 4 | Incrementa `stock_actual` en `pos_productos_detalle` por la cantidad recibida | `pos_productos_detalle` |
+| 5 | Si todos los items estan recibidos, actualiza `estado` a `RECIBIDA` en `pos_compras` | `pos_compras` |
+
+**Bug conocido (fixeado Fase 27):** El dropdown `<select id="campo-estado">` en el formulario de edicion permitia seleccionar "RECIBIDA" directamente, lo que parcheaba el estado de la orden sin ejecutar los pasos 2-5. Esto dejaba `stock_actual` sin actualizar y sin movimiento de inventario.
+
+**Fix:** `compras.js::guardar()` ahora detecta cuando `estado === 'RECIBIDA'` y auto-ejecuta `DB.comprasDetalle.recibir()` para cada item pendiente. No es necesario usar el boton "Recibir Todo" — al seleccionar "Recibida" en el dropdown y guardar, el sistema completa automaticamente el flujo de recepcion.
+
+**Casos borde:**
+- Si `pos_productos_detalle` esta soft-deleted (`deleted_at` no nulo), `recibir()` usa `incluirEliminados: true` para encontrar la variante y actualizar stock
+- Si solo algunos items se han recibido, el estado de la orden pasa a `RECIBIENDO`
+- Si la cantidad a recibir supera la cantidad ordenada, `recibir()` retorna error
+- No se permite editar una orden ya recibida (el estado RECIBIDA se bloquea en el flujo normal)
+
 ### 3.5 Facturación Electrónica (DIAN)
 
 #### 3.5.1 Ciclo de Vida

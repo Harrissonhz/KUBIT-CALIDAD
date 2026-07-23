@@ -656,6 +656,20 @@
             });
           }
         }
+        if (data.estado === 'RECIBIDA') {
+          var _pendItems = DETALLE.filter(function(d) {
+            return d._detalle_db_id && (parseInt(d.cantidad_recibida || 0) < parseInt(d.cantidad || 1));
+          });
+          if (_pendItems.length) {
+            var _usr = window.KubitAuth.obtenerUsuario();
+            for (var _p = 0; _p < _pendItems.length; _p++) {
+              var _pend = parseInt(_pendItems[_p].cantidad || 1) - parseInt(_pendItems[_p].cantidad_recibida || 0);
+              if (_pend > 0) {
+                await DB.comprasDetalle.recibir(_pendItems[_p]._detalle_db_id, _pend, _usr ? _usr.id : null);
+              }
+            }
+          }
+        }
         mostrarToast('Compra actualizada');
       } else {
         res = await DB.compras.crearConDetalles(data, detallesPayload);
